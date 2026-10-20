@@ -1,5 +1,5 @@
 // ⚠️ 請替換為你在「階段一」產出的真實 GitHub API 網址
-const API_URL = 'https://shinakasun.github.io/foodWhatDatabase/foods.json';
+const API_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 
 let allFoods = [];
 
