@@ -3,32 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>吃什麼 2</title>
-  <!-- 引入 Tailwind CSS CDN 加速 UI 開發 -->
+  <title>吃什麼 2 - 美食盲盒</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center p-4">
   <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 mt-6">
-    <h1 class="text-2xl font-bold text-center text-slate-800 mb-4">今天吃什麼？</h1>
+    <h1 class="text-2xl font-bold text-center text-slate-800 mb-2">今天吃什麼？</h1>
+    <p id="fortune-text" class="text-xs text-center text-indigo-600 mb-4 font-medium">✨ 今日五行開運加權中...</p>
     
-    <!-- 篩選器區域 -->
-    <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 mb-4">
-      <button class="px-3 py-1 bg-slate-800 text-white rounded-full text-sm whitespace-nowrap">全部</button>
-      <button class="px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap">🔥 熱呼呼</button>
-      <button class="px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap">🥗 清爽</button>
-      <button class="px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap">🥩 高蛋白</button>
+    <!-- 情境篩選按鈕列 (Filter) -->
+    <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+      <button data-tag="all" class="filter-btn px-3 py-1 bg-indigo-600 text-white rounded-full text-sm whitespace-nowrap transition">全部</button>
+      <button data-tag="hot" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🔥 熱呼呼</button>
+      <button data-tag="refreshing" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🥗 清爽</button>
+      <button data-tag="heavy" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🌶️ 重口味</button>
+      <button data-tag="snack" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🍡 小吃</button>
+      <button data-tag="highProtein" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🥩 高蛋白</button>
+      <button data-tag="takeout" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🍱 外帶</button>
     </div>
 
-    <!-- 食物卡片抽籤區 -->
-    <div id="food-list" class="space-y-3">
+    <!-- 食物盲盒抽籤結果顯示區 -->
+    <div id="food-container" class="space-y-3 min-h-[200px]">
       <div class="p-4 border rounded-xl bg-slate-50 flex justify-between items-center">
-        <span class="font-medium text-slate-700">載入中...</span>
+        <span class="text-slate-500">正在初始化盲盒資料庫...</span>
       </div>
     </div>
 
-    <!-- 核心操作按鈕 -->
-    <button id="draw-btn" class="w-full mt-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
-      🎲 幫我決定！(剩餘 20 次)
+    <!-- 核心抽籤按鈕與次數顯示 -->
+    <button id="draw-btn" class="w-full mt-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
+      <span class="text-lg">🎲 隨機抽選 5 項</span>
+      <span id="counter-text" class="text-xs text-indigo-200 mt-0.5">剩餘刷新次數：20 / 20</span>
     </button>
   </div>
 
