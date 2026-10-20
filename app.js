@@ -9,16 +9,27 @@ let hiddenIds = JSON.parse(localStorage.getItem('hidden_foods') || '[]');
 const MAX_DRAW = 20;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 
+const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
+
 async function initApp() {
   try {
-    const res = await fetch('./foods.json');
+    // 加上 time-stamp 防止瀏覽器快取住舊的資料
+    const res = await fetch(`${ONLINE_DATABASE_URL}?t=${Date.now()}`);
+    if (!res.ok) {
+      throw new Error(`HTTP 錯誤！狀態碼：${res.status}`);
+    }
     allFoods = await res.json();
     checkAndUpdateCooldown();
     setupEventListeners();
     filterAndDraw(false); // 初始化不扣次數
   } catch (err) {
-    console.error(err);
-    document.getElementById('food-container').innerHTML = '<p class="text-red-500 text-center">資料庫載入失敗</p>';
+    console.error('線上資料庫讀取失敗：', err);
+    document.getElementById('food-container').innerHTML = `
+      <div class="text-center py-6">
+        <p class="text-red-500 font-bold mb-1">無法連線至遠端資料庫</p>
+        <p class="text-xs text-slate-400">請確認 GitHub API 網址是否正確或網路是否連線</p>
+      </div>
+    `;
   }
 }
 
