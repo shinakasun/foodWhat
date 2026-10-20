@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>吃什麼 2</title>
+  <!-- 引入 Tailwind CSS CDN 加速 UI 開發 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col items-center p-4">
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 mt-6">
+    <h1 class="text-2xl font-bold text-center text-slate-800 mb-4">今天吃什麼？</h1>
+    
+    <!-- 篩選器區域 -->
+    <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 mb-4">
+      <button class="px-3 py-1 bg-slate-800 text-white rounded-full text-sm whitespace-nowrap">全部</button>
+      <button class="px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap">🔥 熱呼呼</button>
+      <button class="px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap">🥗 清爽</button>
+      <button class="px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap">🥩 高蛋白</button>
+    </div>
+
+    <!-- 食物卡片抽籤區 -->
+    <div id="food-list" class="space-y-3">
+      <div class="p-4 border rounded-xl bg-slate-50 flex justify-between items-center">
+        <span class="font-medium text-slate-700">載入中...</span>
+      </div>
+    </div>
+
+    <!-- 核心操作按鈕 -->
+    <button id="draw-btn" class="w-full mt-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
+      🎲 幫我決定！(剩餘 20 次)
+    </button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
