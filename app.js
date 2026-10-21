@@ -107,7 +107,7 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
   applyFeatureUnlocks();
 }
 
-// 1. 升級慶祝彈窗（包含 Lv.8 解鎖不討厭專屬提示）
+// 1. 升級慶祝彈窗
 function showLevelUpModal(lv, desc) {
   document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
   document.getElementById('levelup-desc').innerText = `🎉 恭喜解鎖了：${desc}！`;
@@ -235,6 +235,7 @@ async function fetchTrivias() {
   }
 }
 
+// 4. 冷知識不需要標題，直接顯示內文
 function renderRandomTrivia() {
   if (userLevel < 6) return;
   const triviaBox = document.getElementById('trivia-box');
@@ -243,15 +244,14 @@ function renderRandomTrivia() {
     return;
   }
   const random = allTrivias[Math.floor(Math.random() * allTrivias.length)];
-  document.getElementById('trivia-title').innerText = random.title;
   document.getElementById('trivia-content').innerText = random.content;
   triviaBox.classList.remove('hidden');
 }
 
-// 2. 刷新食物冷知識 (消耗 1 刷新幣)
+// 3. 刷新冷知識 (扣除 1 刷新水晶)
 window.refreshTriviaWithCoin = function() {
   if (drawState.count <= 0) {
-    alert('刷新幣不足！請觀看廣告補充。');
+    alert('刷新水晶不足！請觀看廣告補充。');
     return;
   }
   drawState.count--;
@@ -518,8 +518,8 @@ window.simulateWatchAd = function() {
     saveState();
     updateCountersAndTimer();
     btn.disabled = false;
-    btn.innerText = '🎬 看廣告 +10 刷新幣';
-    alert('🎉 感謝觀看！刷新幣已增加 10 個！');
+    btn.innerText = '🎬 看廣告 +10 刷新水晶';
+    alert('🎉 感謝觀看！刷新水晶已增加 10 個！');
   }, 2000);
 };
 
@@ -538,7 +538,7 @@ function setupEventListeners() {
   if (drawBtn) {
     drawBtn.addEventListener('click', () => {
       if (drawState.count <= 0) {
-        alert('刷新幣不足！請觀看廣告補充。');
+        alert('刷新水晶不足！請觀看廣告補充。');
         return;
       }
       drawState.count--;
@@ -765,11 +765,23 @@ function updateButtonUI(id) {
   });
 }
 
+// 2. 選擇食物時，提前在是否確認畫面上提示屬性加成
 window.openFoodConfirmModal = function(id) {
   selectedFoodForConfirm = allFoods.find(f => f.id === id);
   if (!selectedFoodForConfirm) return;
 
+  const userElement = userBirth ? calculateElement(userBirth.year) : { key: 'elementEarth' };
+  const isMatchedElement = selectedFoodForConfirm.element === userElement.key;
+
   document.getElementById('confirm-title').innerText = `確定要吃 ${selectedFoodForConfirm.name} 嗎？`;
+  
+  const hintBox = document.getElementById('confirm-element-bonus-hint');
+  if (isMatchedElement) {
+    hintBox.classList.remove('hidden');
+  } else {
+    hintBox.classList.add('hidden');
+  }
+
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-confirm-step1').classList.remove('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
@@ -779,7 +791,6 @@ window.openFoodConfirmModal = function(id) {
   document.getElementById('modal-levelup').classList.add('hidden');
 };
 
-// 4. 選擇當日建議屬性時提示文案
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
@@ -813,10 +824,9 @@ function handleConfirm(needMap) {
     gainedExp += 5;
     expMsg = "✨ 經驗值 +5";
 
-    // 4. 五行契合文字調整
     if (foodElement === userElement.key) {
       gainedExp += 5;
-      expMsg += "<br><span class='text-amber-600 dark:text-amber-300 font-extrabold'>🔥 食物屬性特別適合今天的你 經驗值額外+5</span>";
+      expMsg += "<br><span class='text-amber-600 dark:text-amber-300 font-extrabold'>🔥 食物屬性契合 經驗值額外+5！</span>";
     }
 
     userExp += gainedExp;
@@ -873,13 +883,13 @@ function checkAndUpdateCooldown() {
   }
 }
 
-// 3. 刷新幣 UI 顯示更新
+// 3. 刷新水晶 UI 顯示更新
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
   const coinCounterEl = document.getElementById('coin-counter-text');
   if (coinCounterEl) {
-    coinCounterEl.innerText = `🪙 刷新幣：${drawState.count}`;
+    coinCounterEl.innerText = `🔮 刷新水晶：${drawState.count}`;
   }
 
   const nextRefreshEl = document.getElementById('next-refresh-time');
