@@ -2,10 +2,9 @@ let allFoods = [];
 let allTrivias = [];
 let currentFilter = 'all';
 
-// RPG 等級與經驗值系統 (約一天內可解鎖完前 5 樣)
 let userExp = parseInt(localStorage.getItem('user_exp') || '0');
 let userLevel = parseInt(localStorage.getItem('user_level') || '1');
-let lastEatTime = parseInt(localStorage.getItem('last_eat_time') || '0'); // 4 小時冷卻時間戳
+let lastEatTime = parseInt(localStorage.getItem('last_eat_time') || '0');
 
 let userLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
 let userDislikes = JSON.parse(localStorage.getItem('user_dislikes') || '[]');
@@ -34,23 +33,21 @@ const ELEMENT_MAP = {
   elementEarth: { name: '土', icon: '⛰️', class: 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-800' }
 };
 
-// 等級解鎖順序對照表 (依據你的指定順序)
-// 每級所需經驗值設定為容易在一天內達成的曲線
+// 等級解鎖順序對照表（個人最愛改為 Lv.4）
 const LEVEL_UNLOCKS = [
-  { level: 1, name: "初始狀態 (3選項)", expNeeded: 0 },
-  { level: 2, name: "解鎖第四選項", expNeeded: 5 },
-  { level: 3, name: "解鎖喜歡按鈕", expNeeded: 12 },
-  { level: 4, name: "解鎖深色模式", expNeeded: 20 },
-  { level: 5, name: "解鎖統計按鈕", expNeeded: 30 },
-  { level: 6, name: "解鎖美食冷知識", expNeeded: 42 },
-  { level: 7, name: "解鎖第五選項", expNeeded: 56 },
-  { level: 8, name: "解鎖個人最愛精選", expNeeded: 72 },
-  { level: 9, name: "解鎖討厭按鈕", expNeeded: 90 },
-  { level: 10, name: "解鎖第六選項", expNeeded: 110 },
-  { level: 11, name: "解鎖第七選項", expNeeded: 135 },
-  { level: 12, name: "解鎖第八選項", expNeeded: 165 },
-  { level: 13, name: "解鎖第九選項", expNeeded: 200 },
-  { level: 14, name: "解鎖一整套篩選按鈕", expNeeded: 240 }
+  { level: 1, name: "初始狀態 (3選項)", expNeeded: 0, unlockDesc: "初始開局" },
+  { level: 2, name: "解鎖第四選項", expNeeded: 5, unlockDesc: "第四個盲盒選項" },
+  { level: 3, name: "解鎖喜歡按鈕", expNeeded: 12, unlockDesc: "👍 喜歡按鈕與深色模式" },
+  { level: 4, name: "解鎖個人最愛精選", expNeeded: 20, unlockDesc: "⭐ 個人最愛精選鎖定區" },
+  { level: 5, name: "解鎖統計按鈕", expNeeded: 30, unlockDesc: "📊 數據統計中心" },
+  { level: 6, name: "解鎖美食冷知識", expNeeded: 42, unlockDesc: "💡 每日美食冷知識區" },
+  { level: 7, name: "解鎖第五選項", expNeeded: 56, unlockDesc: "第五個盲盒選項" },
+  { level: 8, name: "解鎖討厭按鈕", expNeeded: 72, unlockDesc: "👎 討厭按鈕與黑名單" },
+  { level: 9, name: "解鎖第六選項", expNeeded: 90, unlockDesc: "第六個盲盒選項" },
+  { level: 10, name: "解鎖第七選項", expNeeded: 110, unlockDesc: "第七個盲盒選項" },
+  { level: 11, name: "解鎖第八選項", expNeeded: 135, unlockDesc: "第八個盲盒選項" },
+  { level: 12, name: "解鎖第九選項", expNeeded: 165, unlockDesc: "第九個盲盒選項 (完全體)" },
+  { level: 13, name: "解鎖一整套篩選按鈕", expNeeded: 200, unlockDesc: "🥗 全情境美食篩選按鈕組" }
 ];
 
 async function initApp() {
@@ -59,7 +56,7 @@ async function initApp() {
 
   await Promise.all([fetchFoods(), fetchTrivias()]);
   checkAndUpdateCooldown();
-  updateLevelAndUI();
+  updateLevelAndUI(false); // 初始化不跳升級窗
 
   if (!userBirth) {
     showBirthModal();
@@ -68,12 +65,12 @@ async function initApp() {
     filterAndDraw(false);
   }
   
-  setInterval(updateCounterUI, 1000);
+  setInterval(updateCountersAndTimer, 1000);
 }
 
-// 計算並更新等級與介面解鎖狀態
-function updateLevelAndUI() {
-  // 自動計算目前經驗值對應的等級
+// 經驗值與等級檢核
+function updateLevelAndUI(shouldCheckLevelUp = true) {
+  let oldLevel = userLevel;
   let currentLv = 1;
   for (let i = LEVEL_UNLOCKS.length - 1; i >= 0; i--) {
     if (userExp >= LEVEL_UNLOCKS[i].expNeeded) {
@@ -84,7 +81,12 @@ function updateLevelAndUI() {
   userLevel = currentLv;
   localStorage.setItem('user_level', userLevel);
 
-  // 計算進度條
+  // 1. 若發生升級且允許彈窗，跳出升級祝賀視窗
+  if (shouldCheckLevelUp && userLevel > oldLevel) {
+    const tier = LEVEL_UNLOCKS.find(l => l.level === userLevel);
+    showLevelUpModal(userLevel, tier ? tier.unlockDesc : "新功能");
+  }
+
   const currentTier = LEVEL_UNLOCKS.find(l => l.level === userLevel) || LEVEL_UNLOCKS[0];
   const nextTier = LEVEL_UNLOCKS.find(l => l.level === userLevel + 1);
   
@@ -111,9 +113,16 @@ function updateLevelAndUI() {
   applyFeatureUnlocks();
 }
 
+function showLevelUpModal(lv, desc) {
+  document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
+  document.getElementById('levelup-desc').innerText = `🎉 恭喜解鎖了：${desc}！`;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-levelup').classList.remove('hidden');
+}
+
 // 根據目前等級套用介面解鎖
 function applyFeatureUnlocks() {
-  // 1. 冷知識區 (Lv.6 解鎖)
+  // 冷知識區 (Lv.6 解鎖)
   const triviaLocked = document.getElementById('trivia-locked-box');
   const triviaBox = document.getElementById('trivia-box');
   if (userLevel >= 6 && settingsPushTrivia) {
@@ -126,10 +135,10 @@ function applyFeatureUnlocks() {
     triviaBox.classList.add('hidden');
   }
 
-  // 2. 篩選按鈕列 (Lv.14 解鎖)
+  // 篩選按鈕列 (Lv.13 解鎖)
   const filterLocked = document.getElementById('filter-locked-box');
   const filterBar = document.getElementById('filter-bar');
-  if (userLevel >= 14) {
+  if (userLevel >= 13) {
     filterLocked.classList.add('hidden');
     filterBar.classList.remove('hidden');
   } else {
@@ -137,36 +146,35 @@ function applyFeatureUnlocks() {
     filterBar.classList.add('hidden');
   }
 
-  // 3. 統計按鈕 (Lv.5 解鎖)
-  const statLocked = document.getElementById('btn-stats-locked');
-  const statUnlocked = document.getElementById('btn-stats-unlocked');
+  // 2. 統計按鈕直接用灰色上鎖圖案取代 (Lv.5 解鎖)
+  const statBtn = document.getElementById('btn-stats-action');
   if (userLevel >= 5) {
-    statLocked.classList.add('hidden');
-    statUnlocked.classList.remove('hidden');
+    statBtn.className = "px-2.5 py-1 text-xs rounded-xl border transition flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-indigo-500";
+    statBtn.innerHTML = "📊 統計";
   } else {
-    statLocked.classList.remove('hidden');
-    statUnlocked.classList.add('hidden');
+    statBtn.className = "px-2.5 py-1 text-xs rounded-xl border transition flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700";
+    statBtn.innerHTML = "🔒 📊 統計";
   }
 
-  // 4. 深色模式設定 (Lv.4 解鎖)
+  // 深色模式設定 (Lv.3 解鎖)
   const dmWrapper = document.getElementById('setting-darkmode-wrapper');
   const dmCheckbox = document.getElementById('setting-darkmode');
   const dmLocker = document.getElementById('lock-darkmode');
-  if (userLevel >= 4) {
+  if (userLevel >= 3) {
     dmWrapper.classList.remove('opacity-50');
     dmCheckbox.disabled = false;
     dmLocker.innerText = '';
   }
 
-  // 5. 個人最愛精選區 (Lv.8 解鎖)
+  // 4. 個人最愛精選區 (改為 Lv.4 解鎖)
   const favLabel = document.getElementById('favorite-label');
   const favLocked = document.getElementById('favorite-locked-box');
-  if (userLevel >= 8) {
+  if (userLevel >= 4) {
     favLabel.innerText = '⭐ 個人最愛精選';
     favLabel.className = 'text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1';
     if (favLocked) favLocked.classList.add('hidden');
   } else {
-    favLabel.innerText = '❓ 個人最愛精選 (Lv.8 解鎖)';
+    favLabel.innerText = '❓ 個人最愛精選 (Lv.4 解鎖)';
     favLabel.className = 'text-xs font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1';
     if (favLocked) favLocked.classList.remove('hidden');
   }
@@ -177,18 +185,18 @@ window.checkFeatureLock = function(featureKey) {
   const reqLevels = {
     stats: 5,
     trivia: 6,
-    filters: 14,
-    favorite: 8,
+    filters: 13,
+    favorite: 4,
     like: 3,
-    dislike: 9
+    dislike: 8
   };
   const reqNames = {
-    stats: "📊 統計中心 (Lv.5)",
+    stats: "📊 數據統計中心 (Lv.5)",
     trivia: "💡 美食冷知識 (Lv.6)",
-    filters: "🥗 篩選按鈕組 (Lv.14)",
-    favorite: "⭐ 個人最愛精選 (Lv.8)",
+    filters: "🥗 篩選按鈕組 (Lv.13)",
+    favorite: "⭐ 個人最愛精選 (Lv.4)",
     like: "👍 喜歡按鈕 (Lv.3)",
-    dislike: "👎 討厭按鈕 (Lv.9)"
+    dislike: "👎 討厭按鈕 (Lv.8)"
   };
 
   const needed = reqLevels[featureKey] || 1;
@@ -197,12 +205,12 @@ window.checkFeatureLock = function(featureKey) {
   }
 };
 
-// 根據等級決定顯示幾個盲盒選項 (Lv.1=3個, Lv.2=4, Lv.7=5, Lv.10=6, Lv.11=7, Lv.12=8, Lv.13=9)
+// 盲盒選項數量解鎖邏輯 (Lv.1=3, Lv.2=4, Lv.7=5, Lv.9=6, Lv.10=7, Lv.11=8, Lv.12=9)
 function getUnlockBoxCount() {
-  if (userLevel >= 13) return 9;
-  if (userLevel === 12) return 8;
-  if (userLevel === 11) return 7;
-  if (userLevel === 10) return 6;
+  if (userLevel >= 12) return 9;
+  if (userLevel === 11) return 8;
+  if (userLevel === 10) return 7;
+  if (userLevel === 9) return 6;
   if (userLevel >= 7) return 5;
   if (userLevel >= 2) return 4;
   return 3;
@@ -333,7 +341,7 @@ window.saveSettings = function() {
 
 window.openStatsModal = function() {
   if (userLevel < 5) {
-    alert('🔒 統計中心尚未解鎖！');
+    alert('🔒 統計中心尚未解鎖！需要達到 Lv.5。');
     return;
   }
   renderStatsRecent();
@@ -467,7 +475,7 @@ window.unmarkBanned = function(id) {
 };
 
 window.toggleDarkMode = function(isDark) {
-  if (userLevel < 4) {
+  if (userLevel < 3) {
     alert('🔒 深色模式尚未解鎖！');
     document.getElementById('setting-darkmode').checked = false;
     return;
@@ -499,9 +507,9 @@ window.simulateWatchAd = function() {
   btn.innerText = '⏳ 廣告播放中...';
 
   setTimeout(() => {
-    drawState.count += 10; // 改為看廣告增加 10 次
+    drawState.count += 10;
     saveState();
-    updateCounterUI();
+    updateCountersAndTimer();
     btn.disabled = false;
     btn.innerText = '🎬 看廣告 +10 次';
     alert('🎉 感謝觀看！刷新次數已增加 10 次！');
@@ -529,10 +537,9 @@ function setupEventListeners() {
       drawState.count--;
       saveState();
 
-      // 刷新按鈕點擊：經驗值 +1
       userExp += 1;
       localStorage.setItem('user_exp', userExp);
-      updateLevelAndUI();
+      updateLevelAndUI(true); // 每次加經驗值皆檢查是否升級
 
       filterAndDraw(true);
     });
@@ -561,20 +568,19 @@ function filterAndDraw(isDrawn) {
     pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
   }
 
-  if (userLevel >= 14 && currentFilter !== 'all') {
+  if (userLevel >= 13 && currentFilter !== 'all') {
     pool = pool.filter(f => f.tags && f.tags.includes(currentFilter));
   }
 
-  // 根據等級決定抽樣數量 (3 ~ 9 個)
   const boxCount = getUnlockBoxCount();
   const selectedBoxes = weightedSample(pool, boxCount, userElement.key);
   
-  // 個人最愛精選 (Lv.8 解鎖)
-  const favoriteOne = (userLevel >= 8) ? sampleFavorite() : null;
+  // 個人最愛精選 (Lv.4 解鎖)
+  const favoriteOne = (userLevel >= 4) ? sampleFavorite() : null;
 
   renderMainUI(selectedBoxes);
   renderFavoriteUI(favoriteOne);
-  updateCounterUI();
+  updateCountersAndTimer();
 }
 
 function weightedSample(list, k, elementKey) {
@@ -610,7 +616,7 @@ function weightedSample(list, k, elementKey) {
 }
 
 function sampleFavorite() {
-  if (userLevel < 8) return null;
+  if (userLevel < 4) return null;
   const likedFoods = allFoods.filter(f => userLikes.includes(f.id));
   if (likedFoods.length === 0) return null;
   return likedFoods[Math.floor(Math.random() * likedFoods.length)];
@@ -632,10 +638,10 @@ function renderMainUI(foods) {
 
 function renderFavoriteUI(food) {
   const container = document.getElementById('favorite-container');
-  if (userLevel < 8) {
+  if (userLevel < 4) {
     container.innerHTML = `
       <div id="favorite-locked-box" onclick="checkFeatureLock('favorite')" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
-        🔒 達到 Lv.8 解鎖個人最愛精選區
+        🔒 達到 Lv.4 解鎖個人最愛精選區
       </div>
     `;
     return;
@@ -674,12 +680,11 @@ function createFoodCardHTML(food, isFavoriteSlot) {
     ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
     : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200';
 
-  // 喜歡與討厭按鈕的動態解鎖處理
   const likeAction = (userLevel >= 3) ? `togglePreference(${food.id}, 'like')` : `checkFeatureLock('like')`;
-  const dislikeAction = (userLevel >= 9) ? `togglePreference(${food.id}, 'dislike')` : `checkFeatureLock('dislike')`;
+  const dislikeAction = (userLevel >= 8) ? `togglePreference(${food.id}, 'dislike')` : `checkFeatureLock('dislike')`;
 
   const likeDisplay = (userLevel >= 3) ? '👍' : '🔒';
-  const dislikeDisplay = (userLevel >= 9) ? '👎' : '🔒';
+  const dislikeDisplay = (userLevel >= 8) ? '👎' : '🔒';
 
   card.innerHTML = `
     <div class="cursor-pointer flex-grow flex items-center gap-2" onclick="openFoodConfirmModal(${food.id})">
@@ -695,7 +700,7 @@ function createFoodCardHTML(food, isFavoriteSlot) {
         ${likeDisplay}
       </button>
       <button id="dislike-btn-${food.id}" onclick="${dislikeAction}" 
-        class="px-2.5 py-1 text-xs rounded-lg border transition ${dislikeBtnClass}" title="${userLevel < 9 ? 'Lv.9 解鎖討厭' : ''}">
+        class="px-2.5 py-1 text-xs rounded-lg border transition ${dislikeBtnClass}" title="${userLevel < 8 ? 'Lv.8 解鎖討厭' : ''}">
         ${dislikeDisplay}
       </button>
     </div>
@@ -713,7 +718,7 @@ window.togglePreference = function(id, type) {
       userDislikes = userDislikes.filter(i => i !== id);
     }
   } else if (type === 'dislike') {
-    if (userLevel < 9) { alert('🔒 討厭按鈕需達到 Lv.9 才能使用！'); return; }
+    if (userLevel < 8) { alert('🔒 討厭按鈕需達到 Lv.8 才能使用！'); return; }
     if (userDislikes.includes(id)) {
       userDislikes = userDislikes.filter(i => i !== id);
     } else {
@@ -747,7 +752,7 @@ function updateButtonUI(id) {
   });
 
   dislikeBtns.forEach(btn => {
-    if (userLevel >= 9) {
+    if (userLevel >= 8) {
       btn.className = `px-2.5 py-1 text-xs rounded-lg border transition ${
         isDisliked ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
       }`;
@@ -766,6 +771,7 @@ window.openFoodConfirmModal = function(id) {
   document.getElementById('modal-birth').classList.add('hidden');
   document.getElementById('modal-settings').classList.add('hidden');
   document.getElementById('modal-stats').classList.add('hidden');
+  document.getElementById('modal-levelup').classList.add('hidden');
 };
 
 function handleConfirm(needMap) {
@@ -794,16 +800,14 @@ function handleConfirm(needMap) {
 
   // 4 小時冷卻判定與經驗值結算
   const now = Date.now();
-  const cooldownMs = 4 * 60 * 60 * 1000; // 4 小時
+  const cooldownMs = 4 * 60 * 60 * 1000;
   let gainedExp = 0;
   let expMsg = "";
 
   if (now - lastEatTime >= cooldownMs) {
-    // 冷卻結束：基礎 +5 經驗值
     gainedExp += 5;
     expMsg = "✨ 經驗值 +5";
 
-    // 檢查是否與當日建議屬性相同 (+5 額外經驗值)
     if (foodElement === userElement.key) {
       gainedExp += 5;
       expMsg += " (🔥 五行契合額外獎勵 +5！)";
@@ -813,7 +817,7 @@ function handleConfirm(needMap) {
     lastEatTime = now;
     localStorage.setItem('user_exp', userExp);
     localStorage.setItem('last_eat_time', lastEatTime);
-    updateLevelAndUI();
+    updateLevelAndUI(true); // 確認吃東西觸發升級檢查
   } else {
     expMsg = "⏳ 4小時冷卻中，本次確認未獲得經驗值";
   }
@@ -845,6 +849,7 @@ window.closeModal = function() {
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-settings').classList.add('hidden');
   document.getElementById('modal-stats').classList.add('hidden');
+  document.getElementById('modal-levelup').classList.add('hidden');
   selectedFoodForConfirm = null;
 };
 
@@ -862,22 +867,44 @@ function checkAndUpdateCooldown() {
   }
 }
 
-function updateCounterUI() {
+// 統整刷新次數與 4 小時冷卻倒數的 UI 更新
+function updateCountersAndTimer() {
   checkAndUpdateCooldown();
+  
+  // 1. 次數更新 (充滿時不顯示已充滿)
   const counterEl = document.getElementById('counter-text');
-  if (!counterEl) return;
-  
-  // 剩餘次數充滿時不用顯示「已充滿」，僅顯示數字與倒數
-  const now = Date.now();
-  const intervalMs = 10 * 60 * 1000;
-  const elapsed = (now - drawState.timestamp) % intervalMs;
-  const remainingMs = intervalMs - elapsed;
-  
-  const minutes = Math.floor(remainingMs / 60000);
-  const seconds = Math.floor((remainingMs % 60000) / 1000);
-  const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  if (counterEl) {
+    const now = Date.now();
+    const intervalMs = 10 * 60 * 1000;
+    const elapsed = (now - drawState.timestamp) % intervalMs;
+    const remainingMs = intervalMs - elapsed;
+    
+    const minutes = Math.floor(remainingMs / 60000);
+    const seconds = Math.floor((remainingMs % 60000) / 1000);
+    const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-  counterEl.innerText = `剩餘刷新次數：${drawState.count} (補充：${timeStr})`;
+    counterEl.innerText = `剩餘刷新次數：${drawState.count} (補充：${timeStr})`;
+  }
+
+  // 2. 4小時獲得經驗值冷卻倒數計時器
+  const timerBar = document.getElementById('cooldown-timer-bar');
+  const countdownEl = document.getElementById('cooldown-countdown');
+  if (timerBar && countdownEl) {
+    const now = Date.now();
+    const cooldownMs = 4 * 60 * 60 * 1000;
+    const elapsedEat = now - lastEatTime;
+
+    if (elapsedEat < cooldownMs) {
+      const remainEatMs = cooldownMs - elapsedEat;
+      const hrs = Math.floor(remainEatMs / (1000 * 60 * 60));
+      const mins = Math.floor((remainEatMs % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((remainEatMs % (1000 * 60)) / 1000);
+      countdownEl.innerText = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      timerBar.classList.remove('hidden');
+    } else {
+      timerBar.classList.add('hidden'); // 冷卻已結束，隱藏提示
+    }
+  }
 }
 
 function saveState() {
