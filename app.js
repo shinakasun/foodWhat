@@ -1,18 +1,35 @@
 let allFoods = [];
 let currentFilter = 'all';
 
+// 使用者偏好與設定讀取
 let userLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
 let userDislikes = JSON.parse(localStorage.getItem('user_dislikes') || '[]');
+let userTaboos = JSON.parse(localStorage.getItem('user_taboos') || '[]');
 let isVIP = localStorage.getItem('is_vip') === 'true';
+let userBirth = JSON.parse(localStorage.getItem('user_birth') || 'null');
+let settingsPushZodiac = localStorage.getItem('push_zodiac') === 'true';
+let settingsPushTrivia = localStorage.getItem('push_trivia') === 'true';
+let isDarkMode = localStorage.getItem('dark_mode') === 'true';
 
 const MAX_DRAW = 9999;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
-
-let selectedFoodForConfirm = null; // 當前被點擊的食物紀錄
+let selectedFoodForConfirm = null;
 
 const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 
 async function initApp() {
+  // 初始化主題模式
+  toggleDarkMode(isDarkMode);
+  document.getElementById('setting-darkmode').checked = isDarkMode;
+
+  // 檢查是否為初次進入（無生日記錄）
+  if (!userBirth) {
+    showBirthModal();
+    return;
+  }
+
+  updateFortuneText();
+
   try {
     const res = await fetch(`${ONLINE_DATABASE_URL}?t=${Date.now()}`);
     if (!res.ok) throw new Error(`HTTP 錯誤！狀態碼：${res.status}`);
@@ -31,11 +48,124 @@ async function initApp() {
   }
 }
 
+// 五行屬性計算（依據出生年份末位天干）
+function calculateElement(year) {
+  const lastDigit = year % 10;
+  if (lastDigit === 0 || lastDigit === 1) return { name: '金', key: 'elementMetal' };
+  if (lastDigit === 2 || lastDigit === 3) return { name: '水', key: 'elementWater' };
+  if (lastDigit === 4 || lastDigit === 5) return { name: '木', key: 'elementWood' };
+  if (lastDigit === 6 || lastDigit === 7) return { name: '火', key: 'elementFire' };
+  return { name: '土', key: 'elementEarth' };
+}
+
+function updateFortuneText() {
+  if (!userBirth) return;
+  const element = calculateElement(userBirth.year);
+  document.getElementById('fortune-text').innerText = `✨ 本命五行【${element.name}】啟動，今日開運屬性加權中！`;
+}
+
+// 初次生日彈窗
+function showBirthModal() {
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-birth').classList.remove('hidden');
+}
+
+window.saveBirthdate = function() {
+  const year = parseInt(document.getElementById('input-year').value);
+  const month = parseInt(document.getElementById('input-month').value);
+  const day = parseInt(document.getElementById('input-day').value);
+
+  if (!year || !month || !day) {
+    alert('請完整填寫西元出生年月日！');
+    return;
+  }
+
+  userBirth = { year, month, day };
+  localStorage.setItem('user_birth', JSON.stringify(userBirth));
+  closeModal();
+  initApp();
+};
+
+// 設定 Modal 開啟與儲存
+window.openSettingsModal = function() {
+  if (userBirth) {
+    document.getElementById('setting-year').value = userBirth.year;
+    document.getElementById('setting-month').value = userBirth.month;
+    document.getElementById('setting-day').value = userBirth.day;
+  }
+  document.getElementById('setting-push-zodiac').checked = settingsPushZodiac;
+  document.getElementById('setting-push-trivia').checked = settingsPushTrivia;
+
+  // 渲染忌食勾選狀態
+  document.querySelectorAll('.meat-taboo').forEach(checkbox => {
+    checkbox.checked = userTaboos.includes(checkbox.value);
+  });
+
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-settings').classList.remove('hidden');
+};
+
+window.saveSettings = function() {
+  const year = parseInt(document.getElementById('setting-year').value);
+  const month = parseInt(document.getElementById('setting-month').value);
+  const day = parseInt(document.getElementById('setting-day').value);
+
+  if (year && month && day) {
+    userBirth = { year, month, day };
+    localStorage.setItem('user_birth', JSON.stringify(userBirth));
+  }
+
+  settingsPushZodiac = document.getElementById('setting-push-zodiac').checked;
+  settingsPushTrivia = document.getElementById('setting-push-trivia').checked;
+  localStorage.setItem('push_zodiac', settingsPushZodiac);
+  localStorage.setItem('push_trivia', settingsPushTrivia);
+
+  // 收集忌食肉品
+  userTaboos = [];
+  document.querySelectorAll('.meat-taboo:checked').forEach(checkbox => {
+    userTaboos.push(checkbox.value);
+  });
+  localStorage.setItem('user_taboos', JSON.stringify(userTaboos));
+
+  closeModal();
+  updateFortuneText();
+  filterAndDraw(false);
+};
+
+// 深色模式切換
+window.toggleDarkMode = function(isDark) {
+  isDarkMode = isDark;
+  localStorage.setItem('dark_mode', isDark);
+  const htmlRoot = document.getElementById('html-root');
+  if (isDark) {
+    htmlRoot.classList.add('dark');
+  } else {
+    htmlRoot.classList.remove('dark');
+  }
+};
+
+// 購買 VIP
+window.buyVIP = function() {
+  isVIP = true;
+  localStorage.setItem('is_vip', 'true');
+  alert('🎉 恭喜您升級為 VIP 正式版！已解鎖「完全過濾不喜歡選項」功能。');
+  closeModal();
+  filterAndDraw(false);
+};
+
+// 清空 LocalStorage 測試按鈕
+window.clearLocalStorage = function() {
+  if (confirm('確定要清空所有 LocalStorage 資料並重置 App 嗎？')) {
+    localStorage.clear();
+    location.reload();
+  }
+};
+
 function setupEventListeners() {
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.filter-btn').forEach(b => {
-        b.className = 'filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition';
+        b.className = 'filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition';
       });
       e.target.className = 'filter-btn px-3 py-1 bg-indigo-600 text-white rounded-full text-sm whitespace-nowrap transition';
       currentFilter = e.target.getAttribute('data-tag');
@@ -52,25 +182,35 @@ function setupEventListeners() {
     filterAndDraw(true);
   });
 
-  // 彈窗按鈕綁定
   document.getElementById('btn-confirm-only').addEventListener('click', () => handleConfirm(false));
   document.getElementById('btn-confirm-map').addEventListener('click', () => handleConfirm(true));
-  document.getElementById('btn-cancel').addEventListener('click', closeModal);
 }
 
-// 核心過濾與加權抽樣邏輯
+// 核心過濾與加權抽樣邏輯（整合五行開運與忌食過濾）
 function filterAndDraw(isDrawn) {
   let pool = [...allFoods];
+  const userElement = calculateElement(userBirth.year);
 
+  // 1. 忌食肉品過濾（絕對排除）
+  if (userTaboos.length > 0) {
+    pool = pool.filter(f => {
+      if (!f.tags) return true;
+      return !userTaboos.some(taboo => f.tags.includes(taboo));
+    });
+  }
+
+  // 2. VIP 玩家過濾「不喜歡」；非 VIP 降低權重
   if (isVIP) {
     pool = pool.filter(f => !userDislikes.includes(f.id));
   }
 
+  // 3. 情境標籤過濾
   if (currentFilter !== 'all') {
     pool = pool.filter(f => f.tags && f.tags.includes(currentFilter));
   }
 
-  const selected5 = weightedSample(pool, 5);
+  // 4. 加權抽樣前 5 樣（符合五行屬性的項目權重加倍，不喜歡的權重 0.2）
+  const selected5 = weightedSample(pool, 5, userElement.key);
   const favoriteOne = sampleFavorite();
 
   renderMainUI(selected5);
@@ -78,7 +218,7 @@ function filterAndDraw(isDrawn) {
   updateCounterUI();
 }
 
-function weightedSample(list, k) {
+function weightedSample(list, k, elementKey) {
   let tempPool = [...list];
   let result = [];
 
@@ -87,6 +227,8 @@ function weightedSample(list, k) {
 
     let totalWeight = tempPool.reduce((acc, item) => {
       let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
+      // 五行符合者權重加倍 (開運加權)
+      if (item.element === elementKey) weight *= 2.0;
       return acc + weight;
     }, 0);
 
@@ -96,6 +238,7 @@ function weightedSample(list, k) {
     for (let j = 0; j < tempPool.length; j++) {
       let item = tempPool[j];
       let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
+      if (item.element === elementKey) weight *= 2.0;
       weightSum += weight;
 
       if (randomNum <= weightSum) {
@@ -134,7 +277,7 @@ function renderFavoriteUI(food) {
 
   if (!food) {
     container.innerHTML = `
-      <div class="p-3 border border-amber-200 rounded-xl bg-amber-50 text-amber-700 text-xs text-center">
+      <div class="p-3 border border-amber-200 dark:border-amber-900 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs text-center">
         💡 點擊上方食物旁的 👍 按鈕，此處將為您鎖定喜愛美食！
       </div>
     `;
@@ -142,7 +285,7 @@ function renderFavoriteUI(food) {
   }
 
   const card = createFoodCardHTML(food, true);
-  card.className += ' border-amber-300 bg-amber-50/60';
+  card.className += ' border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30';
   container.appendChild(card);
 }
 
@@ -152,19 +295,19 @@ function createFoodCardHTML(food, isFavoriteSlot) {
 
   const card = document.createElement('div');
   card.id = `food-card-${food.id}`;
-  card.className = 'p-3 border rounded-xl bg-slate-50 flex justify-between items-center shadow-sm hover:bg-slate-100 transition';
+  card.className = 'p-3 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center shadow-sm hover:bg-slate-100 dark:hover:bg-slate-750 transition';
   
   const likeBtnClass = isLiked 
     ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' 
-    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200';
+    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200';
 
   const dislikeBtnClass = isDisliked 
     ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
-    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200';
+    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200';
 
   card.innerHTML = `
     <div class="cursor-pointer flex-grow" onclick="openFoodConfirmModal(${food.id})">
-      <h3 class="font-bold text-slate-800">${food.name}</h3>
+      <h3 class="font-bold text-slate-800 dark:text-white">${food.name}</h3>
     </div>
     <div class="flex items-center gap-1.5 ml-2">
       <button id="like-btn-${food.id}" onclick="togglePreference(${food.id}, 'like')" 
@@ -180,7 +323,6 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   return card;
 }
 
-// 1. 點擊喜好按鈕：不自動刷新個人最愛精選，僅更新 DOM 燈號狀態與記憶體
 window.togglePreference = function(id, type) {
   if (type === 'like') {
     if (userLikes.includes(id)) {
@@ -202,6 +344,8 @@ window.togglePreference = function(id, type) {
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
 
   updateButtonUI(id);
+  const favoriteOne = sampleFavorite();
+  renderFavoriteUI(favoriteOne);
 };
 
 function updateButtonUI(id) {
@@ -215,7 +359,7 @@ function updateButtonUI(id) {
     btn.className = `px-2.5 py-1 text-xs rounded-lg border transition ${
       isLiked 
         ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' 
-        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
     }`;
   });
 
@@ -223,27 +367,26 @@ function updateButtonUI(id) {
     btn.className = `px-2.5 py-1 text-xs rounded-lg border transition ${
       isDisliked 
         ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
-        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
     }`;
   });
 }
 
-// 2. 點擊食物開啟確認 Modal 邏輯
 window.openFoodConfirmModal = function(id) {
   selectedFoodForConfirm = allFoods.find(f => f.id === id);
   if (!selectedFoodForConfirm) return;
 
   document.getElementById('confirm-title').innerText = `確定要吃 ${selectedFoodForConfirm.name} 嗎？`;
-  document.getElementById('modal-step1').classList.remove('hidden');
-  document.getElementById('modal-step2').classList.add('hidden');
   document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-confirm-step1').classList.remove('hidden');
+  document.getElementById('modal-confirm-step2').classList.add('hidden');
+  document.getElementById('modal-birth').classList.add('hidden');
+  document.getElementById('modal-settings').classList.add('hidden');
 };
 
-// 處理點擊「確定」或「確定 + 地圖搜尋」
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
-  // 自動變成喜歡 (若不在喜歡清單內)
   if (!userLikes.includes(selectedFoodForConfirm.id)) {
     userLikes.push(selectedFoodForConfirm.id);
     userDislikes = userDislikes.filter(i => i !== selectedFoodForConfirm.id);
@@ -252,9 +395,8 @@ function handleConfirm(needMap) {
     updateButtonUI(selectedFoodForConfirm.id);
   }
 
-  // 切換至第二階段祝賀 Modal
-  document.getElementById('modal-step1').classList.add('hidden');
-  document.getElementById('modal-step2').classList.remove('hidden');
+  document.getElementById('modal-confirm-step1').classList.add('hidden');
+  document.getElementById('modal-confirm-step2').classList.remove('hidden');
   document.getElementById('congrat-text').innerText = `今天就吃 ${selectedFoodForConfirm.name} 吧！`;
 
   const finalBtn = document.getElementById('btn-final-action');
@@ -272,12 +414,14 @@ function handleConfirm(needMap) {
   }
 }
 
-function closeModal() {
+window.closeModal = function() {
   document.getElementById('modal-overlay').classList.add('hidden');
-  document.getElementById('modal-step1').classList.add('hidden');
-  document.getElementById('modal-step2').classList.add('hidden');
+  document.getElementById('modal-birth').classList.add('hidden');
+  document.getElementById('modal-confirm-step1').classList.add('hidden');
+  document.getElementById('modal-confirm-step2').classList.add('hidden');
+  document.getElementById('modal-settings').classList.add('hidden');
   selectedFoodForConfirm = null;
-}
+};
 
 function checkAndUpdateCooldown() {
   const now = Date.now();
