@@ -260,7 +260,6 @@ function renderRandomTrivia() {
   triviaWrapper.classList.remove('hidden');
 }
 
-// 1. 刷新冷知識區 + 經驗值快速浮動提示 (Toast)
 window.refreshTriviaWithCoin = function() {
   if (drawState.count <= 0) {
     alert('刷新水晶不足！請觀看廣告補充。');
@@ -275,11 +274,12 @@ window.refreshTriviaWithCoin = function() {
 
   updateCountersAndTimer();
   renderRandomTrivia();
-  showExpToast();
+  showExpToast('toast-exp-floating');
 };
 
-function showExpToast() {
-  const toast = document.getElementById('toast-exp-floating');
+// 飄浮提示共用函式 (支援冷知識與隨機抽選按鈕)
+function showExpToast(elementId) {
+  const toast = document.getElementById(elementId);
   if (!toast) return;
   toast.classList.remove('opacity-0');
   toast.classList.add('-translate-y-3', 'opacity-100');
@@ -476,7 +476,7 @@ function renderStatsBanned() {
   const badge = document.getElementById('vip-status-badge');
   if (isVIP) {
     badge.innerText = '⭐ VIP 已啟用';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-950 dark:text-amber-300 font-bold';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold';
   } else {
     badge.innerText = '免費版 (未啟用)';
     badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
@@ -532,7 +532,7 @@ window.buyVIP = function() {
 };
 
 window.clearLocalStorage = function() {
-  if (confirm('確定要清空所有 LocalStorage 資料並重置 App 嗎？')) {
+  if (confirm('確定要清空所有 LocalStorage 資料並重置 App 吧？')) {
     localStorage.clear();
     location.reload();
   }
@@ -564,6 +564,7 @@ function setupEventListeners() {
     });
   });
 
+  // 1. 隨機抽選點擊事件 (含浮動 Toast 觸發)
   const drawBtn = document.getElementById('draw-btn');
   if (drawBtn) {
     drawBtn.addEventListener('click', () => {
@@ -579,6 +580,7 @@ function setupEventListeners() {
       updateLevelAndUI(true);
 
       filterAndDraw(true);
+      showExpToast('toast-draw-exp-floating');
     });
   }
 
@@ -676,7 +678,7 @@ function renderFavoriteUI(food) {
   if (userLevel < 4) {
     container.innerHTML = `
       <div id="favorite-locked-box" onclick="checkFeatureLock('favorite')" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
-        🔒 達到 Lv.4 解鎖個人最愛精選區
+        🔒 達到 Lv.4 解鎖個人最愛鎖定區
       </div>
     `;
     return;
