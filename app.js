@@ -1,9 +1,13 @@
 let allFoods = [];
 let currentFilter = 'all';
 
-// 使用者偏好與設定讀取
+// 使用者偏好與歷史紀錄
 let userLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
 let userDislikes = JSON.parse(localStorage.getItem('user_dislikes') || '[]');
+let userBanned = JSON.parse(localStorage.getItem('user_banned') || '[]'); // VIP 完全禁用名單
+let foodHistory = JSON.parse(localStorage.getItem('food_history') || '[]'); // 選中的食物歷史 [{id, name, time}]
+let foodCounts = JSON.parse(localStorage.getItem('food_counts') || '{}'); // 選擇次數統計 {id: count}
+
 let userTaboos = JSON.parse(localStorage.getItem('user_taboos') || '[]');
 let isVIP = localStorage.getItem('is_vip') === 'true';
 let userBirth = JSON.parse(localStorage.getItem('user_birth') || 'null');
@@ -17,7 +21,6 @@ let selectedFoodForConfirm = null;
 
 const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 
-// 五行映射地圖 (已更新為指定的新圖示)
 const ELEMENT_MAP = {
   elementMetal: { name: '金', icon: '🪙', class: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800' },
   elementWood:  { name: '木', icon: '🪵', class: 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800' },
@@ -133,6 +136,133 @@ window.saveSettings = function() {
   updateFortuneText();
 };
 
+// 2. 開啟統計面板 Modal 邏輯
+window.openStatsModal = function() {
+  renderStatsRecent();
+  renderStatsRanking();
+  renderStatsDislikes();
+  renderStatsBanned();
+
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-stats').classList.remove('hidden');
+};
+
+// 渲染近期選擇歷史
+function renderStatsRecent() {
+  const container = document.getElementById('stats-recent-list');
+  if (foodHistory.length === 0) {
+    container.innerHTML = '<p class="text-slate-400 italic">尚未有選擇紀錄</p>';
+    return;
+  }
+
+  const recent5 = foodHistory.slice(-5).reverse();
+  container.innerHTML = recent5.map(item => `
+    <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+      <span class="font-medium text-slate-700 dark:text-slate-200">${item.name}</span>
+      <span class="text-[10px] text-slate-400">${item.time}</span>
+    </div>
+  `).join('');
+}
+
+// 渲染熱門食物排名
+function renderStatsRanking() {
+  const container = document.getElementById('stats-ranking-list');
+  const sorted = Object.entries(foodCounts)
+    .map(([id, count]) => ({ id: parseInt(id), count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<p class="text-slate-400 italic">尚未產生排名數據</p>';
+    return;
+  }
+
+  container.innerHTML = sorted.map((item, index) => {
+    const food = allFoods.find(f => f.id === item.id);
+    const name = food ? food.name : `食物 #${item.id}`;
+    return `
+      <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+        <span class="font-medium text-slate-700 dark:text-slate-200">No.${index + 1}${name}</span>
+        <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">${item.count} 次</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// 渲染不喜歡名單與解封選項
+function renderStatsDislikes() {
+  const container = document.getElementById('stats-dislike-list');
+  if (userDislikes.length === 0) {
+    container.innerHTML = '<p class="text-slate-400 italic">目前沒有被標記為 👎 不喜歡的食物</p>';
+    return;
+  }
+
+  container.innerHTML = userDislikes.map(id => {
+    const food = allFoods.find(f => f.id === id);
+    const name = food ? food.name : `食物 #${id}`;
+    return `
+      <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+        <span class="text-slate-700 dark:text-slate-200">${name}</span>
+        <button onclick="unmarkDislike(${id})" class="text-[11px] text-rose-500 hover:text-rose-700 border border-rose-200 dark:border-rose-800 px-2 py-0.5 rounded">解封</button>
+      </div>
+    `;
+  }).join('');
+}
+
+// 解封 👎 不喜歡
+window.unmarkDislike = function(id) {
+  userDislikes = userDislikes.filter(i => i !== id);
+  localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
+  renderStatsDislikes();
+  updateButtonUI(id);
+};
+
+// 渲染 VIP 專屬禁用名單與解封選項
+function renderStatsBanned() {
+  const container = document.getElementById('stats-banned-list');
+  const badge = document.getElementById('vip-status-badge');
+
+  if (isVIP) {
+    badge.innerText = '⭐ VIP 已啟用';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold';
+  } else {
+    badge.innerText = '免費版 (未啟用)';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
+  }
+
+  if (!isVIP) {
+    container.innerHTML = `
+      <div class="p-2.5 border border-amber-200 dark:border-amber-900 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-[11px] text-center">
+        🔒 升級正式版 (VIP) 即可將不喜歡的食物徹底過濾禁用！
+      </div>
+    `;
+    return;
+  }
+
+  if (userBanned.length === 0) {
+    container.innerHTML = '<p class="text-slate-400 italic">目前沒有被完全禁用的食物</p>';
+    return;
+  }
+
+  container.innerHTML = userBanned.map(id => {
+    const food = allFoods.find(f => f.id === id);
+    const name = food ? food.name : `食物 #${id}`;
+    return `
+      <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+        <span class="text-slate-700 dark:text-slate-200">${name}</span>
+        <button onclick="unmarkBanned(${id})" class="text-[11px] text-indigo-500 hover:text-indigo-700 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded">解除禁用</button>
+      </div>
+    `;
+  }).join('');
+}
+
+// 解除 VIP 完全禁用
+window.unmarkBanned = function(id) {
+  userBanned = userBanned.filter(i => i !== id);
+  localStorage.setItem('user_banned', JSON.stringify(userBanned));
+  renderStatsBanned();
+};
+
 window.toggleDarkMode = function(isDark) {
   isDarkMode = isDark;
   localStorage.setItem('dark_mode', isDark);
@@ -194,8 +324,9 @@ function filterAndDraw(isDrawn) {
     });
   }
 
+  // VIP 玩家完全排除 banned 與 dislikes 項目
   if (isVIP) {
-    pool = pool.filter(f => !userDislikes.includes(f.id));
+    pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
   }
 
   if (currentFilter !== 'all') {
@@ -334,6 +465,11 @@ window.togglePreference = function(id, type) {
     } else {
       userDislikes.push(id);
       userLikes = userLikes.filter(i => i !== id);
+      // 若為 VIP，同步記錄至禁用名單
+      if (isVIP && !userBanned.includes(id)) {
+        userBanned.push(id);
+        localStorage.setItem('user_banned', JSON.stringify(userBanned));
+      }
     }
   }
 
@@ -377,29 +513,41 @@ window.openFoodConfirmModal = function(id) {
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-birth').classList.add('hidden');
   document.getElementById('modal-settings').classList.add('hidden');
+  document.getElementById('modal-stats').classList.add('hidden');
 };
 
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
-  if (!userLikes.includes(selectedFoodForConfirm.id)) {
-    userLikes.push(selectedFoodForConfirm.id);
-    userDislikes = userDislikes.filter(i => i !== selectedFoodForConfirm.id);
+  // 自動紀錄歷史與選擇次數
+  const foodId = selectedFoodForConfirm.id;
+  const foodName = selectedFoodForConfirm.name;
+  const timeStr = new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  foodHistory.push({ id: foodId, name: foodName, time: timeStr });
+  foodCounts[foodId] = (foodCounts[foodId] || 0) + 1;
+
+  localStorage.setItem('food_history', JSON.stringify(foodHistory));
+  localStorage.setItem('food_counts', JSON.stringify(foodCounts));
+
+  if (!userLikes.includes(foodId)) {
+    userLikes.push(foodId);
+    userDislikes = userDislikes.filter(i => i !== foodId);
     localStorage.setItem('user_likes', JSON.stringify(userLikes));
     localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
-    updateButtonUI(selectedFoodForConfirm.id);
+    updateButtonUI(foodId);
   }
 
   document.getElementById('modal-confirm-step1').classList.add('hidden');
   document.getElementById('modal-confirm-step2').classList.remove('hidden');
-  document.getElementById('congrat-text').innerText = `今天就吃 ${selectedFoodForConfirm.name} 吧！`;
+  document.getElementById('congrat-text').innerText = `今天就吃 ${foodName} 吧！`;
 
   const finalBtn = document.getElementById('btn-final-action');
   
   if (needMap) {
     finalBtn.innerText = '耶！找找！';
     finalBtn.onclick = () => {
-      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedFoodForConfirm.name)}`;
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(foodName)}`;
       window.open(url, '_blank');
       closeModal();
     };
@@ -415,6 +563,7 @@ window.closeModal = function() {
   document.getElementById('modal-confirm-step1').classList.add('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-settings').classList.add('hidden');
+  document.getElementById('modal-stats').classList.add('hidden');
   selectedFoodForConfirm = null;
 };
 
@@ -436,7 +585,7 @@ function updateCounterUI() {
   checkAndUpdateCooldown();
   const counterEl = document.getElementById('counter-text');
   if (drawState.count >= MAX_DRAW) {
-    counterEl.innerText = `剩餘刷新次數：${drawState.count} / ${MAX_DRAW} (已充滿)`;
+    counterEl.innerText = `剩餘刷新次數：${drawState.count} /${MAX_DRAW} (已充滿)`;
     return;
   }
 
@@ -447,13 +596,4 @@ function updateCounterUI() {
   
   const minutes = Math.floor(remainingMs / 60000);
   const seconds = Math.floor((remainingMs % 60000) / 1000);
-  const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-  counterEl.innerText = `剩餘刷新次數：${drawState.count} / ${MAX_DRAW} (下一次補充：${timeStr})`;
-}
-
-function saveState() {
-  localStorage.setItem('draw_state', JSON.stringify(drawState));
-}
-
-initApp();
+  const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(
