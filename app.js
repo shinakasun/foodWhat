@@ -9,7 +9,7 @@ let isVIP = localStorage.getItem('is_vip') === 'true'; // 預設非 VIP
 const MAX_DRAW = 9999;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 
-// 1. 已更新為全新的遠端資料庫網址
+// 遠端資料庫網址
 const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 
 async function initApp() {
@@ -70,7 +70,7 @@ function filterAndDraw(isDrawn) {
   // 3. 算子加權抽樣前 5 樣 (不喜歡的權重 0.2，普通的權重 1.0)
   const selected5 = weightedSample(pool, 5);
 
-  // 4. 抽樣第 6 樣：固定只從 userLikes 裡面抽
+  // 4. 抽樣精選最愛欄位
   const favoriteOne = sampleFavorite();
 
   renderMainUI(selected5);
@@ -109,7 +109,7 @@ function weightedSample(list, k) {
   return result;
 }
 
-// 抽樣第 6 個固定最愛項目
+// 抽樣固定最愛項目
 function sampleFavorite() {
   const likedFoods = allFoods.filter(f => userLikes.includes(f.id));
   if (likedFoods.length === 0) return null;
@@ -131,7 +131,7 @@ function renderMainUI(foods) {
   });
 }
 
-// 渲染第 6 個專屬最愛卡片
+// 渲染個人最愛精選卡片
 function renderFavoriteUI(food) {
   const container = document.getElementById('favorite-container');
   container.innerHTML = '';
@@ -139,7 +139,7 @@ function renderFavoriteUI(food) {
   if (!food) {
     container.innerHTML = `
       <div class="p-3 border border-amber-200 rounded-xl bg-amber-50 text-amber-700 text-xs text-center">
-        💡 點擊上面食物旁邊的 👍 按鈕，第 6 欄位就會固定為您鎖定喜愛美食！
+        💡 點擊上方食物旁的 👍 按鈕，此處將為您鎖定喜愛美食！
       </div>
     `;
     return;
@@ -156,21 +156,31 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   const isDisliked = userDislikes.includes(food.id);
 
   const card = document.createElement('div');
+  card.id = `food-card-${food.id}`;
   card.className = 'p-3 border rounded-xl bg-slate-50 flex justify-between items-center shadow-sm hover:bg-slate-100 transition';
   
+  // 2 & 3. 喜歡與不喜歡按鈕的白灰底色與按壓亮起樣式設定
+  const likeBtnClass = isLiked 
+    ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' 
+    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200';
+
+  const dislikeBtnClass = isDisliked 
+    ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
+    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200';
+
   card.innerHTML = `
     <div class="cursor-pointer flex-grow" onclick="openGoogleMap('${food.name}')">
       <h3 class="font-bold text-slate-800">${food.name}</h3>
     </div>
     <div class="flex items-center gap-1.5 ml-2">
       <!-- 👍 按鈕 -->
-      <button onclick="togglePreference(${food.id}, 'like')" 
-        class="px-2.5 py-1 text-xs rounded-lg border transition ${isLiked ? 'bg-green-500 text-white border-green-500 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}">
+      <button id="like-btn-${food.id}" onclick="togglePreference(${food.id}, 'like')" 
+        class="px-2.5 py-1 text-xs rounded-lg border transition ${likeBtnClass}">
         👍
       </button>
       <!-- 👎 按鈕 -->
-      <button onclick="togglePreference(${food.id}, 'dislike')" 
-        class="px-2.5 py-1 text-xs rounded-lg border transition ${isDisliked ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}">
+      <button id="dislike-btn-${food.id}" onclick="togglePreference(${food.id}, 'dislike')" 
+        class="px-2.5 py-1 text-xs rounded-lg border transition ${dislikeBtnClass}">
         👎
       </button>
     </div>
@@ -178,7 +188,7 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   return card;
 }
 
-// 切換喜好狀態
+// 1. 切換喜好狀態 (不自動觸發抽籤刷新，僅更新 DOM 按鈕外觀與數據)
 window.togglePreference = function(id, type) {
   if (type === 'like') {
     if (userLikes.includes(id)) {
@@ -199,8 +209,38 @@ window.togglePreference = function(id, type) {
   localStorage.setItem('user_likes', JSON.stringify(userLikes));
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
 
-  filterAndDraw(false);
+  // 僅更新畫面上該品項對應的按鈕狀態，不重新觸發全頁抽籤
+  updateButtonUI(id);
+
+  // 如果喜好清單改變，僅重新渲染「個人最愛精選」區塊
+  const favoriteOne = sampleFavorite();
+  renderFavoriteUI(favoriteOne);
 };
+
+// 單一按鈕視覺狀態即時更新
+function updateButtonUI(id) {
+  const isLiked = userLikes.includes(id);
+  const isDisliked = userDislikes.includes(id);
+
+  const likeBtns = document.querySelectorAll(`#like-btn-${id}`);
+  const dislikeBtns = document.querySelectorAll(`#dislike-btn-${id}`);
+
+  likeBtns.forEach(btn => {
+    btn.className = `px-2.5 py-1 text-xs rounded-lg border transition ${
+      isLiked 
+        ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' 
+        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+    }`;
+  });
+
+  dislikeBtns.forEach(btn => {
+    btn.className = `px-2.5 py-1 text-xs rounded-lg border transition ${
+      isDisliked 
+        ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
+        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+    }`;
+  });
+}
 
 window.openGoogleMap = function(foodName) {
   const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(foodName)}`;
