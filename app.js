@@ -17,12 +17,19 @@ let selectedFoodForConfirm = null;
 
 const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 
+// 五行映射地圖 (圖示、名稱、樣式)
+const ELEMENT_MAP = {
+  elementMetal: { name: '金', icon: '⚔️', class: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800' },
+  elementWood:  { name: '木', icon: '🌿', class: 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800' },
+  elementWater: { name: '水', icon: '💧', class: 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800' },
+  elementFire:  { name: '火', icon: '🔥', class: 'text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:border-rose-800' },
+  elementEarth: { name: '土', icon: '⛰️', class: 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-800' }
+};
+
 async function initApp() {
-  // 初始化主題模式
   toggleDarkMode(isDarkMode);
   document.getElementById('setting-darkmode').checked = isDarkMode;
 
-  // 檢查是否為初次進入（無生日記錄）
   if (!userBirth) {
     showBirthModal();
     return;
@@ -38,6 +45,7 @@ async function initApp() {
     checkAndUpdateCooldown();
     setupEventListeners();
     
+    // 初始化時執行一次抽籤
     filterAndDraw(false);
     setInterval(updateCounterUI, 1000);
   } catch (err) {
@@ -64,7 +72,6 @@ function updateFortuneText() {
   document.getElementById('fortune-text').innerText = `✨ 本命五行【${element.name}】啟動，今日開運屬性加權中！`;
 }
 
-// 初次生日彈窗
 function showBirthModal() {
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-birth').classList.remove('hidden');
@@ -86,7 +93,6 @@ window.saveBirthdate = function() {
   initApp();
 };
 
-// 設定 Modal 開啟與儲存
 window.openSettingsModal = function() {
   if (userBirth) {
     document.getElementById('setting-year').value = userBirth.year;
@@ -96,7 +102,6 @@ window.openSettingsModal = function() {
   document.getElementById('setting-push-zodiac').checked = settingsPushZodiac;
   document.getElementById('setting-push-trivia').checked = settingsPushTrivia;
 
-  // 渲染忌食勾選狀態
   document.querySelectorAll('.meat-taboo').forEach(checkbox => {
     checkbox.checked = userTaboos.includes(checkbox.value);
   });
@@ -105,6 +110,7 @@ window.openSettingsModal = function() {
   document.getElementById('modal-settings').classList.remove('hidden');
 };
 
+// 1. 儲存設定時：僅寫入 LocalStorage 與更新狀態，不刷新畫面當前的食物選項
 window.saveSettings = function() {
   const year = parseInt(document.getElementById('setting-year').value);
   const month = parseInt(document.getElementById('setting-month').value);
@@ -120,7 +126,6 @@ window.saveSettings = function() {
   localStorage.setItem('push_zodiac', settingsPushZodiac);
   localStorage.setItem('push_trivia', settingsPushTrivia);
 
-  // 收集忌食肉品
   userTaboos = [];
   document.querySelectorAll('.meat-taboo:checked').forEach(checkbox => {
     userTaboos.push(checkbox.value);
@@ -129,10 +134,9 @@ window.saveSettings = function() {
 
   closeModal();
   updateFortuneText();
-  filterAndDraw(false);
+  // 提示：設定已儲存，下一次點擊「隨機抽選」時會套用新設定
 };
 
-// 深色模式切換
 window.toggleDarkMode = function(isDark) {
   isDarkMode = isDark;
   localStorage.setItem('dark_mode', isDark);
@@ -144,16 +148,13 @@ window.toggleDarkMode = function(isDark) {
   }
 };
 
-// 購買 VIP
 window.buyVIP = function() {
   isVIP = true;
   localStorage.setItem('is_vip', 'true');
   alert('🎉 恭喜您升級為 VIP 正式版！已解鎖「完全過濾不喜歡選項」功能。');
   closeModal();
-  filterAndDraw(false);
 };
 
-// 清空 LocalStorage 測試按鈕
 window.clearLocalStorage = function() {
   if (confirm('確定要清空所有 LocalStorage 資料並重置 App 嗎？')) {
     localStorage.clear();
@@ -172,6 +173,7 @@ function setupEventListeners() {
     });
   });
 
+  // 1. 唯有按下橘色抽籤按鈕時，才會觸發過濾與刷新
   document.getElementById('draw-btn').addEventListener('click', () => {
     if (drawState.count <= 0) {
       alert('今日次數已用完！');
@@ -186,12 +188,12 @@ function setupEventListeners() {
   document.getElementById('btn-confirm-map').addEventListener('click', () => handleConfirm(true));
 }
 
-// 核心過濾與加權抽樣邏輯（整合五行開運與忌食過濾）
+// 核心過濾與加權抽樣邏輯
 function filterAndDraw(isDrawn) {
   let pool = [...allFoods];
   const userElement = calculateElement(userBirth.year);
 
-  // 1. 忌食肉品過濾（絕對排除）
+  // 1. 忌食肉品過濾
   if (userTaboos.length > 0) {
     pool = pool.filter(f => {
       if (!f.tags) return true;
@@ -199,7 +201,7 @@ function filterAndDraw(isDrawn) {
     });
   }
 
-  // 2. VIP 玩家過濾「不喜歡」；非 VIP 降低權重
+  // 2. VIP 玩家過濾「不喜歡」
   if (isVIP) {
     pool = pool.filter(f => !userDislikes.includes(f.id));
   }
@@ -209,7 +211,7 @@ function filterAndDraw(isDrawn) {
     pool = pool.filter(f => f.tags && f.tags.includes(currentFilter));
   }
 
-  // 4. 加權抽樣前 5 樣（符合五行屬性的項目權重加倍，不喜歡的權重 0.2）
+  // 4. 抽樣前 5 樣與個人最愛
   const selected5 = weightedSample(pool, 5, userElement.key);
   const favoriteOne = sampleFavorite();
 
@@ -227,7 +229,6 @@ function weightedSample(list, k, elementKey) {
 
     let totalWeight = tempPool.reduce((acc, item) => {
       let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
-      // 五行符合者權重加倍 (開運加權)
       if (item.element === elementKey) weight *= 2.0;
       return acc + weight;
     }, 0);
@@ -278,7 +279,7 @@ function renderFavoriteUI(food) {
   if (!food) {
     container.innerHTML = `
       <div class="p-3 border border-amber-200 dark:border-amber-900 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs text-center">
-        💡 點擊上方食物旁的 👍 按鈕，此處將為您鎖定喜愛美食！
+        💡 點擊上方食物旁的 👍 按鈕，按下「隨機抽選」即可為您鎖定喜愛美食！
       </div>
     `;
     return;
@@ -289,9 +290,13 @@ function renderFavoriteUI(food) {
   container.appendChild(card);
 }
 
+// 3. 建立卡片：包含食物名稱旁的「五行屬性標籤/圖示」
 function createFoodCardHTML(food, isFavoriteSlot) {
   const isLiked = userLikes.includes(food.id);
   const isDisliked = userDislikes.includes(food.id);
+
+  // 取得該食物的五行視覺設定
+  const elemInfo = ELEMENT_MAP[food.element] || { name: '未知', icon: '❓', class: 'text-slate-500 bg-slate-100 border-slate-200' };
 
   const card = document.createElement('div');
   card.id = `food-card-${food.id}`;
@@ -306,8 +311,13 @@ function createFoodCardHTML(food, isFavoriteSlot) {
     : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200';
 
   card.innerHTML = `
-    <div class="cursor-pointer flex-grow" onclick="openFoodConfirmModal(${food.id})">
+    <div class="cursor-pointer flex-grow flex items-center gap-2" onclick="openFoodConfirmModal(${food.id})">
       <h3 class="font-bold text-slate-800 dark:text-white">${food.name}</h3>
+      <!-- 五行屬性標籤 -->
+      <span class="text-[10px] px-1.5 py-0.5 rounded-md border font-medium flex items-center gap-0.5 ${elemInfo.class}">
+        <span>${elemInfo.icon}</span>
+        <span>${elemInfo.name}</span>
+      </span>
     </div>
     <div class="flex items-center gap-1.5 ml-2">
       <button id="like-btn-${food.id}" onclick="togglePreference(${food.id}, 'like')" 
@@ -323,6 +333,7 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   return card;
 }
 
+// 1. 切換喜好：僅更新 LocalStorage 與 DOM 按鈕狀態，不重繪食物品項
 window.togglePreference = function(id, type) {
   if (type === 'like') {
     if (userLikes.includes(id)) {
@@ -344,8 +355,6 @@ window.togglePreference = function(id, type) {
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
 
   updateButtonUI(id);
-  const favoriteOne = sampleFavorite();
-  renderFavoriteUI(favoriteOne);
 };
 
 function updateButtonUI(id) {
