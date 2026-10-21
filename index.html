@@ -12,18 +12,17 @@
 <body id="body-root" class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
   <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
     
-    <!-- 2. 頂部標題加上問號貓咪顏文字 (ฅ'ω'ฅ)? -->
+    <!-- 1. 頂部標題移除貓咪顏文字，右上角按鈕改為圖示在上、文字在下的直式排版 -->
     <div class="flex justify-between items-center mb-3">
-      <h1 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-        <span>今天吃什麼？</span>
-        <span class="text-base text-indigo-500 font-normal">(ฅ'ω'ฅ)?</span>
-      </h1>
-      <div class="flex items-center gap-1">
-        <button id="btn-stats-action" onclick="openStatsModal()" class="px-2.5 py-1 text-xs rounded-xl border transition flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700" title="統計中心 (Lv.5 解鎖)">
-          🔒 📊 統計
+      <h1 class="text-xl font-bold text-slate-800 dark:text-white">今天吃什麼？</h1>
+      <div class="flex items-center gap-1.5">
+        <button id="btn-stats-action" onclick="openStatsModal()" class="flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 min-w-[42px]" title="統計中心 (Lv.5 解鎖)">
+          <span class="text-sm">🔒</span>
+          <span class="text-[10px] mt-0.5 leading-none">統計</span>
         </button>
-        <button onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition" title="系統設定">
-          ⚙️ 設定
+        <button onclick="openSettingsModal()" class="flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-500 min-w-[42px]" title="系統設定">
+          <span class="text-sm">⚙️</span>
+          <span class="text-[10px] mt-0.5 leading-none">設定</span>
         </button>
       </div>
     </div>
@@ -55,7 +54,7 @@
 
     <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-2 font-medium">✨ 正在計算您的五行開運屬性...</p>
     
-    <!-- 美食冷知識區 -->
+    <!-- 美食冷知識區 (3. 底部提示每 4 小時自動刷新) -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (達到指定等級解鎖)
     </div>
@@ -69,15 +68,15 @@
         </div>
       </div>
       
-      <!-- 刷新按鈕 -->
-      <div class="flex flex-col items-center justify-center gap-1">
+      <!-- 重新整理按鈕與下方說明 -->
+      <div class="flex flex-col items-center justify-center">
         <button onclick="refreshTriviaWithCoin()" class="w-12 h-12 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center justify-center shadow-sm" title="換一個冷知識">
           <span class="text-xl">🔄</span>
         </button>
-        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-bold whitespace-nowrap">💎-1</span>
+        <span class="text-[9px] text-slate-500 dark:text-slate-400 font-bold text-center mt-1 leading-tight whitespace-nowrap">💎-1<br>每4h自動</span>
       </div>
 
-      <!-- 冷知識經驗值飄浮提示 (Toast) -->
+      <!-- 經驗值飄浮提示 (Toast) -->
       <div id="toast-exp-floating" class="absolute -top-6 right-12 bg-amber-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none">
         ✨ 經驗值 +1
       </div>
@@ -114,13 +113,12 @@
       </div>
     </div>
 
-    <!-- 隨機抽選按鈕區 (含 1. 抽選專用 Floating Toast) -->
+    <!-- 隨機抽選按鈕區 -->
     <div class="relative mt-6">
       <button id="draw-btn" class="w-full py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
         <span class="text-lg">🎲 隨機抽選 (-1 💎)</span>
       </button>
 
-      <!-- 1. 隨機抽選時出現的飄浮經驗提示 -->
       <div id="toast-draw-exp-floating" class="absolute -top-7 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[11px] font-extrabold px-3 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none whitespace-nowrap">
         ✨ 經驗值 +1
       </div>
