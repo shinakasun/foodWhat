@@ -39,8 +39,8 @@ const ELEMENT_MAP = {
 const LEVEL_UNLOCKS = [
   { level: 1, name: "初始狀態 (3選項)", expNeeded: 0, unlockDesc: "初始開局" },
   { level: 2, name: "解鎖第四選項", expNeeded: 5, unlockDesc: "第四個盲盒選項" },
-  { level: 3, name: "解鎖喜歡按鈕", expNeeded: 12, unlockDesc: "👍 喜歡按鈕與深色模式" },
-  { level: 4, name: "解鎖個人最愛精選", expNeeded: 20, unlockDesc: "⭐ 個人最愛精選鎖定區" },
+  { level: 3, name: "解鎖喜歡按鈕與個人最愛", expNeeded: 12, unlockDesc: "👍 喜歡按鈕、⭐ 個人最愛區與深色模式" },
+  { level: 4, name: "提升盲盒機率", expNeeded: 20, unlockDesc: "喜愛美食高機率加權" },
   { level: 5, name: "解鎖統計按鈕", expNeeded: 30, unlockDesc: "📊 數據統計中心" },
   { level: 6, name: "解鎖美食冷知識", expNeeded: 42, unlockDesc: "💡 每日美食冷知識區" },
   { level: 7, name: "解鎖第五選項", expNeeded: 56, unlockDesc: "第五個盲盒選項" },
@@ -55,10 +55,13 @@ const LEVEL_UNLOCKS = [
 async function initApp() {
   toggleDarkMode(isDarkMode);
   setupEventListeners();
+  initDateSelectors('select-birth');
+  initDateSelectors('select-setting');
 
   await Promise.all([fetchFoods(), fetchTrivias()]);
   checkAndUpdateCooldown();
   updateLevelAndUI(false);
+  updateMainTitle();
 
   if (!userBirth) {
     showBirthModal();
@@ -69,6 +72,67 @@ async function initApp() {
   
   setInterval(updateCountersAndTimer, 1000);
 }
+
+// 3. 動態更換標題 (首次與回訪)
+function updateMainTitle() {
+  const titleEl = document.getElementById('app-main-title');
+  if (!titleEl) return;
+
+  if (!userBirth) {
+    titleEl.innerHTML = `<span>歡迎您！</span><br><span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人</span>`;
+  } else {
+    const hour = new Date().getHours();
+    let mealName = "晚餐";
+    if (hour >= 5 && hour < 11) mealName = "早餐";
+    else if (hour >= 11 && hour < 16) mealName = "午餐";
+    else if (hour >= 16 && hour < 23) mealName = "晚餐";
+    else mealName = "宵夜";
+
+    titleEl.innerHTML = `<span>歡迎回來</span><br><span class="text-indigo-600 dark:text-indigo-400">${mealName}迷途旅人</span>`;
+  }
+}
+
+// 4. 初始化西元年月日下拉選單
+function initDateSelectors(prefix) {
+  const yearSel = document.getElementById(`${prefix}-year`);
+  const monthSel = document.getElementById(`${prefix}-month`);
+  const daySel = document.getElementById(`${prefix}-day`);
+  if (!yearSel || !monthSel || !daySel) return;
+
+  const currentYear = new Date().getFullYear();
+  yearSel.innerHTML = '';
+  for (let y = currentYear; y >= 1920; y--) {
+    yearSel.add(new Option(`${y} 年`, y));
+  }
+  yearSel.value = 1990;
+
+  monthSel.innerHTML = '';
+  for (let m = 1; m <= 12; m++) {
+    monthSel.add(new Option(`${m} 月`, m));
+  }
+  monthSel.value = 1;
+
+  adjustBirthDays(prefix);
+}
+
+// 4. 防呆自動計算每月天數 (28/29/30/31 天)
+window.adjustBirthDays = function(prefix) {
+  const yearSel = document.getElementById(`${prefix}-year`);
+  const monthSel = document.getElementById(`${prefix}-month`);
+  const daySel = document.getElementById(`${prefix}-day`);
+  if (!yearSel || !monthSel || !daySel) return;
+
+  const y = parseInt(yearSel.value) || 1990;
+  const m = parseInt(monthSel.value) || 1;
+  const savedDay = parseInt(daySel.value) || 1;
+
+  const daysInMonth = new Date(y, m, 0).getDate();
+  daySel.innerHTML = '';
+  for (let d = 1; d <= daysInMonth; d++) {
+    daySel.add(new Option(`${d} 日`, d));
+  }
+  daySel.value = Math.min(savedDay, daysInMonth);
+};
 
 function updateLevelAndUI(shouldCheckLevelUp = true) {
   let oldLevel = userLevel;
@@ -137,6 +201,7 @@ function showLevelUpModal(lv, desc) {
   document.getElementById('modal-levelup').classList.remove('hidden');
 }
 
+// 1. 個人喜愛精選區改為與喜歡按鈕同一等級 (Lv.3) 解鎖
 function applyFeatureUnlocks() {
   const triviaLocked = document.getElementById('trivia-locked-box');
   const triviaWrapper = document.getElementById('trivia-wrapper');
@@ -184,12 +249,12 @@ function applyFeatureUnlocks() {
 
   const favLabel = document.getElementById('favorite-label');
   const favLocked = document.getElementById('favorite-locked-box');
-  if (userLevel >= 4) {
+  if (userLevel >= 3) {
     favLabel.innerText = '⭐ 個人最愛精選';
     favLabel.className = 'text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1';
     if (favLocked) favLocked.classList.add('hidden');
   } else {
-    favLabel.innerText = '❓ 個人最愛精選 (Lv.4 解鎖)';
+    favLabel.innerText = '❓ 個人最愛精選 (Lv.3 解鎖)';
     favLabel.className = 'text-xs font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1';
     if (favLocked) favLocked.classList.remove('hidden');
   }
@@ -200,7 +265,7 @@ window.checkFeatureLock = function(featureKey) {
     stats: 5,
     trivia: 6,
     filters: 13,
-    favorite: 4,
+    favorite: 3,
     like: 3,
     dislike: 8
   };
@@ -208,7 +273,7 @@ window.checkFeatureLock = function(featureKey) {
     stats: "📊 數據統計中心 (Lv.5)",
     trivia: "💡 美食冷知識 (Lv.6)",
     filters: "🥗 篩選按鈕組 (Lv.13)",
-    favorite: "⭐ 個人最愛精選 (Lv.4)",
+    favorite: "⭐ 個人最愛精選 (Lv.3)",
     like: "👍 喜歡按鈕 (Lv.3)",
     dislike: "👎 討厭按鈕 (Lv.8)"
   };
@@ -253,7 +318,6 @@ async function fetchTrivias() {
   }
 }
 
-// 4. 防重複冷知識抽選邏輯
 function renderRandomTrivia() {
   if (userLevel < 6) return;
   const triviaWrapper = document.getElementById('trivia-wrapper');
@@ -287,7 +351,6 @@ window.refreshTriviaWithCoin = function() {
   localStorage.setItem('user_exp', userExp);
   updateLevelAndUI(true);
 
-  // 手動刷新時重置 4 小時自動計時起點
   lastTriviaAutoTime = Date.now();
   localStorage.setItem('last_trivia_auto_time', lastTriviaAutoTime);
 
@@ -340,28 +403,31 @@ function showBirthModal() {
   document.getElementById('modal-birth').classList.remove('hidden');
 }
 
+// 4. 讀取拉動選單儲存生日
 window.saveBirthdate = function() {
-  const year = parseInt(document.getElementById('input-year').value);
-  const month = parseInt(document.getElementById('input-month').value);
-  const day = parseInt(document.getElementById('input-day').value);
+  const year = parseInt(document.getElementById('select-birth-year').value);
+  const month = parseInt(document.getElementById('select-birth-month').value);
+  const day = parseInt(document.getElementById('select-birth-day').value);
 
   if (!year || !month || !day) {
-    alert('請完整填寫西元出生年月日！');
+    alert('請完整選擇您的出生年月日！');
     return;
   }
 
   userBirth = { year, month, day };
   localStorage.setItem('user_birth', JSON.stringify(userBirth));
   closeModal();
+  updateMainTitle();
   updateFortuneText();
   filterAndDraw(false);
 };
 
 window.openSettingsModal = function() {
   if (userBirth) {
-    document.getElementById('setting-year').value = userBirth.year;
-    document.getElementById('setting-month').value = userBirth.month;
-    document.getElementById('setting-day').value = userBirth.day;
+    document.getElementById('select-setting-year').value = userBirth.year;
+    document.getElementById('select-setting-month').value = userBirth.month;
+    adjustBirthDays('select-setting');
+    document.getElementById('select-setting-day').value = userBirth.day;
   }
   document.getElementById('setting-push-trivia').checked = settingsPushTrivia;
   document.getElementById('setting-darkmode').checked = isDarkMode;
@@ -375,9 +441,9 @@ window.openSettingsModal = function() {
 };
 
 window.saveSettings = function() {
-  const year = parseInt(document.getElementById('setting-year').value);
-  const month = parseInt(document.getElementById('setting-month').value);
-  const day = parseInt(document.getElementById('setting-day').value);
+  const year = parseInt(document.getElementById('select-setting-year').value);
+  const month = parseInt(document.getElementById('select-setting-month').value);
+  const day = parseInt(document.getElementById('select-setting-day').value);
 
   if (year && month && day) {
     userBirth = { year, month, day };
@@ -391,6 +457,7 @@ window.saveSettings = function() {
   localStorage.setItem('user_taboos', JSON.stringify(userTaboos));
 
   closeModal();
+  updateMainTitle();
   updateFortuneText();
 };
 
@@ -494,7 +561,7 @@ function renderStatsBanned() {
   const badge = document.getElementById('vip-status-badge');
   if (isVIP) {
     badge.innerText = '⭐ VIP 已啟用';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-950 dark:text-amber-300 font-bold';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold';
   } else {
     badge.innerText = '免費版 (未啟用)';
     badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
@@ -630,7 +697,7 @@ function filterAndDraw(isDrawn) {
 
   const boxCount = getUnlockBoxCount();
   const selectedBoxes = weightedSample(pool, boxCount, userElement.key);
-  const favoriteOne = (userLevel >= 4) ? sampleFavorite() : null;
+  const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
 
   renderMainUI(selectedBoxes);
   renderFavoriteUI(favoriteOne);
@@ -670,7 +737,7 @@ function weightedSample(list, k, elementKey) {
 }
 
 function sampleFavorite() {
-  if (userLevel < 4) return null;
+  if (userLevel < 3) return null;
   const likedFoods = allFoods.filter(f => userLikes.includes(f.id));
   if (likedFoods.length === 0) return null;
   return likedFoods[Math.floor(Math.random() * likedFoods.length)];
@@ -692,10 +759,10 @@ function renderMainUI(foods) {
 
 function renderFavoriteUI(food) {
   const container = document.getElementById('favorite-container');
-  if (userLevel < 4) {
+  if (userLevel < 3) {
     container.innerHTML = `
       <div id="favorite-locked-box" onclick="checkFeatureLock('favorite')" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
-        🔒 達到 Lv.4 解鎖個人最愛鎖定區
+        🔒 達到 Lv.3 解鎖個人最愛鎖定區
       </div>
     `;
     return;
@@ -936,7 +1003,6 @@ function updateCountersAndTimer() {
   
   const now = Date.now();
 
-  // 3. 檢查冷知識是否達到 4 小時自動刷新
   const triviaIntervalMs = 4 * 60 * 60 * 1000;
   if (userLevel >= 6 && settingsPushTrivia && now - lastTriviaAutoTime >= triviaIntervalMs) {
     renderRandomTrivia();
