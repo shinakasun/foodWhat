@@ -33,7 +33,6 @@ const ELEMENT_MAP = {
   elementEarth: { name: '土', icon: '⛰️', class: 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-800' }
 };
 
-// 等級解鎖順序對照表（個人最愛改為 Lv.4）
 const LEVEL_UNLOCKS = [
   { level: 1, name: "初始狀態 (3選項)", expNeeded: 0, unlockDesc: "初始開局" },
   { level: 2, name: "解鎖第四選項", expNeeded: 5, unlockDesc: "第四個盲盒選項" },
@@ -56,7 +55,7 @@ async function initApp() {
 
   await Promise.all([fetchFoods(), fetchTrivias()]);
   checkAndUpdateCooldown();
-  updateLevelAndUI(false); // 初始化不跳升級窗
+  updateLevelAndUI(false);
 
   if (!userBirth) {
     showBirthModal();
@@ -68,7 +67,6 @@ async function initApp() {
   setInterval(updateCountersAndTimer, 1000);
 }
 
-// 經驗值與等級檢核
 function updateLevelAndUI(shouldCheckLevelUp = true) {
   let oldLevel = userLevel;
   let currentLv = 1;
@@ -81,7 +79,6 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
   userLevel = currentLv;
   localStorage.setItem('user_level', userLevel);
 
-  // 1. 若發生升級且允許彈窗，跳出升級祝賀視窗
   if (shouldCheckLevelUp && userLevel > oldLevel) {
     const tier = LEVEL_UNLOCKS.find(l => l.level === userLevel);
     showLevelUpModal(userLevel, tier ? tier.unlockDesc : "新功能");
@@ -94,7 +91,6 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
   badge.innerText = `Lv.${userLevel}`;
 
   const expText = document.getElementById('exp-text');
-  const nextUnlockText = document.getElementById('next-unlock-text');
   const expBar = document.getElementById('exp-bar');
 
   if (nextTier) {
@@ -102,27 +98,32 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
     const currentProgress = userExp - currentTier.expNeeded;
     const pct = Math.min(100, Math.max(0, (currentProgress / spanExp) * 100));
     expText.innerText = `經驗值: ${userExp} / ${nextTier.expNeeded}`;
-    nextUnlockText.innerText = `下一解鎖: ${nextTier.name}`;
     expBar.style.width = `${pct}%`;
   } else {
     expText.innerText = `經驗值: ${userExp} (已滿級)`;
-    nextUnlockText.innerText = `已解鎖全部功能`;
     expBar.style.width = `100%`;
   }
 
   applyFeatureUnlocks();
 }
 
+// 1. 升級慶祝彈窗（包含 Lv.8 解鎖不討厭專屬提示）
 function showLevelUpModal(lv, desc) {
   document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
   document.getElementById('levelup-desc').innerText = `🎉 恭喜解鎖了：${desc}！`;
+  
+  const dislikeTip = document.getElementById('levelup-dislike-tip');
+  if (lv === 8) {
+    dislikeTip.classList.remove('hidden');
+  } else {
+    dislikeTip.classList.add('hidden');
+  }
+
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-levelup').classList.remove('hidden');
 }
 
-// 根據目前等級套用介面解鎖
 function applyFeatureUnlocks() {
-  // 冷知識區 (Lv.6 解鎖)
   const triviaLocked = document.getElementById('trivia-locked-box');
   const triviaBox = document.getElementById('trivia-box');
   if (userLevel >= 6 && settingsPushTrivia) {
@@ -135,7 +136,6 @@ function applyFeatureUnlocks() {
     triviaBox.classList.add('hidden');
   }
 
-  // 篩選按鈕列 (Lv.13 解鎖)
   const filterLocked = document.getElementById('filter-locked-box');
   const filterBar = document.getElementById('filter-bar');
   if (userLevel >= 13) {
@@ -146,7 +146,6 @@ function applyFeatureUnlocks() {
     filterBar.classList.add('hidden');
   }
 
-  // 2. 統計按鈕直接用灰色上鎖圖案取代 (Lv.5 解鎖)
   const statBtn = document.getElementById('btn-stats-action');
   if (userLevel >= 5) {
     statBtn.className = "px-2.5 py-1 text-xs rounded-xl border transition flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-indigo-500";
@@ -156,7 +155,6 @@ function applyFeatureUnlocks() {
     statBtn.innerHTML = "🔒 📊 統計";
   }
 
-  // 深色模式設定 (Lv.3 解鎖)
   const dmWrapper = document.getElementById('setting-darkmode-wrapper');
   const dmCheckbox = document.getElementById('setting-darkmode');
   const dmLocker = document.getElementById('lock-darkmode');
@@ -166,7 +164,6 @@ function applyFeatureUnlocks() {
     dmLocker.innerText = '';
   }
 
-  // 4. 個人最愛精選區 (改為 Lv.4 解鎖)
   const favLabel = document.getElementById('favorite-label');
   const favLocked = document.getElementById('favorite-locked-box');
   if (userLevel >= 4) {
@@ -180,7 +177,6 @@ function applyFeatureUnlocks() {
   }
 }
 
-// 點擊未解鎖功能的提示
 window.checkFeatureLock = function(featureKey) {
   const reqLevels = {
     stats: 5,
@@ -205,7 +201,6 @@ window.checkFeatureLock = function(featureKey) {
   }
 };
 
-// 盲盒選項數量解鎖邏輯 (Lv.1=3, Lv.2=4, Lv.7=5, Lv.9=6, Lv.10=7, Lv.11=8, Lv.12=9)
 function getUnlockBoxCount() {
   if (userLevel >= 12) return 9;
   if (userLevel === 11) return 8;
@@ -252,6 +247,18 @@ function renderRandomTrivia() {
   document.getElementById('trivia-content').innerText = random.content;
   triviaBox.classList.remove('hidden');
 }
+
+// 2. 刷新食物冷知識 (消耗 1 刷新幣)
+window.refreshTriviaWithCoin = function() {
+  if (drawState.count <= 0) {
+    alert('刷新幣不足！請觀看廣告補充。');
+    return;
+  }
+  drawState.count--;
+  saveState();
+  updateCountersAndTimer();
+  renderRandomTrivia();
+};
 
 window.toggleTriviaBox = function(show) {
   if (userLevel < 6) {
@@ -511,8 +518,8 @@ window.simulateWatchAd = function() {
     saveState();
     updateCountersAndTimer();
     btn.disabled = false;
-    btn.innerText = '🎬 看廣告 +10 次';
-    alert('🎉 感謝觀看！刷新次數已增加 10 次！');
+    btn.innerText = '🎬 看廣告 +10 刷新幣';
+    alert('🎉 感謝觀看！刷新幣已增加 10 個！');
   }, 2000);
 };
 
@@ -531,7 +538,7 @@ function setupEventListeners() {
   if (drawBtn) {
     drawBtn.addEventListener('click', () => {
       if (drawState.count <= 0) {
-        alert('今日次數已用完！');
+        alert('刷新幣不足！請觀看廣告補充。');
         return;
       }
       drawState.count--;
@@ -539,7 +546,7 @@ function setupEventListeners() {
 
       userExp += 1;
       localStorage.setItem('user_exp', userExp);
-      updateLevelAndUI(true); // 每次加經驗值皆檢查是否升級
+      updateLevelAndUI(true);
 
       filterAndDraw(true);
     });
@@ -574,8 +581,6 @@ function filterAndDraw(isDrawn) {
 
   const boxCount = getUnlockBoxCount();
   const selectedBoxes = weightedSample(pool, boxCount, userElement.key);
-  
-  // 個人最愛精選 (Lv.4 解鎖)
   const favoriteOne = (userLevel >= 4) ? sampleFavorite() : null;
 
   renderMainUI(selectedBoxes);
@@ -774,6 +779,7 @@ window.openFoodConfirmModal = function(id) {
   document.getElementById('modal-levelup').classList.add('hidden');
 };
 
+// 4. 選擇當日建議屬性時提示文案
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
@@ -798,7 +804,6 @@ function handleConfirm(needMap) {
     updateButtonUI(foodId);
   }
 
-  // 4 小時冷卻判定與經驗值結算
   const now = Date.now();
   const cooldownMs = 4 * 60 * 60 * 1000;
   let gainedExp = 0;
@@ -808,16 +813,17 @@ function handleConfirm(needMap) {
     gainedExp += 5;
     expMsg = "✨ 經驗值 +5";
 
+    // 4. 五行契合文字調整
     if (foodElement === userElement.key) {
       gainedExp += 5;
-      expMsg += " (🔥 五行契合額外獎勵 +5！)";
+      expMsg += "<br><span class='text-amber-600 dark:text-amber-300 font-extrabold'>🔥 食物屬性特別適合今天的你 經驗值額外+5</span>";
     }
 
     userExp += gainedExp;
     lastEatTime = now;
     localStorage.setItem('user_exp', userExp);
     localStorage.setItem('last_eat_time', lastEatTime);
-    updateLevelAndUI(true); // 確認吃東西觸發升級檢查
+    updateLevelAndUI(true);
   } else {
     expMsg = "⏳ 4小時冷卻中，本次確認未獲得經驗值";
   }
@@ -825,7 +831,7 @@ function handleConfirm(needMap) {
   document.getElementById('modal-confirm-step1').classList.add('hidden');
   document.getElementById('modal-confirm-step2').classList.remove('hidden');
   document.getElementById('congrat-text').innerText = `今天就吃 ${foodName} 吧！`;
-  document.getElementById('exp-reward-box').innerText = expMsg;
+  document.getElementById('exp-reward-box').innerHTML = expMsg;
 
   const finalBtn = document.getElementById('btn-final-action');
   
@@ -867,13 +873,17 @@ function checkAndUpdateCooldown() {
   }
 }
 
-// 統整刷新次數與 4 小時冷卻倒數的 UI 更新
+// 3. 刷新幣 UI 顯示更新
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
-  // 1. 次數更新 (充滿時不顯示已充滿)
-  const counterEl = document.getElementById('counter-text');
-  if (counterEl) {
+  const coinCounterEl = document.getElementById('coin-counter-text');
+  if (coinCounterEl) {
+    coinCounterEl.innerText = `🪙 刷新幣：${drawState.count}`;
+  }
+
+  const nextRefreshEl = document.getElementById('next-refresh-time');
+  if (nextRefreshEl) {
     const now = Date.now();
     const intervalMs = 10 * 60 * 1000;
     const elapsed = (now - drawState.timestamp) % intervalMs;
@@ -882,11 +892,9 @@ function updateCountersAndTimer() {
     const minutes = Math.floor(remainingMs / 60000);
     const seconds = Math.floor((remainingMs % 60000) / 1000);
     const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-    counterEl.innerText = `剩餘刷新次數：${drawState.count} (補充：${timeStr})`;
+    nextRefreshEl.innerText = `下一次自動補充：${timeStr}`;
   }
 
-  // 2. 4小時獲得經驗值冷卻倒數計時器
   const timerBar = document.getElementById('cooldown-timer-bar');
   const countdownEl = document.getElementById('cooldown-countdown');
   if (timerBar && countdownEl) {
@@ -902,7 +910,7 @@ function updateCountersAndTimer() {
       countdownEl.innerText = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
       timerBar.classList.remove('hidden');
     } else {
-      timerBar.classList.add('hidden'); // 冷卻已結束，隱藏提示
+      timerBar.classList.add('hidden');
     }
   }
 }
