@@ -16,19 +16,16 @@
     <div class="flex justify-between items-center mb-3">
       <h1 class="text-xl font-bold text-slate-800 dark:text-white">今天吃什麼？</h1>
       <div class="flex items-center gap-1">
-        <!-- 2. 統計按鈕直接用灰色上鎖圖案取代（透過 JS 控制點擊與外觀） -->
         <button id="btn-stats-action" onclick="openStatsModal()" class="px-2.5 py-1 text-xs rounded-xl border transition flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700" title="統計中心 (Lv.5 解鎖)">
           🔒 📊 統計
         </button>
-
-        <!-- 設定按鈕 -->
         <button onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition" title="系統設定">
           ⚙️ 設定
         </button>
       </div>
     </div>
 
-    <!-- 5. 等級顯示放大、改為圓角四邊形、黑色字，並與經驗條移動同一行顯示在左側 -->
+    <!-- 等級、經驗條與 3. 刷新幣數量顯示 -->
     <div class="flex items-center gap-2 mb-2">
       <div id="user-level-badge" class="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-sm shadow-sm flex items-center justify-center min-w-[48px]">
         Lv.1
@@ -36,7 +33,7 @@
       <div class="flex-grow">
         <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1">
           <span id="exp-text">經驗值: 0 / 5</span>
-          <span id="next-unlock-text">下一解鎖: 第四選項</span>
+          <span id="coin-counter-text" class="font-bold text-amber-600 dark:text-amber-400">🪙 刷新幣：9999</span>
         </div>
         <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
           <div id="exp-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
@@ -44,23 +41,28 @@
       </div>
     </div>
 
-    <!-- 3. 主畫面即時冷卻倒數計時器提示 -->
+    <!-- 主畫面冷卻倒數計時器 -->
     <div id="cooldown-timer-bar" class="text-[11px] text-amber-600 dark:text-amber-400 font-medium mb-2 hidden">
       ⏳ 距離下次獲得經驗值還有：<span id="cooldown-countdown">00:00:00</span>
     </div>
 
     <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-2 font-medium">✨ 正在計算您的五行開運屬性...</p>
     
-    <!-- 美食冷知識區 (初始鎖定為問號區域) -->
+    <!-- 美食冷知識區 (含 2. 刷新冷知識按鈕) -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (達到指定等級解鎖)
     </div>
     <div id="trivia-box" class="mb-4 p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-800 dark:text-amber-300 hidden">
-      <span class="font-bold flex items-center gap-1 mb-0.5">💡 美食冷知識：<span id="trivia-title"></span></span>
+      <div class="flex justify-between items-center mb-1">
+        <span class="font-bold flex items-center gap-1">💡 美食冷知識：<span id="trivia-title"></span></span>
+        <button onclick="refreshTriviaWithCoin()" class="text-[10px] px-2 py-0.5 rounded-lg bg-amber-200/80 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-900 dark:text-amber-100 font-medium transition">
+          🔄 換一個 (-1刷新幣)
+        </button>
+      </div>
       <p id="trivia-content" class="text-slate-600 dark:text-slate-400 leading-relaxed"></p>
     </div>
 
-    <!-- 食物篩選按鈕列 (初始鎖定為問號區域) -->
+    <!-- 食物篩選按鈕列 -->
     <div id="filter-locked-box" onclick="checkFeatureLock('filters')" class="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
       ❓ <strong>[已鎖定] 情境篩選按鈕組</strong> (達到最高等級解鎖)
     </div>
@@ -79,7 +81,7 @@
       <div class="p-4 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 text-center text-slate-500">載入中...</div>
     </div>
 
-    <!-- 4. 個人最愛精選區 (改為 Lv.4 解鎖) -->
+    <!-- 個人最愛精選區 -->
     <div class="mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-slate-800">
       <div class="flex items-center justify-between mb-2">
         <span id="favorite-label" class="text-xs font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1">❓ 個人最愛精選 (未解鎖)</span>
@@ -91,15 +93,15 @@
       </div>
     </div>
 
-    <!-- 核心抽籤按鈕與看廣告加次數 -->
+    <!-- 3. 核心抽籤按鈕與看廣告按鈕 -->
     <button id="draw-btn" class="w-full mt-6 py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
-      <span class="text-lg">🎲 隨機抽選</span>
+      <span class="text-lg">🎲 隨機抽選 (-1 刷新幣)</span>
     </button>
     
     <div class="flex items-center justify-between mt-2 px-1">
-      <span id="counter-text" class="text-xs text-slate-500 dark:text-slate-400">剩餘刷新次數：9999</span>
+      <span id="next-refresh-time" class="text-xs text-slate-500 dark:text-slate-400">下一次自動補充：10:00</span>
       <button id="btn-watch-ad" onclick="simulateWatchAd()" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-lg text-xs shadow transition flex items-center gap-1">
-        🎬 看廣告 +10 次
+        🎬 看廣告 +10 刷新幣
       </button>
     </div>
   </div>
@@ -107,12 +109,18 @@
   <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     
-    <!-- 1. 升級慶祝彈窗 -->
+    <!-- 1. & 5. 升級慶祝彈窗 (含 5. 按鈕文案) -->
     <div id="modal-levelup" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">⭐</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2" id="levelup-title">升至 Lv.2！</h2>
-      <p id="levelup-desc" class="text-slate-600 dark:text-slate-300 font-medium mb-6">解鎖了第四選項功能！</p>
-      <button onclick="closeModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
+      <p id="levelup-desc" class="text-slate-600 dark:text-slate-300 font-medium mb-2"></p>
+      <!-- 1. 不喜歡按鈕專屬提示 -->
+      <p id="levelup-dislike-tip" class="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg mb-4 hidden">
+        被不喜歡的食物降低出現機率，但它還是有可能會出現🤷
+      </p>
+      <button onclick="closeModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
+        耶! 我越來越會吃了!
+      </button>
     </div>
 
     <!-- 初次進入：生日彈窗 -->
@@ -141,7 +149,8 @@
       <div class="text-4xl mb-2">🎉</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2">可喜可賀！</h2>
       <p id="congrat-text" class="text-slate-600 dark:text-slate-300 font-medium mb-2">今天就吃 XXX 吧！</p>
-      <div id="exp-reward-box" class="mb-4 p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-700 dark:text-amber-300 text-xs font-bold">
+      <!-- 4. 經驗值結算文案 -->
+      <div id="exp-reward-box" class="mb-4 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-700 dark:text-amber-300 text-xs font-bold leading-relaxed">
         ✨ 經驗值 +5
       </div>
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
