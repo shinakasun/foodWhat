@@ -107,7 +107,6 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
   applyFeatureUnlocks();
 }
 
-// 1. 升級慶祝彈窗
 function showLevelUpModal(lv, desc) {
   document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
   document.getElementById('levelup-desc').innerText = `🎉 恭喜解鎖了：${desc}！`;
@@ -125,15 +124,17 @@ function showLevelUpModal(lv, desc) {
 
 function applyFeatureUnlocks() {
   const triviaLocked = document.getElementById('trivia-locked-box');
-  const triviaBox = document.getElementById('trivia-box');
+  const triviaWrapper = document.getElementById('trivia-wrapper');
   if (userLevel >= 6 && settingsPushTrivia) {
     triviaLocked.classList.add('hidden');
+    triviaWrapper.classList.remove('hidden');
     renderRandomTrivia();
   } else if (userLevel >= 6) {
     triviaLocked.classList.add('hidden');
+    triviaWrapper.classList.add('hidden');
   } else {
     triviaLocked.classList.remove('hidden');
-    triviaBox.classList.add('hidden');
+    triviaWrapper.classList.add('hidden');
   }
 
   const filterLocked = document.getElementById('filter-locked-box');
@@ -235,20 +236,19 @@ async function fetchTrivias() {
   }
 }
 
-// 4. 冷知識不需要標題，直接顯示內文
+// 3. 保留冷知識標題，內文無微型標題
 function renderRandomTrivia() {
   if (userLevel < 6) return;
-  const triviaBox = document.getElementById('trivia-box');
+  const triviaWrapper = document.getElementById('trivia-wrapper');
   if (!settingsPushTrivia || allTrivias.length === 0) {
-    triviaBox.classList.add('hidden');
+    triviaWrapper.classList.add('hidden');
     return;
   }
   const random = allTrivias[Math.floor(Math.random() * allTrivias.length)];
   document.getElementById('trivia-content').innerText = random.content;
-  triviaBox.classList.remove('hidden');
+  triviaWrapper.classList.remove('hidden');
 }
 
-// 3. 刷新冷知識 (扣除 1 刷新水晶)
 window.refreshTriviaWithCoin = function() {
   if (drawState.count <= 0) {
     alert('刷新水晶不足！請觀看廣告補充。');
@@ -268,7 +268,7 @@ window.toggleTriviaBox = function(show) {
   settingsPushTrivia = show;
   localStorage.setItem('push_trivia', show);
   if (show) renderRandomTrivia();
-  else document.getElementById('trivia-box').classList.add('hidden');
+  else document.getElementById('trivia-wrapper').classList.add('hidden');
 };
 
 function calculateElement(year) {
@@ -765,7 +765,6 @@ function updateButtonUI(id) {
   });
 }
 
-// 2. 選擇食物時，提前在是否確認畫面上提示屬性加成
 window.openFoodConfirmModal = function(id) {
   selectedFoodForConfirm = allFoods.find(f => f.id === id);
   if (!selectedFoodForConfirm) return;
@@ -883,13 +882,13 @@ function checkAndUpdateCooldown() {
   }
 }
 
-// 3. 刷新水晶 UI 顯示更新
+// 1. & 2. 藍色寶石刷新水晶餘額 UI 更新
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
-  const coinCounterEl = document.getElementById('coin-counter-text');
-  if (coinCounterEl) {
-    coinCounterEl.innerText = `🔮 刷新水晶：${drawState.count}`;
+  const coinValEl = document.getElementById('coin-counter-val');
+  if (coinValEl) {
+    coinValEl.innerText = drawState.count;
   }
 
   const nextRefreshEl = document.getElementById('next-refresh-time');
