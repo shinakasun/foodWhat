@@ -1,40 +1,49 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" id="html-root">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>吃什麼 2 - 美食盲盒</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
 </head>
-<body class="bg-slate-100 min-h-screen flex flex-col items-center p-4">
-  <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 mt-6 relative">
-    <h1 class="text-2xl font-bold text-center text-slate-800 mb-2">今天吃什麼？</h1>
-    <p id="fortune-text" class="text-xs text-center text-indigo-600 mb-4 font-medium">✨ 今日五行開運加權中...</p>
+<body id="body-root" class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
+  <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
+    
+    <!-- 頂部標題與設定按鈕 -->
+    <div class="flex justify-between items-center mb-2">
+      <h1 class="text-2xl font-bold text-slate-800 dark:text-white">今天吃什麼？</h1>
+      <button onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition">
+        ⚙️ 設定
+      </button>
+    </div>
+
+    <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-4 font-medium">✨ 正在計算您的五行開運屬性...</p>
     
     <!-- 情境篩選按鈕列 -->
     <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
       <button data-tag="all" class="filter-btn px-3 py-1 bg-indigo-600 text-white rounded-full text-sm whitespace-nowrap transition">全部</button>
-      <button data-tag="hot" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🔥 熱呼呼</button>
-      <button data-tag="refreshing" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🥗 清爽</button>
-      <button data-tag="heavy" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🌶️ 重口味</button>
-      <button data-tag="snack" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🍡 小吃</button>
-      <button data-tag="highProtein" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🥩 高蛋白</button>
-      <button data-tag="takeout" class="filter-btn px-3 py-1 bg-slate-200 text-slate-700 rounded-full text-sm whitespace-nowrap transition">🍱 外帶</button>
+      <button data-tag="hot" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🔥 熱呼呼</button>
+      <button data-tag="refreshing" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🥗 清爽</button>
+      <button data-tag="heavy" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🌶️ 重口味</button>
+      <button data-tag="snack" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🍡 小吃</button>
+      <button data-tag="highProtein" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🥩 高蛋白</button>
+      <button data-tag="takeout" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🍱 外帶</button>
     </div>
 
     <!-- 盲盒選項區 -->
     <div id="food-container" class="space-y-2 min-h-[180px]">
-      <div class="p-4 border rounded-xl bg-slate-50 text-center text-slate-500">載入中...</div>
+      <div class="p-4 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 text-center text-slate-500">載入中...</div>
     </div>
 
     <!-- 個人最愛精選區 -->
-    <div class="mt-4 pt-4 border-t border-dashed border-slate-200">
+    <div class="mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-slate-800">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-bold text-amber-600 flex items-center gap-1">⭐ 個人最愛精選</span>
+        <span class="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">⭐ 個人最愛精選</span>
       </div>
-      <div id="favorite-container">
-        <!-- 動態渲染 -->
-      </div>
+      <div id="favorite-container"></div>
     </div>
 
     <!-- 核心抽籤按鈕 -->
@@ -44,25 +53,95 @@
     </button>
   </div>
 
-  <!-- 彈窗 Modal 覆蓋層 -->
+  <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <!-- 階段 1：選擇確認彈窗 -->
-    <div id="modal-step1" class="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
-      <h2 class="text-lg font-bold text-slate-800 mb-4" id="confirm-title">確定要吃 XXX 嗎？</h2>
+    
+    <!-- 1. 初次進入：輸入生日彈窗 -->
+    <div id="modal-birth" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden">
+      <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">歡迎來到吃什麼 2</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">請輸入您的西元出生年月日，為您計算今日五行開運加權：</p>
+      <div class="space-y-3 mb-4">
+        <input type="number" id="input-year" placeholder="西元年 (例: 1988)" class="w-full p-2.5 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-sm">
+        <input type="number" id="input-month" placeholder="月份 (1-12)" min="1" max="12" class="w-full p-2.5 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-sm">
+        <input type="number" id="input-day" placeholder="日期 (1-31)" min="1" max="31" class="w-full p-2.5 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-sm">
+      </div>
+      <button onclick="saveBirthdate()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">開始探索</button>
+    </div>
+
+    <!-- 2. 食物確認與祝賀彈窗 -->
+    <div id="modal-confirm-step1" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
+      <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-4" id="confirm-title">確定要吃 XXX 嗎？</h2>
       <div class="space-y-2">
         <button id="btn-confirm-only" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">確定</button>
         <button id="btn-confirm-map" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition">確定 + 地圖搜尋</button>
-        <button id="btn-cancel" class="w-full py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition">算了換一個</button>
+        <button onclick="closeModal()" class="w-full py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition">算了換一個</button>
       </div>
     </div>
 
-    <!-- 階段 2：祝賀彈窗 -->
-    <div id="modal-step2" class="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
+    <div id="modal-confirm-step2" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">🎉</div>
-      <h2 class="text-xl font-bold text-slate-800 mb-2">可喜可賀！</h2>
-      <p id="congrat-text" class="text-slate-600 font-medium mb-6">今天就吃 XXX 吧！</p>
+      <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2">可喜可賀！</h2>
+      <p id="congrat-text" class="text-slate-600 dark:text-slate-300 font-medium mb-6">今天就吃 XXX 吧！</p>
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
     </div>
+
+    <!-- 3. 設定面板 Modal -->
+    <div id="modal-settings" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-white">⚙️ 系統設定</h2>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      
+      <div class="space-y-4 text-sm max-h-[70vh] overflow-y-auto pr-1">
+        <!-- 主題模式 -->
+        <div class="flex justify-between items-center">
+          <span class="text-slate-700 dark:text-slate-300">深色模式</span>
+          <input type="checkbox" id="setting-darkmode" onchange="toggleDarkMode(this.checked)" class="w-4 h-4 accent-indigo-600">
+        </div>
+
+        <!-- 忌食肉品設定 -->
+        <div>
+          <span class="text-slate-700 dark:text-slate-300 block mb-1 font-medium">🚫 忌食肉品設定：</span>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-1.5"><input type="checkbox" value="beef" class="meat-taboo accent-indigo-600"> 忌吃牛肉 (beef)</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" value="pork" class="meat-taboo accent-indigo-600"> 忌吃豬肉 (pork)</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" value="mutton" class="meat-taboo accent-indigo-600"> 忌吃羊肉 (mutton)</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" value="seafood" class="meat-taboo accent-indigo-600"> 忌吃海鮮 (seafood)</label>
+          </div>
+        </div>
+
+        <!-- 修改生日 -->
+        <div>
+          <span class="text-slate-700 dark:text-slate-300 block mb-1 font-medium">🎂 出生年月日：</span>
+          <div class="flex gap-2">
+            <input type="number" id="setting-year" placeholder="年" class="w-1/3 p-2 border dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs">
+            <input type="number" id="setting-month" placeholder="月" class="w-1/3 p-2 border dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs">
+            <input type="number" id="setting-day" placeholder="日" class="w-1/3 p-2 border dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs">
+          </div>
+        </div>
+
+        <!-- 推播設定 -->
+        <div class="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+          <div class="flex justify-between items-center">
+            <span class="text-slate-700 dark:text-slate-300">推播星座建議</span>
+            <input type="checkbox" id="setting-push-zodiac" class="w-4 h-4 accent-indigo-600">
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-700 dark:text-slate-300">推播食物冷知識</span>
+            <input type="checkbox" id="setting-push-trivia" class="w-4 h-4 accent-indigo-600">
+          </div>
+        </div>
+
+        <!-- 購買正式版與測試清空 -->
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <button onclick="buyVIP()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition text-xs">⭐ 購買正式版 (解鎖 VIP 永久過濾)</button>
+          <button onclick="clearLocalStorage()" class="w-full py-2 bg-rose-100 hover:bg-rose-200 text-rose-600 font-bold rounded-xl transition text-xs">🗑️ [測試] 清空 LocalStorage</button>
+        </div>
+      </div>
+
+      <button onclick="saveSettings()" class="w-full mt-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">儲存設定</button>
+    </div>
+
   </div>
 
   <script src="app.js"></script>
