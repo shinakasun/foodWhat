@@ -12,12 +12,17 @@
 <body id="body-root" class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
   <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
     
-    <!-- 頂部標題與設定按鈕 -->
+    <!-- 頂部標題與功能按鈕區 -->
     <div class="flex justify-between items-center mb-2">
       <h1 class="text-2xl font-bold text-slate-800 dark:text-white">今天吃什麼？</h1>
-      <button onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition">
-        ⚙️ 設定
-      </button>
+      <div class="flex items-center gap-1">
+        <button onclick="openStatsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition" title="數據統計">
+          📊 統計
+        </button>
+        <button onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition" title="系統設定">
+          ⚙️ 設定
+        </button>
+      </div>
     </div>
 
     <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-4 font-medium">✨ 正在計算您的五行開運屬性...</p>
@@ -46,18 +51,17 @@
       <div id="favorite-container"></div>
     </div>
 
-    <!-- 核心抽籤按鈕 -->
-<!-- 核心抽籤按鈕：改為鮮豔橘色 (amber-500) -->
-    <button id="draw-btn" class="w-full mt-6 py-3 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
+    <!-- 1. 核心抽籤按鈕：改為沉穩橘暗紅色 (orange-700 / orange-800) -->
+    <button id="draw-btn" class="w-full mt-6 py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
       <span class="text-lg">🎲 隨機抽選</span>
-      <span id="counter-text" class="text-xs text-amber-100 mt-0.5">剩餘刷新次數：9999 / 9999</span>
+      <span id="counter-text" class="text-xs text-orange-200 mt-0.5">剩餘刷新次數：9999 / 9999</span>
     </button>
   </div>
 
   <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     
-    <!-- 1. 初次進入：輸入生日彈窗 -->
+    <!-- 1. 初次進入：生日彈窗 -->
     <div id="modal-birth" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">歡迎來到吃什麼 2</h2>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">請輸入您的西元出生年月日，為您計算今日五行開運加權：</p>
@@ -94,13 +98,11 @@
       </div>
       
       <div class="space-y-4 text-sm max-h-[70vh] overflow-y-auto pr-1">
-        <!-- 主題模式 -->
         <div class="flex justify-between items-center">
           <span class="text-slate-700 dark:text-slate-300">深色模式</span>
           <input type="checkbox" id="setting-darkmode" onchange="toggleDarkMode(this.checked)" class="w-4 h-4 accent-indigo-600">
         </div>
 
-        <!-- 忌食肉品設定 -->
         <div>
           <span class="text-slate-700 dark:text-slate-300 block mb-1 font-medium">🚫 忌食肉品設定：</span>
           <div class="grid grid-cols-2 gap-2 text-xs">
@@ -111,7 +113,6 @@
           </div>
         </div>
 
-        <!-- 修改生日 -->
         <div>
           <span class="text-slate-700 dark:text-slate-300 block mb-1 font-medium">🎂 出生年月日：</span>
           <div class="flex gap-2">
@@ -121,7 +122,6 @@
           </div>
         </div>
 
-        <!-- 推播設定 -->
         <div class="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-3">
           <div class="flex justify-between items-center">
             <span class="text-slate-700 dark:text-slate-300">推播星座建議</span>
@@ -133,9 +133,8 @@
           </div>
         </div>
 
-        <!-- 購買正式版與測試清空 -->
         <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <button onclick="buyVIP()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition text-xs">⭐ 購買正式版 (解鎖 VIP 永久過濾)</button>
+          <button onclick="buyVIP()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition text-xs">⭐ 購買正式版 (解鎖 VIP 專屬完全禁用)</button>
           <button onclick="clearLocalStorage()" class="w-full py-2 bg-rose-100 hover:bg-rose-200 text-rose-600 font-bold rounded-xl transition text-xs">🗑️ [測試] 清空 LocalStorage</button>
         </div>
       </div>
@@ -143,8 +142,31 @@
       <button onclick="saveSettings()" class="w-full mt-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">儲存設定</button>
     </div>
 
-  </div>
+    <!-- 4. 2. 新增統計數據 Modal -->
+    <div id="modal-stats" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-white">📊 數據統計中心</h2>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
 
-  <script src="app.js"></script>
-</body>
-</html>
+      <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-1 text-xs">
+        
+        <!-- 近期選擇歷史 (最新 5 筆) -->
+        <div>
+          <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🕒 近期選擇過的食物</h3>
+          <div id="stats-recent-list" class="space-y-1 text-slate-600 dark:text-slate-400">
+            <!-- 動態渲染 -->
+          </div>
+        </div>
+
+        <!-- 熱門食物選擇次數排名 -->
+        <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
+          <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🏆 美食選擇排行榜</h3>
+          <div id="stats-ranking-list" class="space-y-1 text-slate-600 dark:text-slate-400">
+            <!-- 動態渲染 -->
+          </div>
+        </div>
+
+        <!-- 👎 不喜歡食物名單與解封選項 -->
+        <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
+          <h3 class="font-bold text-slate-700 dark
