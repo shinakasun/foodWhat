@@ -12,12 +12,14 @@
 <body id="body-root" class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
   <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
     
-    <!-- 3. 動態標題（首次顯示：歡迎您！/ 食物迷途旅人；回訪顯示：歡迎回來 / 晚餐迷途旅人） -->
+    <!-- 頂部標題與可點擊切換頭銜區 -->
     <div class="flex justify-between items-start mb-3">
-      <h1 id="app-main-title" class="text-xl font-bold text-slate-800 dark:text-white leading-tight">
-        <span>歡迎您！</span><br>
-        <span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人</span>
-      </h1>
+      <div id="title-container" onclick="openTitleModal()" class="cursor-pointer group select-none" title="點擊更換頭銜">
+        <h1 id="app-main-title" class="text-xl font-bold text-slate-800 dark:text-white leading-tight group-hover:text-indigo-600 transition">
+          <span>歡迎您！</span><br>
+          <span class="text-indigo-600 dark:text-indigo-400">迷途旅人 ▼</span>
+        </h1>
+      </div>
       <div class="flex items-center gap-1.5">
         <button id="btn-stats-action" onclick="openStatsModal()" class="flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 min-w-[42px]" title="統計中心 (Lv.5 解鎖)">
           <span class="text-sm">🔒</span>
@@ -104,7 +106,7 @@
       <div class="p-4 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 text-center text-slate-500">載入中...</div>
     </div>
 
-    <!-- 1. 個人最愛精選區 (Lv.3 解鎖) -->
+    <!-- 個人最愛精選區 -->
     <div class="mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-slate-800">
       <div class="flex items-center justify-between mb-2">
         <span id="favorite-label" class="text-xs font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1">❓ 個人最愛精選 (未解鎖)</span>
@@ -150,7 +152,7 @@
   <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     
-    <!-- 2. 升級慶祝彈窗 (文案修正：被討厭的食物會降低出現機率) -->
+    <!-- 升級慶祝彈窗 -->
     <div id="modal-levelup" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">⭐</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2" id="levelup-title">升至 Lv.2！</h2>
@@ -161,12 +163,23 @@
         <div class="text-[11px] text-amber-700 dark:text-amber-400">但它還是有可能會出現🤷</div>
       </div>
 
-      <button onclick="closeModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
+      <button onclick="closeLevelUpModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
         耶! 我越來越會吃了!
       </button>
     </div>
 
-    <!-- 4. 初次進入：生日彈窗 (改為下拉選單拉動) -->
+    <!-- 頭銜更換 Modal -->
+    <div id="modal-title" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-white">🏷️ 選擇您的旅人頭銜</h2>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">選擇喜愛的頭銜（系統將自動搭配當前時段）：</p>
+      <div id="title-options-list" class="space-y-2 mb-4 text-xs font-medium"></div>
+      <button onclick="closeModal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">確認</button>
+    </div>
+
+    <!-- 初次進入：生日彈窗 -->
     <div id="modal-birth" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">歡迎來到吃什麼 2</h2>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">請選擇您的西元出生年月日，為您計算今日五行開運加權：</p>
@@ -178,17 +191,25 @@
       <button onclick="saveBirthdate()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">開始探索</button>
     </div>
 
-    <!-- 食物確認 Modal -->
+    <!-- 食物確認 Modal (3. 按鈕上方提示即將獲得的經驗值) -->
     <div id="modal-confirm-step1" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2" id="confirm-title">確定要吃 XXX 嗎？</h2>
       
-      <div id="confirm-element-bonus-hint" class="mb-4 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-bold leading-relaxed hidden">
-        🔥 食物屬性特別適合今天的你！<br>確認選擇可額外獲得 +5 經驗值！
+      <div id="confirm-element-bonus-hint" class="mb-3 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-bold leading-relaxed hidden">
+        🔥 食物屬性特別適合今天的你！確認選擇可額外獲得 +5 經驗值！
       </div>
 
-      <div class="space-y-2">
-        <button id="btn-confirm-only" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">確定</button>
-        <button id="btn-confirm-map" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition">確定 + 地圖搜尋</button>
+      <div class="space-y-3">
+        <div>
+          <button id="btn-confirm-only" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">確定</button>
+          <div id="hint-exp-confirm" class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">（確定選擇可獲得 +5 經驗值）</div>
+        </div>
+
+        <div>
+          <button id="btn-confirm-map" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition">確定 + 地圖搜尋</button>
+          <div id="hint-exp-map" class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">（確定選擇可獲得 +5 經驗值）</div>
+        </div>
+
         <button onclick="closeModal()" class="w-full py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition">算了換一個</button>
       </div>
     </div>
@@ -204,7 +225,7 @@
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
     </div>
 
-    <!-- 4. 設定面板 Modal (生日改為選單拉動) -->
+    <!-- 設定面板 Modal -->
     <div id="modal-settings" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">⚙️ 系統設定</h2>
