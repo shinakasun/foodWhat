@@ -67,6 +67,7 @@ async function initApp() {
   setInterval(updateCountersAndTimer, 1000);
 }
 
+// 同步更新頂部與底部雙重經驗條與狀態
 function updateLevelAndUI(shouldCheckLevelUp = true) {
   let oldLevel = userLevel;
   let currentLv = 1;
@@ -92,16 +93,28 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
 
   const expText = document.getElementById('exp-text');
   const expBar = document.getElementById('exp-bar');
+  const footerExpText = document.getElementById('footer-exp-text');
+  const footerNextUnlock = document.getElementById('footer-next-unlock');
+  const footerExpBar = document.getElementById('footer-exp-bar');
 
   if (nextTier) {
     const spanExp = nextTier.expNeeded - currentTier.expNeeded;
     const currentProgress = userExp - currentTier.expNeeded;
     const pct = Math.min(100, Math.max(0, (currentProgress / spanExp) * 100));
+    
     expText.innerText = `經驗值: ${userExp} / ${nextTier.expNeeded}`;
     expBar.style.width = `${pct}%`;
+
+    if (footerExpText) footerExpText.innerText = `目前進度: ${userExp} / ${nextTier.expNeeded}`;
+    if (footerNextUnlock) footerNextUnlock.innerText = `下一解鎖: ${nextTier.name}`;
+    if (footerExpBar) footerExpBar.style.width = `${pct}%`;
   } else {
     expText.innerText = `經驗值: ${userExp} (已滿級)`;
     expBar.style.width = `100%`;
+
+    if (footerExpText) footerExpText.innerText = `經驗值: ${userExp} (已滿級)`;
+    if (footerNextUnlock) footerNextUnlock.innerText = `已解鎖全部功能`;
+    if (footerExpBar) footerExpBar.style.width = `100%`;
   }
 
   applyFeatureUnlocks();
@@ -143,7 +156,7 @@ function applyFeatureUnlocks() {
     filterLocked.classList.add('hidden');
     filterBar.classList.remove('hidden');
   } else {
-    filterLocked.classList.remove('hidden');
+    filterLocked.classList.add('hidden'); // 或者維持原本邏輯
     filterBar.classList.add('hidden');
   }
 
@@ -236,7 +249,6 @@ async function fetchTrivias() {
   }
 }
 
-// 3. 保留冷知識標題，內文無微型標題
 function renderRandomTrivia() {
   if (userLevel < 6) return;
   const triviaWrapper = document.getElementById('trivia-wrapper');
@@ -249,6 +261,7 @@ function renderRandomTrivia() {
   triviaWrapper.classList.remove('hidden');
 }
 
+// 1. 刷新冷知識區同時扣除 1 水晶並獲得 +1 經驗值
 window.refreshTriviaWithCoin = function() {
   if (drawState.count <= 0) {
     alert('刷新水晶不足！請觀看廣告補充。');
@@ -256,6 +269,11 @@ window.refreshTriviaWithCoin = function() {
   }
   drawState.count--;
   saveState();
+
+  userExp += 1;
+  localStorage.setItem('user_exp', userExp);
+  updateLevelAndUI(true);
+
   updateCountersAndTimer();
   renderRandomTrivia();
 };
@@ -446,7 +464,7 @@ function renderStatsBanned() {
   const badge = document.getElementById('vip-status-badge');
   if (isVIP) {
     badge.innerText = '⭐ VIP 已啟用';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-950 dark:text-amber-300 font-bold';
   } else {
     badge.innerText = '免費版 (未啟用)';
     badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
@@ -882,7 +900,6 @@ function checkAndUpdateCooldown() {
   }
 }
 
-// 1. & 2. 藍色寶石刷新水晶餘額 UI 更新
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
