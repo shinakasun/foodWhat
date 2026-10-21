@@ -20,6 +20,9 @@ let isDarkMode = localStorage.getItem('dark_mode') === 'true';
 
 const MAX_DRAW = 9999;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
+let lastTriviaAutoTime = parseInt(localStorage.getItem('last_trivia_auto_time') || Date.now());
+let currentTriviaIndex = -1;
+
 let selectedFoodForConfirm = null;
 
 const ONLINE_FOODS_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
@@ -140,7 +143,9 @@ function applyFeatureUnlocks() {
   if (userLevel >= 6 && settingsPushTrivia) {
     triviaLocked.classList.add('hidden');
     triviaWrapper.classList.remove('hidden');
-    renderRandomTrivia();
+    if (document.getElementById('trivia-content').innerText === '') {
+      renderRandomTrivia();
+    }
   } else if (userLevel >= 6) {
     triviaLocked.classList.add('hidden');
     triviaWrapper.classList.add('hidden');
@@ -161,11 +166,11 @@ function applyFeatureUnlocks() {
 
   const statBtn = document.getElementById('btn-stats-action');
   if (userLevel >= 5) {
-    statBtn.className = "px-2.5 py-1 text-xs rounded-xl border transition flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-indigo-500";
-    statBtn.innerHTML = "📊 統計";
+    statBtn.className = "flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-indigo-500 min-w-[42px]";
+    statBtn.innerHTML = '<span class="text-sm">📊</span><span class="text-[10px] mt-0.5 leading-none">統計</span>';
   } else {
-    statBtn.className = "px-2.5 py-1 text-xs rounded-xl border transition flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700";
-    statBtn.innerHTML = "🔒 📊 統計";
+    statBtn.className = "flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 min-w-[42px]";
+    statBtn.innerHTML = '<span class="text-sm">🔒</span><span class="text-[10px] mt-0.5 leading-none">統計</span>';
   }
 
   const dmWrapper = document.getElementById('setting-darkmode-wrapper');
@@ -248,6 +253,7 @@ async function fetchTrivias() {
   }
 }
 
+// 4. 防重複冷知識抽選邏輯
 function renderRandomTrivia() {
   if (userLevel < 6) return;
   const triviaWrapper = document.getElementById('trivia-wrapper');
@@ -255,8 +261,17 @@ function renderRandomTrivia() {
     triviaWrapper.classList.add('hidden');
     return;
   }
-  const random = allTrivias[Math.floor(Math.random() * allTrivias.length)];
-  document.getElementById('trivia-content').innerText = random.content;
+
+  let availableTrivias = allTrivias;
+  if (currentTriviaIndex >= 0 && allTrivias.length > 1) {
+    availableTrivias = allTrivias.filter((_, idx) => idx !== currentTriviaIndex);
+  }
+
+  const randomIndex = Math.floor(Math.random() * availableTrivias.length);
+  const selectedTrivia = availableTrivias[randomIndex];
+  currentTriviaIndex = allTrivias.indexOf(selectedTrivia);
+
+  document.getElementById('trivia-content').innerText = selectedTrivia.content;
   triviaWrapper.classList.remove('hidden');
 }
 
@@ -272,12 +287,15 @@ window.refreshTriviaWithCoin = function() {
   localStorage.setItem('user_exp', userExp);
   updateLevelAndUI(true);
 
+  // 手動刷新時重置 4 小時自動計時起點
+  lastTriviaAutoTime = Date.now();
+  localStorage.setItem('last_trivia_auto_time', lastTriviaAutoTime);
+
   updateCountersAndTimer();
   renderRandomTrivia();
   showExpToast('toast-exp-floating');
 };
 
-// 飄浮提示共用函式 (支援冷知識與隨機抽選按鈕)
 function showExpToast(elementId) {
   const toast = document.getElementById(elementId);
   if (!toast) return;
@@ -476,7 +494,7 @@ function renderStatsBanned() {
   const badge = document.getElementById('vip-status-badge');
   if (isVIP) {
     badge.innerText = '⭐ VIP 已啟用';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-950 dark:text-amber-300 font-bold';
   } else {
     badge.innerText = '免費版 (未啟用)';
     badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
@@ -532,7 +550,7 @@ window.buyVIP = function() {
 };
 
 window.clearLocalStorage = function() {
-  if (confirm('確定要清空所有 LocalStorage 資料並重置 App 吧？')) {
+  if (confirm('確定要清空所有 LocalStorage 資料並重置 App 嗎？')) {
     localStorage.clear();
     location.reload();
   }
@@ -564,7 +582,6 @@ function setupEventListeners() {
     });
   });
 
-  // 1. 隨機抽選點擊事件 (含浮動 Toast 觸發)
   const drawBtn = document.getElementById('draw-btn');
   if (drawBtn) {
     drawBtn.addEventListener('click', () => {
@@ -917,6 +934,16 @@ function checkAndUpdateCooldown() {
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
+  const now = Date.now();
+
+  // 3. 檢查冷知識是否達到 4 小時自動刷新
+  const triviaIntervalMs = 4 * 60 * 60 * 1000;
+  if (userLevel >= 6 && settingsPushTrivia && now - lastTriviaAutoTime >= triviaIntervalMs) {
+    renderRandomTrivia();
+    lastTriviaAutoTime = now;
+    localStorage.setItem('last_trivia_auto_time', lastTriviaAutoTime);
+  }
+
   const coinValEl = document.getElementById('coin-counter-val');
   if (coinValEl) {
     coinValEl.innerText = drawState.count;
@@ -924,7 +951,6 @@ function updateCountersAndTimer() {
 
   const nextRefreshEl = document.getElementById('next-refresh-time');
   if (nextRefreshEl) {
-    const now = Date.now();
     const intervalMs = 10 * 60 * 1000;
     const elapsed = (now - drawState.timestamp) % intervalMs;
     const remainingMs = intervalMs - elapsed;
@@ -938,7 +964,6 @@ function updateCountersAndTimer() {
   const timerBar = document.getElementById('cooldown-timer-bar');
   const countdownEl = document.getElementById('cooldown-countdown');
   if (timerBar && countdownEl) {
-    const now = Date.now();
     const cooldownMs = 4 * 60 * 60 * 1000;
     const elapsedEat = now - lastEatTime;
 
