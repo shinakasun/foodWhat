@@ -17,10 +17,10 @@ let selectedFoodForConfirm = null;
 
 const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 
-// 五行映射地圖 (圖示、名稱、樣式)
+// 五行映射地圖 (已更新為指定的新圖示)
 const ELEMENT_MAP = {
-  elementMetal: { name: '金', icon: '⚔️', class: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800' },
-  elementWood:  { name: '木', icon: '🌿', class: 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800' },
+  elementMetal: { name: '金', icon: '🪙', class: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800' },
+  elementWood:  { name: '木', icon: '🪵', class: 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800' },
   elementWater: { name: '水', icon: '💧', class: 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800' },
   elementFire:  { name: '火', icon: '🔥', class: 'text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:border-rose-800' },
   elementEarth: { name: '土', icon: '⛰️', class: 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-800' }
@@ -45,7 +45,6 @@ async function initApp() {
     checkAndUpdateCooldown();
     setupEventListeners();
     
-    // 初始化時執行一次抽籤
     filterAndDraw(false);
     setInterval(updateCounterUI, 1000);
   } catch (err) {
@@ -56,7 +55,6 @@ async function initApp() {
   }
 }
 
-// 五行屬性計算（依據出生年份末位天干）
 function calculateElement(year) {
   const lastDigit = year % 10;
   if (lastDigit === 0 || lastDigit === 1) return { name: '金', key: 'elementMetal' };
@@ -110,7 +108,6 @@ window.openSettingsModal = function() {
   document.getElementById('modal-settings').classList.remove('hidden');
 };
 
-// 1. 儲存設定時：僅寫入 LocalStorage 與更新狀態，不刷新畫面當前的食物選項
 window.saveSettings = function() {
   const year = parseInt(document.getElementById('setting-year').value);
   const month = parseInt(document.getElementById('setting-month').value);
@@ -134,7 +131,6 @@ window.saveSettings = function() {
 
   closeModal();
   updateFortuneText();
-  // 提示：設定已儲存，下一次點擊「隨機抽選」時會套用新設定
 };
 
 window.toggleDarkMode = function(isDark) {
@@ -173,7 +169,6 @@ function setupEventListeners() {
     });
   });
 
-  // 1. 唯有按下橘色抽籤按鈕時，才會觸發過濾與刷新
   document.getElementById('draw-btn').addEventListener('click', () => {
     if (drawState.count <= 0) {
       alert('今日次數已用完！');
@@ -188,12 +183,10 @@ function setupEventListeners() {
   document.getElementById('btn-confirm-map').addEventListener('click', () => handleConfirm(true));
 }
 
-// 核心過濾與加權抽樣邏輯
 function filterAndDraw(isDrawn) {
   let pool = [...allFoods];
   const userElement = calculateElement(userBirth.year);
 
-  // 1. 忌食肉品過濾
   if (userTaboos.length > 0) {
     pool = pool.filter(f => {
       if (!f.tags) return true;
@@ -201,17 +194,14 @@ function filterAndDraw(isDrawn) {
     });
   }
 
-  // 2. VIP 玩家過濾「不喜歡」
   if (isVIP) {
     pool = pool.filter(f => !userDislikes.includes(f.id));
   }
 
-  // 3. 情境標籤過濾
   if (currentFilter !== 'all') {
     pool = pool.filter(f => f.tags && f.tags.includes(currentFilter));
   }
 
-  // 4. 抽樣前 5 樣與個人最愛
   const selected5 = weightedSample(pool, 5, userElement.key);
   const favoriteOne = sampleFavorite();
 
@@ -290,12 +280,10 @@ function renderFavoriteUI(food) {
   container.appendChild(card);
 }
 
-// 3. 建立卡片：包含食物名稱旁的「五行屬性標籤/圖示」
 function createFoodCardHTML(food, isFavoriteSlot) {
   const isLiked = userLikes.includes(food.id);
   const isDisliked = userDislikes.includes(food.id);
 
-  // 取得該食物的五行視覺設定
   const elemInfo = ELEMENT_MAP[food.element] || { name: '未知', icon: '❓', class: 'text-slate-500 bg-slate-100 border-slate-200' };
 
   const card = document.createElement('div');
@@ -313,7 +301,6 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   card.innerHTML = `
     <div class="cursor-pointer flex-grow flex items-center gap-2" onclick="openFoodConfirmModal(${food.id})">
       <h3 class="font-bold text-slate-800 dark:text-white">${food.name}</h3>
-      <!-- 五行屬性標籤 -->
       <span class="text-[10px] px-1.5 py-0.5 rounded-md border font-medium flex items-center gap-0.5 ${elemInfo.class}">
         <span>${elemInfo.icon}</span>
         <span>${elemInfo.name}</span>
@@ -333,7 +320,6 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   return card;
 }
 
-// 1. 切換喜好：僅更新 LocalStorage 與 DOM 按鈕狀態，不重繪食物品項
 window.togglePreference = function(id, type) {
   if (type === 'like') {
     if (userLikes.includes(id)) {
