@@ -4,12 +4,13 @@ let currentFilter = 'all';
 // 偏好清單 (Likes & Dislikes) 與 VIP 狀態
 let userLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
 let userDislikes = JSON.parse(localStorage.getItem('user_dislikes') || '[]');
-let isVIP = localStorage.getItem('is_vip') === 'true'; //預設非 VIP
+let isVIP = localStorage.getItem('is_vip') === 'true'; // 預設非 VIP
 
 const MAX_DRAW = 9999;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 
-const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/food-database/foods.json';
+// 1. 已更新為全新的遠端資料庫網址
+const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 
 async function initApp() {
   try {
@@ -85,7 +86,6 @@ function weightedSample(list, k) {
   for (let i = 0; i < k; i++) {
     if (tempPool.length === 0) break;
 
-    // 計算當前池子的總權重
     let totalWeight = tempPool.reduce((acc, item) => {
       let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
       return acc + weight;
@@ -101,7 +101,7 @@ function weightedSample(list, k) {
 
       if (randomNum <= weightSum) {
         result.push(item);
-        tempPool.splice(j, 1); // 避免重複抽到
+        tempPool.splice(j, 1);
         break;
       }
     }
@@ -178,28 +178,28 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   return card;
 }
 
-// 切換喜好狀態 (Toggle Like / Dislike)
+// 切換喜好狀態
 window.togglePreference = function(id, type) {
   if (type === 'like') {
     if (userLikes.includes(id)) {
       userLikes = userLikes.filter(i => i !== id);
     } else {
       userLikes.push(id);
-      userDislikes = userDislikes.filter(i => i !== id); // 取消不喜歡
+      userDislikes = userDislikes.filter(i => i !== id);
     }
   } else if (type === 'dislike') {
     if (userDislikes.includes(id)) {
       userDislikes = userDislikes.filter(i => i !== id);
     } else {
       userDislikes.push(id);
-      userLikes = userLikes.filter(i => i !== id); // 取消喜歡
+      userLikes = userLikes.filter(i => i !== id);
     }
   }
 
   localStorage.setItem('user_likes', JSON.stringify(userLikes));
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
 
-  filterAndDraw(false); // 偏好更新後即時刷新介面狀態
+  filterAndDraw(false);
 };
 
 window.openGoogleMap = function(foodName) {
