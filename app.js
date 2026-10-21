@@ -1,12 +1,11 @@
 let allFoods = [];
 let currentFilter = 'all';
 
-// 使用者偏好與歷史紀錄
 let userLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
 let userDislikes = JSON.parse(localStorage.getItem('user_dislikes') || '[]');
-let userBanned = JSON.parse(localStorage.getItem('user_banned') || '[]'); // VIP 完全禁用名單
-let foodHistory = JSON.parse(localStorage.getItem('food_history') || '[]'); // 選中的食物歷史 [{id, name, time}]
-let foodCounts = JSON.parse(localStorage.getItem('food_counts') || '{}'); // 選擇次數統計 {id: count}
+let userBanned = JSON.parse(localStorage.getItem('user_banned') || '[]');
+let foodHistory = JSON.parse(localStorage.getItem('food_history') || '[]');
+let foodCounts = JSON.parse(localStorage.getItem('food_counts') || '{}');
 
 let userTaboos = JSON.parse(localStorage.getItem('user_taboos') || '[]');
 let isVIP = localStorage.getItem('is_vip') === 'true';
@@ -31,14 +30,7 @@ const ELEMENT_MAP = {
 
 async function initApp() {
   toggleDarkMode(isDarkMode);
-  document.getElementById('setting-darkmode').checked = isDarkMode;
-
-  if (!userBirth) {
-    showBirthModal();
-    return;
-  }
-
-  updateFortuneText();
+  setupEventListeners(); // 優先綁定按鈕事件，確保「統計」與「設定」永遠可點擊
 
   try {
     const res = await fetch(`${ONLINE_DATABASE_URL}?t=${Date.now()}`);
@@ -46,19 +38,26 @@ async function initApp() {
     
     allFoods = await res.json();
     checkAndUpdateCooldown();
-    setupEventListeners();
+
+    // 檢查生日狀況，無生日則開彈窗，有生日則正常運算
+    if (!userBirth) {
+      showBirthModal();
+    } else {
+      updateFortuneText();
+      filterAndDraw(false);
+    }
     
-    filterAndDraw(false);
     setInterval(updateCounterUI, 1000);
   } catch (err) {
     console.error('線上資料庫讀取失敗：', err);
     document.getElementById('food-container').innerHTML = `
-      <div class="text-center py-6 text-red-500 font-bold">無法連線至遠端資料庫</div>
+      <div class="text-center py-6 text-red-500 font-bold">無法連線至遠端資料庫，請檢查網路連線</div>
     `;
   }
 }
 
 function calculateElement(year) {
+  if (!year) return { name: '土', key: 'elementEarth' };
   const lastDigit = year % 10;
   if (lastDigit === 0 || lastDigit === 1) return { name: '金', key: 'elementMetal' };
   if (lastDigit === 2 || lastDigit === 3) return { name: '水', key: 'elementWater' };
@@ -91,7 +90,8 @@ window.saveBirthdate = function() {
   userBirth = { year, month, day };
   localStorage.setItem('user_birth', JSON.stringify(userBirth));
   closeModal();
-  initApp();
+  updateFortuneText();
+  filterAndDraw(false);
 };
 
 window.openSettingsModal = function() {
@@ -102,6 +102,7 @@ window.openSettingsModal = function() {
   }
   document.getElementById('setting-push-zodiac').checked = settingsPushZodiac;
   document.getElementById('setting-push-trivia').checked = settingsPushTrivia;
+  document.getElementById('setting-darkmode').checked = isDarkMode;
 
   document.querySelectorAll('.meat-taboo').forEach(checkbox => {
     checkbox.checked = userTaboos.includes(checkbox.value);
@@ -136,7 +137,6 @@ window.saveSettings = function() {
   updateFortuneText();
 };
 
-// 2. 開啟統計面板 Modal 邏輯
 window.openStatsModal = function() {
   renderStatsRecent();
   renderStatsRanking();
@@ -147,11 +147,10 @@ window.openStatsModal = function() {
   document.getElementById('modal-stats').classList.remove('hidden');
 };
 
-// 渲染近期選擇歷史
 function renderStatsRecent() {
   const container = document.getElementById('stats-recent-list');
   if (foodHistory.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 italic">尚未有選擇紀錄</p>';
+    container.innerHTML = '<p class="text-slate-400 italic py-2">尚未有選擇紀錄</p>';
     return;
   }
 
@@ -164,7 +163,6 @@ function renderStatsRecent() {
   `).join('');
 }
 
-// 渲染熱門食物排名
 function renderStatsRanking() {
   const container = document.getElementById('stats-ranking-list');
   const sorted = Object.entries(foodCounts)
@@ -173,7 +171,7 @@ function renderStatsRanking() {
     .slice(0, 5);
 
   if (sorted.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 italic">尚未產生排名數據</p>';
+    container.innerHTML = '<p class="text-slate-400 italic py-2">尚未產生排名數據</p>';
     return;
   }
 
@@ -182,18 +180,17 @@ function renderStatsRanking() {
     const name = food ? food.name : `食物 #${item.id}`;
     return `
       <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-        <span class="font-medium text-slate-700 dark:text-slate-200">No.${index + 1}${name}</span>
+        <span class="font-medium text-slate-700 dark:text-slate-200">No.${index + 1} ${name}</span>
         <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">${item.count} 次</span>
       </div>
     `;
   }).join('');
 }
 
-// 渲染不喜歡名單與解封選項
 function renderStatsDislikes() {
   const container = document.getElementById('stats-dislike-list');
   if (userDislikes.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 italic">目前沒有被標記為 👎 不喜歡的食物</p>';
+    container.innerHTML = '<p class="text-slate-400 italic py-2">目前沒有被標記為 👎 不喜歡的食物</p>';
     return;
   }
 
@@ -209,7 +206,6 @@ function renderStatsDislikes() {
   }).join('');
 }
 
-// 解封 👎 不喜歡
 window.unmarkDislike = function(id) {
   userDislikes = userDislikes.filter(i => i !== id);
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
@@ -217,7 +213,6 @@ window.unmarkDislike = function(id) {
   updateButtonUI(id);
 };
 
-// 渲染 VIP 專屬禁用名單與解封選項
 function renderStatsBanned() {
   const container = document.getElementById('stats-banned-list');
   const badge = document.getElementById('vip-status-badge');
@@ -240,7 +235,7 @@ function renderStatsBanned() {
   }
 
   if (userBanned.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 italic">目前沒有被完全禁用的食物</p>';
+    container.innerHTML = '<p class="text-slate-400 italic py-2">目前沒有被完全禁用的食物</p>';
     return;
   }
 
@@ -256,7 +251,6 @@ function renderStatsBanned() {
   }).join('');
 }
 
-// 解除 VIP 完全禁用
 window.unmarkBanned = function(id) {
   userBanned = userBanned.filter(i => i !== id);
   localStorage.setItem('user_banned', JSON.stringify(userBanned));
@@ -299,23 +293,30 @@ function setupEventListeners() {
     });
   });
 
-  document.getElementById('draw-btn').addEventListener('click', () => {
-    if (drawState.count <= 0) {
-      alert('今日次數已用完！');
-      return;
-    }
-    drawState.count--;
-    saveState();
-    filterAndDraw(true);
-  });
+  const drawBtn = document.getElementById('draw-btn');
+  if (drawBtn) {
+    drawBtn.addEventListener('click', () => {
+      if (drawState.count <= 0) {
+        alert('今日次數已用完！');
+        return;
+      }
+      drawState.count--;
+      saveState();
+      filterAndDraw(true);
+    });
+  }
 
-  document.getElementById('btn-confirm-only').addEventListener('click', () => handleConfirm(false));
-  document.getElementById('btn-confirm-map').addEventListener('click', () => handleConfirm(true));
+  const confirmOnly = document.getElementById('btn-confirm-only');
+  const confirmMap = document.getElementById('btn-confirm-map');
+  if (confirmOnly) confirmOnly.onclick = () => handleConfirm(false);
+  if (confirmMap) confirmMap.onclick = () => handleConfirm(true);
 }
 
 function filterAndDraw(isDrawn) {
+  if (allFoods.length === 0) return;
+
   let pool = [...allFoods];
-  const userElement = calculateElement(userBirth.year);
+  const userElement = userBirth ? calculateElement(userBirth.year) : { name: '土', key: 'elementEarth' };
 
   if (userTaboos.length > 0) {
     pool = pool.filter(f => {
@@ -324,7 +325,6 @@ function filterAndDraw(isDrawn) {
     });
   }
 
-  // VIP 玩家完全排除 banned 與 dislikes 項目
   if (isVIP) {
     pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
   }
@@ -465,7 +465,6 @@ window.togglePreference = function(id, type) {
     } else {
       userDislikes.push(id);
       userLikes = userLikes.filter(i => i !== id);
-      // 若為 VIP，同步記錄至禁用名單
       if (isVIP && !userBanned.includes(id)) {
         userBanned.push(id);
         localStorage.setItem('user_banned', JSON.stringify(userBanned));
@@ -519,7 +518,6 @@ window.openFoodConfirmModal = function(id) {
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
-  // 自動紀錄歷史與選擇次數
   const foodId = selectedFoodForConfirm.id;
   const foodName = selectedFoodForConfirm.name;
   const timeStr = new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -584,8 +582,9 @@ function checkAndUpdateCooldown() {
 function updateCounterUI() {
   checkAndUpdateCooldown();
   const counterEl = document.getElementById('counter-text');
+  if (!counterEl) return;
   if (drawState.count >= MAX_DRAW) {
-    counterEl.innerText = `剩餘刷新次數：${drawState.count} /${MAX_DRAW} (已充滿)`;
+    counterEl.innerText = `剩餘刷新次數：${drawState.count} / ${MAX_DRAW} (已充滿)`;
     return;
   }
 
@@ -596,4 +595,14 @@ function updateCounterUI() {
   
   const minutes = Math.floor(remainingMs / 60000);
   const seconds = Math.floor((remainingMs % 60000) / 1000);
-  const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(
+  const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+  counterEl.innerText = `剩餘刷新次數：${drawState.count} / ${MAX_DRAW} (下一次補充：${timeStr})`;
+}
+
+function saveState() {
+  localStorage.setItem('draw_state', JSON.stringify(drawState));
+}
+
+// 啟動初始化
+initApp();
