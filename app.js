@@ -5,6 +5,7 @@ let currentFilter = 'all';
 let userExp = parseInt(localStorage.getItem('user_exp') || '0');
 let userLevel = parseInt(localStorage.getItem('user_level') || '1');
 let lastEatTime = parseInt(localStorage.getItem('last_eat_time') || '0');
+let userSelectedTitle = localStorage.getItem('user_title') || '迷途旅人';
 
 let userLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
 let userDislikes = JSON.parse(localStorage.getItem('user_dislikes') || '[]');
@@ -24,6 +25,7 @@ let lastTriviaAutoTime = parseInt(localStorage.getItem('last_trivia_auto_time') 
 let currentTriviaIndex = -1;
 
 let selectedFoodForConfirm = null;
+let pendingCongratModalData = null; // 1. 用於暫存升級期間的慶祝彈窗資料
 
 const ONLINE_FOODS_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 const ONLINE_TRIVIAS_URL = 'https://shinakasun.github.io/foodWhatDataBase/trivias.json';
@@ -73,26 +75,58 @@ async function initApp() {
   setInterval(updateCountersAndTimer, 1000);
 }
 
-// 3. 動態更換標題 (首次與回訪)
+// 2. 取得動態時段名稱並組合頭銜（過濾掉 X餐 兩個字）
+function getMealPrefix() {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 11) return "早";
+  else if (hour >= 11 && hour < 16) return "午";
+  else if (hour >= 16 && hour < 23) return "晚";
+  else return "宵";
+}
+
 function updateMainTitle() {
   const titleEl = document.getElementById('app-main-title');
   if (!titleEl) return;
 
   if (!userBirth) {
-    titleEl.innerHTML = `<span>歡迎您！</span><br><span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人</span>`;
+    titleEl.innerHTML = `<span>歡迎您！</span><br><span class="text-indigo-600 dark:text-indigo-400">旅人 ▼</span>`;
   } else {
-    const hour = new Date().getHours();
-    let mealName = "晚餐";
-    if (hour >= 5 && hour < 11) mealName = "早餐";
-    else if (hour >= 11 && hour < 16) mealName = "午餐";
-    else if (hour >= 16 && hour < 23) mealName = "晚餐";
-    else mealName = "宵夜";
-
-    titleEl.innerHTML = `<span>歡迎回來</span><br><span class="text-indigo-600 dark:text-indigo-400">${mealName}迷途旅人</span>`;
+    const mealPrefix = getMealPrefix();
+    titleEl.innerHTML = `<span>歡迎回來</span><br><span class="text-indigo-600 dark:text-indigo-400">${mealPrefix}${userSelectedTitle} ▼</span>`;
   }
 }
 
-// 4. 初始化西元年月日下拉選單
+// 2. 開啟頭銜更換視窗
+window.openTitleModal = function() {
+  const listEl = document.getElementById('title-options-list');
+  const mealPrefix = getMealPrefix();
+
+  const baseTitles = ["迷途旅人", "愛好者", "尋覓者"];
+
+  listEl.innerHTML = baseTitles.map(t => {
+    const isSelected = userSelectedTitle === t;
+    const displayName = `${mealPrefix}${t}`;
+    return `
+      <div onclick="selectTitle('${t}')" class="p-2.5 rounded-xl border cursor-pointer flex justify-between items-center transition ${
+        isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+      }">
+        <span>${displayName}</span>
+        ${isSelected ? '<span class="text-indigo-600">✓</span>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-title').classList.remove('hidden');
+};
+
+window.selectTitle = function(title) {
+  userSelectedTitle = title;
+  localStorage.setItem('user_title', title);
+  updateMainTitle();
+  closeModal();
+};
+
 function initDateSelectors(prefix) {
   const yearSel = document.getElementById(`${prefix}-year`);
   const monthSel = document.getElementById(`${prefix}-month`);
@@ -115,7 +149,6 @@ function initDateSelectors(prefix) {
   adjustBirthDays(prefix);
 }
 
-// 4. 防呆自動計算每月天數 (28/29/30/31 天)
 window.adjustBirthDays = function(prefix) {
   const yearSel = document.getElementById(`${prefix}-year`);
   const monthSel = document.getElementById(`${prefix}-month`);
@@ -134,6 +167,7 @@ window.adjustBirthDays = function(prefix) {
   daySel.value = Math.min(savedDay, daysInMonth);
 };
 
+// 1. 修正升級與可喜可賀彈窗的衝突 Bug
 function updateLevelAndUI(shouldCheckLevelUp = true) {
   let oldLevel = userLevel;
   let currentLv = 1;
@@ -169,11 +203,11 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
     const pct = Math.min(100, Math.max(0, (currentProgress / spanExp) * 100));
     
     expText.innerText = `經驗值: ${userExp} / ${nextTier.expNeeded}`;
-    expBar.style.width = `${pct}%`;
+    expBar.style.width = `${pct}`;
 
     if (footerExpText) footerExpText.innerText = `目前進度: ${userExp} / ${nextTier.expNeeded}`;
     if (footerNextUnlock) footerNextUnlock.innerText = `下一解鎖: ${nextTier.name}`;
-    if (footerExpBar) footerExpBar.style.width = `${pct}%`;
+    if (footerExpBar) footerExpBar.style.width = `${pct}`;
   } else {
     expText.innerText = `經驗值: ${userExp} (已滿級)`;
     expBar.style.width = `100%`;
@@ -197,11 +231,23 @@ function showLevelUpModal(lv, desc) {
     dislikeTip.classList.add('hidden');
   }
 
+  // 確保升級彈窗優先顯示，隱藏其他確認彈窗
   document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-levelup').classList.remove('hidden');
 }
 
-// 1. 個人喜愛精選區改為與喜歡按鈕同一等級 (Lv.3) 解鎖
+// 1. 關閉升級彈窗時，若有暫存的可喜可賀彈窗，則無縫接軌顯示
+window.closeLevelUpModal = function() {
+  document.getElementById('modal-levelup').classList.add('hidden');
+  if (pendingCongratModalData) {
+    showCongratModal(pendingCongratModalData.foodName, pendingCongratModalData.expMsg, pendingCongratModalData.needMap);
+    pendingCongratModalData = null;
+  } else {
+    closeModal();
+  }
+};
+
 function applyFeatureUnlocks() {
   const triviaLocked = document.getElementById('trivia-locked-box');
   const triviaWrapper = document.getElementById('trivia-wrapper');
@@ -403,7 +449,6 @@ function showBirthModal() {
   document.getElementById('modal-birth').classList.remove('hidden');
 }
 
-// 4. 讀取拉動選單儲存生日
 window.saveBirthdate = function() {
   const year = parseInt(document.getElementById('select-birth-year').value);
   const month = parseInt(document.getElementById('select-birth-month').value);
@@ -881,6 +926,7 @@ function updateButtonUI(id) {
   });
 }
 
+// 3. 在確認畫面中動態計算並提示將獲得的經驗值
 window.openFoodConfirmModal = function(id) {
   selectedFoodForConfirm = allFoods.find(f => f.id === id);
   if (!selectedFoodForConfirm) return;
@@ -897,6 +943,23 @@ window.openFoodConfirmModal = function(id) {
     hintBox.classList.add('hidden');
   }
 
+  const now = Date.now();
+  const cooldownMs = 4 * 60 * 60 * 1000;
+  const isCoolingDown = (now - lastEatTime < cooldownMs);
+
+  const hintConfirm = document.getElementById('hint-exp-confirm');
+  const hintMap = document.getElementById('hint-exp-map');
+
+  if (isCoolingDown) {
+    hintConfirm.innerText = '（4小時冷卻中，本次確認無經驗值）';
+    hintMap.innerText = '（4小時冷卻中，本次確認無經驗值）';
+  } else {
+    let expectedExp = 5;
+    if (isMatchedElement) expectedExp += 5;
+    hintConfirm.innerText = `（確定選擇可獲得 +${expectedExp} 經驗值）`;
+    hintMap.innerText = `（確定選擇可獲得 +${expectedExp} 經驗值）`;
+  }
+
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-confirm-step1').classList.remove('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
@@ -904,8 +967,10 @@ window.openFoodConfirmModal = function(id) {
   document.getElementById('modal-settings').classList.add('hidden');
   document.getElementById('modal-stats').classList.add('hidden');
   document.getElementById('modal-levelup').classList.add('hidden');
+  document.getElementById('modal-title').classList.add('hidden');
 };
 
+// 1. 處理確認邏輯：完美攔截升級視窗，避免與可喜可賀彈窗衝突
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
@@ -948,12 +1013,38 @@ function handleConfirm(needMap) {
     lastEatTime = now;
     localStorage.setItem('user_exp', userExp);
     localStorage.setItem('last_eat_time', lastEatTime);
-    updateLevelAndUI(true);
   } else {
     expMsg = "⏳ 4小時冷卻中，本次確認未獲得經驗值";
   }
 
+  // 檢查這次加經驗是否會導致升級
+  let oldLevel = userLevel;
+  let currentLv = 1;
+  for (let i = LEVEL_UNLOCKS.length - 1; i >= 0; i--) {
+    if (userExp >= LEVEL_UNLOCKS[i].expNeeded) {
+      currentLv = LEVEL_UNLOCKS[i].level;
+      break;
+    }
+  }
+
   document.getElementById('modal-confirm-step1').classList.add('hidden');
+
+  if (currentLv > oldLevel) {
+    // 發生升級：優先顯示升級彈窗，並將可喜可賀彈窗暫存起來
+    userLevel = currentLv;
+    localStorage.setItem('user_level', userLevel);
+    pendingCongratModalData = { foodName, expMsg, needMap };
+    const tier = LEVEL_UNLOCKS.find(l => l.level === userLevel);
+    showLevelUpModal(userLevel, tier ? tier.unlockDesc : "新功能");
+  } else {
+    // 未升級：直接顯示可喜可賀彈窗
+    showCongratModal(foodName, expMsg, needMap);
+  }
+
+  updateLevelAndUI(false);
+}
+
+function showCongratModal(foodName, expMsg, needMap) {
   document.getElementById('modal-confirm-step2').classList.remove('hidden');
   document.getElementById('congrat-text').innerText = `今天就吃 ${foodName} 吧！`;
   document.getElementById('exp-reward-box').innerHTML = expMsg;
@@ -981,7 +1072,9 @@ window.closeModal = function() {
   document.getElementById('modal-settings').classList.add('hidden');
   document.getElementById('modal-stats').classList.add('hidden');
   document.getElementById('modal-levelup').classList.add('hidden');
+  document.getElementById('modal-title').classList.add('hidden');
   selectedFoodForConfirm = null;
+  pendingCongratModalData = null;
 };
 
 function checkAndUpdateCooldown() {
