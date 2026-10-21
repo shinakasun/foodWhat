@@ -25,19 +25,26 @@
       </div>
     </div>
 
-    <!-- 等級、經驗條與 3. 刷新水晶顯示 -->
+    <!-- 2. 等級 (左) + 經驗條 (中) + 藍色寶石刷新水晶餘額 (右) 同行對稱顯示 -->
     <div class="flex items-center gap-2 mb-2">
+      <!-- 等級 Badge -->
       <div id="user-level-badge" class="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-sm shadow-sm flex items-center justify-center min-w-[48px]">
         Lv.1
       </div>
+
+      <!-- 中間經驗條 -->
       <div class="flex-grow">
         <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1">
           <span id="exp-text">經驗值: 0 / 5</span>
-          <span id="coin-counter-text" class="font-bold text-purple-600 dark:text-purple-400">🔮 刷新水晶：9999</span>
         </div>
         <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
           <div id="exp-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
         </div>
+      </div>
+
+      <!-- 1. & 2. 藍色寶石刷新水晶餘額 Badge (與等級同尺寸風格) -->
+      <div id="coin-counter-badge" class="px-2.5 py-1 rounded-lg bg-blue-500 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-1 whitespace-nowrap min-w-[68px]">
+        💎 <span id="coin-counter-val">9999</span>
       </div>
     </div>
 
@@ -48,16 +55,25 @@
 
     <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-2 font-medium">✨ 正在計算您的五行開運屬性...</p>
     
-    <!-- 美食冷知識區 (4. 移除標題 & 5. 固定高度防止跳動) -->
+    <!-- 美食冷知識區 (3. 保留標題 / 4. 卡片調高 & 刷新按鈕於卡片右側同行) -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (達到指定等級解鎖)
     </div>
-    <div id="trivia-box" class="mb-4 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 hidden relative h-[72px] flex flex-col justify-between">
-      <div class="overflow-y-auto pr-12 scrollbar-none">
-        <p id="trivia-content" class="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]"></p>
+    <div id="trivia-wrapper" class="mb-4 flex items-center gap-2 hidden">
+      <!-- 冷知識內容卡片 (高度擴增至 96px，保留標題，無額外子標題) -->
+      <div id="trivia-box" class="flex-grow p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 h-[96px] flex flex-col">
+        <div class="font-bold text-amber-800 dark:text-amber-300 text-xs mb-1 flex items-center gap-1">
+          💡 美食冷知識
+        </div>
+        <div class="overflow-y-auto pr-1 flex-grow scrollbar-none">
+          <p id="trivia-content" class="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]"></p>
+        </div>
       </div>
-      <button onclick="refreshTriviaWithCoin()" class="absolute top-2.5 right-2.5 text-[10px] px-2 py-1 rounded-lg bg-amber-200/90 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center gap-0.5 shadow-sm">
-        🔄 🔮-1
+      
+      <!-- 4. 獨立在冷知識卡片右側同行的刷新按鈕 -->
+      <button onclick="refreshTriviaWithCoin()" class="h-[96px] px-3 rounded-xl bg-amber-200/90 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold text-xs transition flex flex-col items-center justify-center gap-1 shadow-sm whitespace-nowrap" title="換一個冷知識 (-1 刷新水晶)">
+        <span>🔄</span>
+        <span class="text-[10px]">💎-1</span>
       </button>
     </div>
 
@@ -92,7 +108,7 @@
       </div>
     </div>
 
-    <!-- 3. 核心抽籤按鈕與看廣告按鈕 (刷新水晶) -->
+    <!-- 1. 核心抽籤按鈕與看廣告按鈕 (刷新水晶 藍色寶石圖示) -->
     <button id="draw-btn" class="w-full mt-6 py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
       <span class="text-lg">🎲 隨機抽選 (-1 刷新水晶)</span>
     </button>
@@ -108,13 +124,12 @@
   <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     
-    <!-- 1. 升級慶祝彈窗 (美化拆分為兩行說明) -->
+    <!-- 升級慶祝彈窗 -->
     <div id="modal-levelup" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">⭐</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2" id="levelup-title">升至 Lv.2！</h2>
       <p id="levelup-desc" class="text-slate-600 dark:text-slate-300 font-medium mb-2"></p>
       
-      <!-- 1. 拆為完美兩行顯示 -->
       <div id="levelup-dislike-tip" class="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-2.5 rounded-xl mb-4 leading-relaxed font-medium hidden">
         被不喜歡的食物降低出現機率，<br>但它還是有可能會出現🤷
       </div>
@@ -136,11 +151,10 @@
       <button onclick="saveBirthdate()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">開始探索</button>
     </div>
 
-    <!-- 2. 食物確認 Modal (新增適合屬性提前提示欄位) -->
+    <!-- 食物確認 Modal -->
     <div id="modal-confirm-step1" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2" id="confirm-title">確定要吃 XXX 嗎？</h2>
       
-      <!-- 2. 提前在選擇按鈕上方提示五行適合屬性 -->
       <div id="confirm-element-bonus-hint" class="mb-4 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-bold leading-relaxed hidden">
         🔥 食物屬性特別適合今天的你！<br>確認選擇可額外獲得 +5 經驗值！
       </div>
