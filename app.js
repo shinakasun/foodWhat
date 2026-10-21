@@ -1,4 +1,5 @@
 let allFoods = [];
+let allTrivias = [];
 let currentFilter = 'all';
 
 let userLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
@@ -10,15 +11,16 @@ let foodCounts = JSON.parse(localStorage.getItem('food_counts') || '{}');
 let userTaboos = JSON.parse(localStorage.getItem('user_taboos') || '[]');
 let isVIP = localStorage.getItem('is_vip') === 'true';
 let userBirth = JSON.parse(localStorage.getItem('user_birth') || 'null');
-let settingsPushZodiac = localStorage.getItem('push_zodiac') === 'true';
-let settingsPushTrivia = localStorage.getItem('push_trivia') === 'true';
+let settingsPushTrivia = localStorage.getItem('push_trivia') !== 'false'; // 預設開啟
 let isDarkMode = localStorage.getItem('dark_mode') === 'true';
 
 const MAX_DRAW = 9999;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 let selectedFoodForConfirm = null;
 
-const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
+// 遠端 API 網址
+const ONLINE_FOODS_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
+const ONLINE_TRIVIAS_URL = 'https://shinakasun.github.io/foodWhatDataBase/trivias.json';
 
 const ELEMENT_MAP = {
   elementMetal: { name: '金', icon: '🪙', class: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800' },
@@ -30,31 +32,70 @@ const ELEMENT_MAP = {
 
 async function initApp() {
   toggleDarkMode(isDarkMode);
-  setupEventListeners(); // 優先綁定按鈕事件，確保「統計」與「設定」永遠可點擊
+  setupEventListeners();
 
+  // 1. 載入遠端食物與冷知識資料庫
+  await Promise.all([fetchFoods(), fetchTrivias()]);
+
+  checkAndUpdateCooldown();
+
+  if (!userBirth) {
+    showBirthModal();
+  } else {
+    updateFortuneText();
+    filterAndDraw(false);
+  }
+  
+  setInterval(updateCounterUI, 1000);
+}
+
+// 讀取食物資料
+async function fetchFoods() {
   try {
-    const res = await fetch(`${ONLINE_DATABASE_URL}?t=${Date.now()}`);
-    if (!res.ok) throw new Error(`HTTP 錯誤！狀態碼：${res.status}`);
-    
+    const res = await fetch(`${ONLINE_FOODS_URL}?t=${Date.now()}`);
+    if (!res.ok) throw new Error('食物資料載入失敗');
     allFoods = await res.json();
-    checkAndUpdateCooldown();
-
-    // 檢查生日狀況，無生日則開彈窗，有生日則正常運算
-    if (!userBirth) {
-      showBirthModal();
-    } else {
-      updateFortuneText();
-      filterAndDraw(false);
-    }
-    
-    setInterval(updateCounterUI, 1000);
   } catch (err) {
-    console.error('線上資料庫讀取失敗：', err);
+    console.error(err);
     document.getElementById('food-container').innerHTML = `
-      <div class="text-center py-6 text-red-500 font-bold">無法連線至遠端資料庫，請檢查網路連線</div>
+      <div class="text-center py-6 text-red-500 font-bold">無法連線至食物資料庫</div>
     `;
   }
 }
+
+// 3. 讀取遠端冷知識 JSON 檔
+async function fetchTrivias() {
+  try {
+    const res = await fetch(`${ONLINE_TRIVIAS_URL}?t=${Date.now()}`);
+    if (!res.ok) return;
+    allTrivias = await res.json();
+    renderRandomTrivia();
+  } catch (err) {
+    console.warn('遠端冷知識讀取失敗，採用預設展示');
+  }
+}
+
+function renderRandomTrivia() {
+  const triviaBox = document.getElementById('trivia-box');
+  if (!settingsPushTrivia || allTrivias.length === 0) {
+    triviaBox.classList.add('hidden');
+    return;
+  }
+  const random = allTrivias[Math.floor(Math.random() * allTrivias.length)];
+  document.getElementById('trivia-title').innerText = random.title;
+  document.getElementById('trivia-content').innerText = random.content;
+  triviaBox.classList.remove('hidden');
+}
+
+window.toggleTriviaBox = function(show) {
+  settingsPushTrivia = show;
+  localStorage.setItem('push_trivia', show);
+  if (show) {
+    renderRandomTrivia();
+  } else {
+    document.getElementById('trivia-box').classList.add('hidden');
+  }
+};
 
 function calculateElement(year) {
   if (!year) return { name: '土', key: 'elementEarth' };
@@ -100,7 +141,6 @@ window.openSettingsModal = function() {
     document.getElementById('setting-month').value = userBirth.month;
     document.getElementById('setting-day').value = userBirth.day;
   }
-  document.getElementById('setting-push-zodiac').checked = settingsPushZodiac;
   document.getElementById('setting-push-trivia').checked = settingsPushTrivia;
   document.getElementById('setting-darkmode').checked = isDarkMode;
 
@@ -122,11 +162,6 @@ window.saveSettings = function() {
     localStorage.setItem('user_birth', JSON.stringify(userBirth));
   }
 
-  settingsPushZodiac = document.getElementById('setting-push-zodiac').checked;
-  settingsPushTrivia = document.getElementById('setting-push-trivia').checked;
-  localStorage.setItem('push_zodiac', settingsPushZodiac);
-  localStorage.setItem('push_trivia', settingsPushTrivia);
-
   userTaboos = [];
   document.querySelectorAll('.meat-taboo:checked').forEach(checkbox => {
     userTaboos.push(checkbox.value);
@@ -147,6 +182,7 @@ window.openStatsModal = function() {
   document.getElementById('modal-stats').classList.remove('hidden');
 };
 
+// 2. 近期歷史：嚴格限制顯示最新 5 筆
 function renderStatsRecent() {
   const container = document.getElementById('stats-recent-list');
   if (foodHistory.length === 0) {
@@ -163,12 +199,13 @@ function renderStatsRecent() {
   `).join('');
 }
 
+// 2. 美食排行榜：嚴格限制顯示前 10 名
 function renderStatsRanking() {
   const container = document.getElementById('stats-ranking-list');
   const sorted = Object.entries(foodCounts)
     .map(([id, count]) => ({ id: parseInt(id), count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+    .slice(0, 10); // 前 10 名
 
   if (sorted.length === 0) {
     container.innerHTML = '<p class="text-slate-400 italic py-2">尚未產生排名數據</p>';
@@ -187,7 +224,11 @@ function renderStatsRanking() {
   }).join('');
 }
 
+// 1. 不喜歡名單：更新標籤與清單
 function renderStatsDislikes() {
+  const label = document.getElementById('dislike-toggle-label');
+  label.innerText = `👎 不喜歡的食物名單 (${userDislikes.length} 項)`;
+
   const container = document.getElementById('stats-dislike-list');
   if (userDislikes.length === 0) {
     container.innerHTML = '<p class="text-slate-400 italic py-2">目前沒有被標記為 👎 不喜歡的食物</p>';
@@ -205,6 +246,21 @@ function renderStatsDislikes() {
     `;
   }).join('');
 }
+
+// 1. 切換不喜歡區塊的展開/折疊
+window.toggleDislikeSection = function() {
+  const container = document.getElementById('stats-dislike-container');
+  const arrow = document.getElementById('dislike-toggle-arrow');
+  const isHidden = container.classList.contains('hidden');
+
+  if (isHidden) {
+    container.classList.remove('hidden');
+    arrow.innerText = '▲';
+  } else {
+    container.classList.add('hidden');
+    arrow.innerText = '▼';
+  }
+};
 
 window.unmarkDislike = function(id) {
   userDislikes = userDislikes.filter(i => i !== id);
@@ -604,5 +660,4 @@ function saveState() {
   localStorage.setItem('draw_state', JSON.stringify(drawState));
 }
 
-// 啟動初始化
 initApp();
