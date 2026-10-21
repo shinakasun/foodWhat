@@ -12,9 +12,12 @@
 <body id="body-root" class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
   <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
     
-    <!-- 1. 頂部標題移除貓咪顏文字，右上角按鈕改為圖示在上、文字在下的直式排版 -->
-    <div class="flex justify-between items-center mb-3">
-      <h1 class="text-xl font-bold text-slate-800 dark:text-white">今天吃什麼？</h1>
+    <!-- 3. 動態標題（首次顯示：歡迎您！/ 食物迷途旅人；回訪顯示：歡迎回來 / 晚餐迷途旅人） -->
+    <div class="flex justify-between items-start mb-3">
+      <h1 id="app-main-title" class="text-xl font-bold text-slate-800 dark:text-white leading-tight">
+        <span>歡迎您！</span><br>
+        <span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人</span>
+      </h1>
       <div class="flex items-center gap-1.5">
         <button id="btn-stats-action" onclick="openStatsModal()" class="flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 min-w-[42px]" title="統計中心 (Lv.5 解鎖)">
           <span class="text-sm">🔒</span>
@@ -54,7 +57,7 @@
 
     <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-2 font-medium">✨ 正在計算您的五行開運屬性...</p>
     
-    <!-- 美食冷知識區 (3. 底部提示每 4 小時自動刷新) -->
+    <!-- 美食冷知識區 -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (達到指定等級解鎖)
     </div>
@@ -68,7 +71,7 @@
         </div>
       </div>
       
-      <!-- 重新整理按鈕與下方說明 -->
+      <!-- 重新整理按鈕與說明 -->
       <div class="flex flex-col items-center justify-center">
         <button onclick="refreshTriviaWithCoin()" class="w-12 h-12 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center justify-center shadow-sm" title="換一個冷知識">
           <span class="text-xl">🔄</span>
@@ -101,14 +104,14 @@
       <div class="p-4 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 text-center text-slate-500">載入中...</div>
     </div>
 
-    <!-- 個人最愛精選區 -->
+    <!-- 1. 個人最愛精選區 (Lv.3 解鎖) -->
     <div class="mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-slate-800">
       <div class="flex items-center justify-between mb-2">
         <span id="favorite-label" class="text-xs font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1">❓ 個人最愛精選 (未解鎖)</span>
       </div>
       <div id="favorite-container">
         <div id="favorite-locked-box" onclick="checkFeatureLock('favorite')" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
-          🔒 達到 Lv.4 解鎖個人最愛鎖定區
+          🔒 達到 Lv.3 解鎖個人最愛鎖定區
         </div>
       </div>
     </div>
@@ -147,14 +150,14 @@
   <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     
-    <!-- 升級慶祝彈窗 -->
+    <!-- 2. 升級慶祝彈窗 (文案修正：被討厭的食物會降低出現機率) -->
     <div id="modal-levelup" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">⭐</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2" id="levelup-title">升至 Lv.2！</h2>
       <p id="levelup-desc" class="text-slate-600 dark:text-slate-300 font-medium mb-2"></p>
       
       <div id="levelup-dislike-tip" class="bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-3 rounded-xl mb-4 leading-snug hidden">
-        <div class="text-xs font-bold text-amber-800 dark:text-amber-200 mb-1">被不喜歡的食物降低出現機率</div>
+        <div class="text-xs font-bold text-amber-800 dark:text-amber-200 mb-1">被討厭的食物會降低出現機率</div>
         <div class="text-[11px] text-amber-700 dark:text-amber-400">但它還是有可能會出現🤷</div>
       </div>
 
@@ -163,14 +166,14 @@
       </button>
     </div>
 
-    <!-- 初次進入：生日彈窗 -->
+    <!-- 4. 初次進入：生日彈窗 (改為下拉選單拉動) -->
     <div id="modal-birth" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">歡迎來到吃什麼 2</h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">請輸入您的西元出生年月日，為您計算今日五行開運加權：</p>
-      <div class="space-y-3 mb-4">
-        <input type="number" id="input-year" placeholder="西元年 (例: 1988)" class="w-full p-2.5 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-sm">
-        <input type="number" id="input-month" placeholder="月份 (1-12)" min="1" max="12" class="w-full p-2.5 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-sm">
-        <input type="number" id="input-day" placeholder="日期 (1-31)" min="1" max="31" class="w-full p-2.5 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-sm">
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">請選擇您的西元出生年月日，為您計算今日五行開運加權：</p>
+      <div class="grid grid-cols-3 gap-2 mb-4">
+        <select id="select-birth-year" onchange="adjustBirthDays('select-birth')" class="p-2.5 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-bold focus:outline-none"></select>
+        <select id="select-birth-month" onchange="adjustBirthDays('select-birth')" class="p-2.5 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-bold focus:outline-none"></select>
+        <select id="select-birth-day" class="p-2.5 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-bold focus:outline-none"></select>
       </div>
       <button onclick="saveBirthdate()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">開始探索</button>
     </div>
@@ -201,7 +204,7 @@
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
     </div>
 
-    <!-- 設定面板 Modal -->
+    <!-- 4. 設定面板 Modal (生日改為選單拉動) -->
     <div id="modal-settings" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">⚙️ 系統設定</h2>
@@ -226,10 +229,10 @@
 
         <div>
           <span class="text-slate-700 dark:text-slate-300 block mb-1 font-medium">🎂 出生年月日：</span>
-          <div class="flex gap-2">
-            <input type="number" id="setting-year" placeholder="年" class="w-1/3 p-2 border dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs">
-            <input type="number" id="setting-month" placeholder="月" class="w-1/3 p-2 border dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs">
-            <input type="number" id="setting-day" placeholder="日" class="w-1/3 p-2 border dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs">
+          <div class="grid grid-cols-3 gap-2">
+            <select id="select-setting-year" onchange="adjustBirthDays('select-setting')" class="p-2 border dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs font-bold focus:outline-none"></select>
+            <select id="select-setting-month" onchange="adjustBirthDays('select-setting')" class="p-2 border dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs font-bold focus:outline-none"></select>
+            <select id="select-setting-day" class="p-2 border dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs font-bold focus:outline-none"></select>
           </div>
         </div>
 
