@@ -12,9 +12,12 @@
 <body id="body-root" class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
   <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
     
-    <!-- 頂部標題與功能按鈕區 -->
+    <!-- 2. 頂部標題加上問號貓咪顏文字 (ฅ'ω'ฅ)? -->
     <div class="flex justify-between items-center mb-3">
-      <h1 class="text-xl font-bold text-slate-800 dark:text-white">今天吃什麼？</h1>
+      <h1 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+        <span>今天吃什麼？</span>
+        <span class="text-base text-indigo-500 font-normal">(ฅ'ω'ฅ)?</span>
+      </h1>
       <div class="flex items-center gap-1">
         <button id="btn-stats-action" onclick="openStatsModal()" class="px-2.5 py-1 text-xs rounded-xl border transition flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700" title="統計中心 (Lv.5 解鎖)">
           🔒 📊 統計
@@ -74,7 +77,7 @@
         <span class="text-[10px] text-slate-500 dark:text-slate-400 font-bold whitespace-nowrap">💎-1</span>
       </div>
 
-      <!-- 1. 點擊刷新時快速消失的浮動提示 (Toast) -->
+      <!-- 冷知識經驗值飄浮提示 (Toast) -->
       <div id="toast-exp-floating" class="absolute -top-6 right-12 bg-amber-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none">
         ✨ 經驗值 +1
       </div>
@@ -111,10 +114,17 @@
       </div>
     </div>
 
-    <!-- 3. 隨機抽選按鈕 (-1 💎) -->
-    <button id="draw-btn" class="w-full mt-6 py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
-      <span class="text-lg">🎲 隨機抽選 (-1 💎)</span>
-    </button>
+    <!-- 隨機抽選按鈕區 (含 1. 抽選專用 Floating Toast) -->
+    <div class="relative mt-6">
+      <button id="draw-btn" class="w-full py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
+        <span class="text-lg">🎲 隨機抽選 (-1 💎)</span>
+      </button>
+
+      <!-- 1. 隨機抽選時出現的飄浮經驗提示 -->
+      <div id="toast-draw-exp-floating" class="absolute -top-7 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[11px] font-extrabold px-3 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none whitespace-nowrap">
+        ✨ 經驗值 +1
+      </div>
+    </div>
     
     <!-- 底部輔助經驗條 -->
     <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -127,7 +137,7 @@
       </div>
     </div>
 
-    <!-- 4. 看廣告按鈕 (+10 💎) -->
+    <!-- 看廣告按鈕列 -->
     <div class="flex items-center justify-between mt-2 px-1">
       <span id="next-refresh-time" class="text-xs text-slate-500 dark:text-slate-400">下一次自動補充：10:00</span>
       <button id="btn-watch-ad" onclick="simulateWatchAd()" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-lg text-xs shadow transition flex items-center gap-1">
@@ -139,7 +149,7 @@
   <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     
-    <!-- 升級慶祝彈窗 (2. 不喜歡按鈕說明排版優化：第一行大、第二行小) -->
+    <!-- 升級慶祝彈窗 -->
     <div id="modal-levelup" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">⭐</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2" id="levelup-title">升至 Lv.2！</h2>
