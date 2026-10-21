@@ -12,19 +12,13 @@
 <body id="body-root" class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
   <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
     
-    <!-- 頂部標題、等級與功能按鈕區 -->
-    <div class="flex justify-between items-center mb-1">
-      <div class="flex items-center gap-2">
-        <h1 class="text-xl font-bold text-slate-800 dark:text-white">今天吃什麼？</h1>
-        <span id="user-level-badge" class="text-xs px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold">Lv.1</span>
-      </div>
+    <!-- 頂部標題與功能按鈕區 -->
+    <div class="flex justify-between items-center mb-3">
+      <h1 class="text-xl font-bold text-slate-800 dark:text-white">今天吃什麼？</h1>
       <div class="flex items-center gap-1">
-        <!-- 統計按鈕 (初始鎖定) -->
-        <button id="btn-stats-locked" onclick="checkFeatureLock('stats')" class="p-2 text-slate-400 dark:text-slate-600 transition relative" title="解鎖等級：Lv.4 統計中心">
-          📊 <span class="absolute -top-1 -right-1 text-[9px] bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-1 rounded">🔒</span>
-        </button>
-        <button id="btn-stats-unlocked" onclick="openStatsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition hidden" title="數據統計">
-          📊 統計
+        <!-- 2. 統計按鈕直接用灰色上鎖圖案取代（透過 JS 控制點擊與外觀） -->
+        <button id="btn-stats-action" onclick="openStatsModal()" class="px-2.5 py-1 text-xs rounded-xl border transition flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700" title="統計中心 (Lv.5 解鎖)">
+          🔒 📊 統計
         </button>
 
         <!-- 設定按鈕 -->
@@ -34,15 +28,25 @@
       </div>
     </div>
 
-    <!-- 經驗值進度條 -->
-    <div class="mb-3">
-      <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1">
-        <span id="exp-text">經驗值: 0 / 10</span>
-        <span id="next-unlock-text">下一解鎖: 第四選項</span>
+    <!-- 5. 等級顯示放大、改為圓角四邊形、黑色字，並與經驗條移動同一行顯示在左側 -->
+    <div class="flex items-center gap-2 mb-2">
+      <div id="user-level-badge" class="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-sm shadow-sm flex items-center justify-center min-w-[48px]">
+        Lv.1
       </div>
-      <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-        <div id="exp-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+      <div class="flex-grow">
+        <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+          <span id="exp-text">經驗值: 0 / 5</span>
+          <span id="next-unlock-text">下一解鎖: 第四選項</span>
+        </div>
+        <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+          <div id="exp-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+        </div>
       </div>
+    </div>
+
+    <!-- 3. 主畫面即時冷卻倒數計時器提示 -->
+    <div id="cooldown-timer-bar" class="text-[11px] text-amber-600 dark:text-amber-400 font-medium mb-2 hidden">
+      ⏳ 距離下次獲得經驗值還有：<span id="cooldown-countdown">00:00:00</span>
     </div>
 
     <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-2 font-medium">✨ 正在計算您的五行開運屬性...</p>
@@ -70,19 +74,19 @@
       <button data-tag="takeout" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🍱 外帶</button>
     </div>
 
-    <!-- 盲盒選項區 (動態 3~9 個) -->
+    <!-- 盲盒選項區 -->
     <div id="food-container" class="space-y-2 min-h-[180px]">
       <div class="p-4 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 text-center text-slate-500">載入中...</div>
     </div>
 
-    <!-- 個人最愛精選區 (初始鎖定為問號區域) -->
+    <!-- 4. 個人最愛精選區 (改為 Lv.4 解鎖) -->
     <div class="mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-slate-800">
       <div class="flex items-center justify-between mb-2">
         <span id="favorite-label" class="text-xs font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1">❓ 個人最愛精選 (未解鎖)</span>
       </div>
       <div id="favorite-container">
         <div id="favorite-locked-box" onclick="checkFeatureLock('favorite')" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
-          🔒 達到指定等級解鎖個人最愛鎖定區
+          🔒 達到 Lv.4 解鎖個人最愛鎖定區
         </div>
       </div>
     </div>
@@ -103,7 +107,15 @@
   <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     
-    <!-- 1. 初次進入：生日彈窗 -->
+    <!-- 1. 升級慶祝彈窗 -->
+    <div id="modal-levelup" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
+      <div class="text-4xl mb-2">⭐</div>
+      <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2" id="levelup-title">升至 Lv.2！</h2>
+      <p id="levelup-desc" class="text-slate-600 dark:text-slate-300 font-medium mb-6">解鎖了第四選項功能！</p>
+      <button onclick="closeModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
+    </div>
+
+    <!-- 初次進入：生日彈窗 -->
     <div id="modal-birth" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">歡迎來到吃什麼 2</h2>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">請輸入您的西元出生年月日，為您計算今日五行開運加權：</p>
@@ -115,7 +127,7 @@
       <button onclick="saveBirthdate()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">開始探索</button>
     </div>
 
-    <!-- 2. 食物確認與祝賀彈窗 -->
+    <!-- 食物確認與祝賀彈窗 -->
     <div id="modal-confirm-step1" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-4" id="confirm-title">確定要吃 XXX 嗎？</h2>
       <div class="space-y-2">
@@ -129,14 +141,13 @@
       <div class="text-4xl mb-2">🎉</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2">可喜可賀！</h2>
       <p id="congrat-text" class="text-slate-600 dark:text-slate-300 font-medium mb-2">今天就吃 XXX 吧！</p>
-      <!-- 經驗值結算提示 -->
       <div id="exp-reward-box" class="mb-4 p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-700 dark:text-amber-300 text-xs font-bold">
         ✨ 經驗值 +5
       </div>
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
     </div>
 
-    <!-- 3. 設定面板 Modal -->
+    <!-- 設定面板 Modal -->
     <div id="modal-settings" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">⚙️ 系統設定</h2>
@@ -144,7 +155,6 @@
       </div>
       
       <div class="space-y-4 text-sm max-h-[70vh] overflow-y-auto pr-1">
-        <!-- 深色模式 (初始鎖定) -->
         <div id="setting-darkmode-wrapper" class="flex justify-between items-center opacity-50">
           <span class="text-slate-700 dark:text-slate-300 flex items-center gap-1">深色模式 <span id="lock-darkmode" class="text-[10px] text-amber-500">(🔒 Lv.3 解鎖)</span></span>
           <input type="checkbox" id="setting-darkmode" onchange="toggleDarkMode(this.checked)" class="w-4 h-4 accent-indigo-600" disabled>
@@ -185,7 +195,7 @@
       <button onclick="saveSettings()" class="w-full mt-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">儲存設定</button>
     </div>
 
-    <!-- 4. 統計數據 Modal -->
+    <!-- 統計數據 Modal -->
     <div id="modal-stats" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">📊 數據統計中心</h2>
