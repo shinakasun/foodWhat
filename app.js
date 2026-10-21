@@ -25,7 +25,7 @@ let lastTriviaAutoTime = parseInt(localStorage.getItem('last_trivia_auto_time') 
 let currentTriviaIndex = -1;
 
 let selectedFoodForConfirm = null;
-let pendingCongratModalData = null; // 1. 用於暫存升級期間的慶祝彈窗資料
+let pendingCongratModalData = null;
 
 const ONLINE_FOODS_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 const ONLINE_TRIVIAS_URL = 'https://shinakasun.github.io/foodWhatDataBase/trivias.json';
@@ -75,13 +75,13 @@ async function initApp() {
   setInterval(updateCountersAndTimer, 1000);
 }
 
-// 2. 取得動態時段名稱並組合頭銜（過濾掉 X餐 兩個字）
-function getMealPrefix() {
+// 2. 修正頭銜漏字 Bug，精準呈現「X餐」完整名稱
+function getMealFullPrefix() {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 11) return "早";
-  else if (hour >= 11 && hour < 16) return "午";
-  else if (hour >= 16 && hour < 23) return "晚";
-  else return "宵";
+  if (hour >= 5 && hour < 11) return "早餐";
+  else if (hour >= 11 && hour < 16) return "午餐";
+  else if (hour >= 16 && hour < 23) return "晚餐";
+  else return "宵夜";
 }
 
 function updateMainTitle() {
@@ -89,23 +89,22 @@ function updateMainTitle() {
   if (!titleEl) return;
 
   if (!userBirth) {
-    titleEl.innerHTML = `<span>歡迎您！</span><br><span class="text-indigo-600 dark:text-indigo-400">旅人 ▼</span>`;
+    titleEl.innerHTML = `<span>歡迎您！</span><br><span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人 ▼</span>`;
   } else {
-    const mealPrefix = getMealPrefix();
-    titleEl.innerHTML = `<span>歡迎回來</span><br><span class="text-indigo-600 dark:text-indigo-400">${mealPrefix}${userSelectedTitle} ▼</span>`;
+    const mealFull = getMealFullPrefix();
+    titleEl.innerHTML = `<span>歡迎回來</span><br><span class="text-indigo-600 dark:text-indigo-400">${mealFull}${userSelectedTitle} ▼</span>`;
   }
 }
 
-// 2. 開啟頭銜更換視窗
 window.openTitleModal = function() {
   const listEl = document.getElementById('title-options-list');
-  const mealPrefix = getMealPrefix();
+  const mealFull = getMealFullPrefix();
 
   const baseTitles = ["迷途旅人", "愛好者", "尋覓者"];
 
   listEl.innerHTML = baseTitles.map(t => {
     const isSelected = userSelectedTitle === t;
-    const displayName = `${mealPrefix}${t}`;
+    const displayName = `${mealFull}${t}`;
     return `
       <div onclick="selectTitle('${t}')" class="p-2.5 rounded-xl border cursor-pointer flex justify-between items-center transition ${
         isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
@@ -167,7 +166,7 @@ window.adjustBirthDays = function(prefix) {
   daySel.value = Math.min(savedDay, daysInMonth);
 };
 
-// 1. 修正升級與可喜可賀彈窗的衝突 Bug
+// 1. 修復進度條 Bug：補上 % 單位字串
 function updateLevelAndUI(shouldCheckLevelUp = true) {
   let oldLevel = userLevel;
   let currentLv = 1;
@@ -203,11 +202,11 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
     const pct = Math.min(100, Math.max(0, (currentProgress / spanExp) * 100));
     
     expText.innerText = `經驗值: ${userExp} / ${nextTier.expNeeded}`;
-    expBar.style.width = `${pct}`;
+    expBar.style.width = `${pct}%`;
 
     if (footerExpText) footerExpText.innerText = `目前進度: ${userExp} / ${nextTier.expNeeded}`;
     if (footerNextUnlock) footerNextUnlock.innerText = `下一解鎖: ${nextTier.name}`;
-    if (footerExpBar) footerExpBar.style.width = `${pct}`;
+    if (footerExpBar) footerExpBar.style.width = `${pct}%`;
   } else {
     expText.innerText = `經驗值: ${userExp} (已滿級)`;
     expBar.style.width = `100%`;
@@ -231,13 +230,11 @@ function showLevelUpModal(lv, desc) {
     dislikeTip.classList.add('hidden');
   }
 
-  // 確保升級彈窗優先顯示，隱藏其他確認彈窗
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-levelup').classList.remove('hidden');
 }
 
-// 1. 關閉升級彈窗時，若有暫存的可喜可賀彈窗，則無縫接軌顯示
 window.closeLevelUpModal = function() {
   document.getElementById('modal-levelup').classList.add('hidden');
   if (pendingCongratModalData) {
@@ -926,7 +923,7 @@ function updateButtonUI(id) {
   });
 }
 
-// 3. 在確認畫面中動態計算並提示將獲得的經驗值
+// 3. 醒目字體 & 4. 倒數計時器同步融入確認視窗
 window.openFoodConfirmModal = function(id) {
   selectedFoodForConfirm = allFoods.find(f => f.id === id);
   if (!selectedFoodForConfirm) return;
@@ -943,22 +940,7 @@ window.openFoodConfirmModal = function(id) {
     hintBox.classList.add('hidden');
   }
 
-  const now = Date.now();
-  const cooldownMs = 4 * 60 * 60 * 1000;
-  const isCoolingDown = (now - lastEatTime < cooldownMs);
-
-  const hintConfirm = document.getElementById('hint-exp-confirm');
-  const hintMap = document.getElementById('hint-exp-map');
-
-  if (isCoolingDown) {
-    hintConfirm.innerText = '（4小時冷卻中，本次確認無經驗值）';
-    hintMap.innerText = '（4小時冷卻中，本次確認無經驗值）';
-  } else {
-    let expectedExp = 5;
-    if (isMatchedElement) expectedExp += 5;
-    hintConfirm.innerText = `（確定選擇可獲得 +${expectedExp} 經驗值）`;
-    hintMap.innerText = `（確定選擇可獲得 +${expectedExp} 經驗值）`;
-  }
+  updateConfirmModalExpText();
 
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-confirm-step1').classList.remove('hidden');
@@ -970,7 +952,43 @@ window.openFoodConfirmModal = function(id) {
   document.getElementById('modal-title').classList.add('hidden');
 };
 
-// 1. 處理確認邏輯：完美攔截升級視窗，避免與可喜可賀彈窗衝突
+function updateConfirmModalExpText() {
+  if (!selectedFoodForConfirm) return;
+
+  const userElement = userBirth ? calculateElement(userBirth.year) : { key: 'elementEarth' };
+  const isMatchedElement = selectedFoodForConfirm.element === userElement.key;
+
+  const now = Date.now();
+  const cooldownMs = 4 * 60 * 60 * 1000;
+  const elapsedEat = now - lastEatTime;
+  const isCoolingDown = (elapsedEat < cooldownMs);
+
+  const hintConfirm = document.getElementById('hint-exp-confirm');
+  const hintMap = document.getElementById('hint-exp-map');
+
+  if (isCoolingDown) {
+    const remainEatMs = cooldownMs - elapsedEat;
+    const hrs = Math.floor(remainEatMs / (1000 * 60 * 60));
+    const mins = Math.floor((remainEatMs % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((remainEatMs % (1000 * 60)) / 1000);
+    const timeStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+    const text = `⏳ 經驗值冷卻中（還剩 ${timeStr} 可獲得經驗值）`;
+    hintConfirm.innerText = text;
+    hintMap.innerText = text;
+    hintConfirm.className = 'text-xs font-bold text-amber-600 dark:text-amber-400 mt-1.5';
+    hintMap.className = 'text-xs font-bold text-amber-600 dark:text-amber-400 mt-1.5';
+  } else {
+    let expectedExp = 5;
+    if (isMatchedElement) expectedExp += 5;
+    const text = `✨ 確定選擇可獲得 +${expectedExp} 經驗值`;
+    hintConfirm.innerText = text;
+    hintMap.innerText = text;
+    hintConfirm.className = 'text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1.5';
+    hintMap.className = 'text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1.5';
+  }
+}
+
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
@@ -1017,7 +1035,6 @@ function handleConfirm(needMap) {
     expMsg = "⏳ 4小時冷卻中，本次確認未獲得經驗值";
   }
 
-  // 檢查這次加經驗是否會導致升級
   let oldLevel = userLevel;
   let currentLv = 1;
   for (let i = LEVEL_UNLOCKS.length - 1; i >= 0; i--) {
@@ -1030,14 +1047,12 @@ function handleConfirm(needMap) {
   document.getElementById('modal-confirm-step1').classList.add('hidden');
 
   if (currentLv > oldLevel) {
-    // 發生升級：優先顯示升級彈窗，並將可喜可賀彈窗暫存起來
     userLevel = currentLv;
     localStorage.setItem('user_level', userLevel);
     pendingCongratModalData = { foodName, expMsg, needMap };
     const tier = LEVEL_UNLOCKS.find(l => l.level === userLevel);
     showLevelUpModal(userLevel, tier ? tier.unlockDesc : "新功能");
   } else {
-    // 未升級：直接顯示可喜可賀彈窗
     showCongratModal(foodName, expMsg, needMap);
   }
 
@@ -1136,6 +1151,12 @@ function updateCountersAndTimer() {
     } else {
       timerBar.classList.add('hidden');
     }
+  }
+
+  // 同步更新彈窗內的倒數計時文字
+  const confirmStep1 = document.getElementById('modal-confirm-step1');
+  if (confirmStep1 && !confirmStep1.classList.contains('hidden')) {
+    updateConfirmModalExpText();
   }
 }
 
