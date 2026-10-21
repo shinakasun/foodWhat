@@ -25,14 +25,12 @@
       </div>
     </div>
 
-    <!-- 2. 等級 (左) + 經驗條 (中) + 藍色寶石刷新水晶餘額 (右) 同行對稱顯示 -->
+    <!-- 頂部：等級 (左) + 經驗條 (中) + 5. 放大版藍色寶石刷新水晶餘額 (右) -->
     <div class="flex items-center gap-2 mb-2">
-      <!-- 等級 Badge -->
       <div id="user-level-badge" class="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-sm shadow-sm flex items-center justify-center min-w-[48px]">
         Lv.1
       </div>
 
-      <!-- 中間經驗條 -->
       <div class="flex-grow">
         <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1">
           <span id="exp-text">經驗值: 0 / 5</span>
@@ -42,25 +40,24 @@
         </div>
       </div>
 
-      <!-- 1. & 2. 藍色寶石刷新水晶餘額 Badge (與等級同尺寸風格) -->
-      <div id="coin-counter-badge" class="px-2.5 py-1 rounded-lg bg-blue-500 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-1 whitespace-nowrap min-w-[68px]">
-        💎 <span id="coin-counter-val">9999</span>
+      <!-- 5. 藍色寶石圖示與字級放大 -->
+      <div id="coin-counter-badge" class="px-2.5 py-1.5 rounded-lg bg-blue-500 text-white font-extrabold text-sm shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap min-w-[76px]">
+        <span class="text-base">💎</span> <span id="coin-counter-val">9999</span>
       </div>
     </div>
 
-    <!-- 主畫面冷卻倒數計時器 -->
+    <!-- 3. 冷卻提示文案改為 "下一次額外的經驗值：" -->
     <div id="cooldown-timer-bar" class="text-[11px] text-amber-600 dark:text-amber-400 font-medium mb-2 hidden">
-      ⏳ 距離下次獲得經驗值還有：<span id="cooldown-countdown">00:00:00</span>
+      ⏳ 下一次額外的經驗值：<span id="cooldown-countdown">00:00:00</span>
     </div>
 
     <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-2 font-medium">✨ 正在計算您的五行開運屬性...</p>
     
-    <!-- 美食冷知識區 (3. 保留標題 / 4. 卡片調高 & 刷新按鈕於卡片右側同行) -->
+    <!-- 美食冷知識區 (4. 放大刷新圖示，下方顯示水晶消耗) -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (達到指定等級解鎖)
     </div>
     <div id="trivia-wrapper" class="mb-4 flex items-center gap-2 hidden">
-      <!-- 冷知識內容卡片 (高度擴增至 96px，保留標題，無額外子標題) -->
       <div id="trivia-box" class="flex-grow p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 h-[96px] flex flex-col">
         <div class="font-bold text-amber-800 dark:text-amber-300 text-xs mb-1 flex items-center gap-1">
           💡 美食冷知識
@@ -70,11 +67,13 @@
         </div>
       </div>
       
-      <!-- 4. 獨立在冷知識卡片右側同行的刷新按鈕 -->
-      <button onclick="refreshTriviaWithCoin()" class="h-[96px] px-3 rounded-xl bg-amber-200/90 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold text-xs transition flex flex-col items-center justify-center gap-1 shadow-sm whitespace-nowrap" title="換一個冷知識 (-1 刷新水晶)">
-        <span>🔄</span>
-        <span class="text-[10px]">💎-1</span>
-      </button>
+      <!-- 4. 放大單獨刷新圖示按鈕，下方顯示水晶-1 -->
+      <div class="flex flex-col items-center justify-center gap-1">
+        <button onclick="refreshTriviaWithCoin()" class="w-12 h-12 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center justify-center shadow-sm" title="換一個冷知識">
+          <span class="text-xl">🔄</span>
+        </button>
+        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-bold whitespace-nowrap">💎-1</span>
+      </div>
     </div>
 
     <!-- 食物篩選按鈕列 -->
@@ -108,11 +107,22 @@
       </div>
     </div>
 
-    <!-- 1. 核心抽籤按鈕與看廣告按鈕 (刷新水晶 藍色寶石圖示) -->
+    <!-- 核心抽籤按鈕與看廣告按鈕 -->
     <button id="draw-btn" class="w-full mt-6 py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
       <span class="text-lg">🎲 隨機抽選 (-1 刷新水晶)</span>
     </button>
     
+    <!-- 2. 隨機抽選下方新增一條輔助經驗條 -->
+    <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+      <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+        <span id="footer-exp-text">目前進度: 0 / 5</span>
+        <span id="footer-next-unlock" class="font-medium text-indigo-600 dark:text-indigo-400">解鎖進度條</span>
+      </div>
+      <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+        <div id="footer-exp-bar" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+      </div>
+    </div>
+
     <div class="flex items-center justify-between mt-2 px-1">
       <span id="next-refresh-time" class="text-xs text-slate-500 dark:text-slate-400">下一次自動補充：10:00</span>
       <button id="btn-watch-ad" onclick="simulateWatchAd()" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-lg text-xs shadow transition flex items-center gap-1">
