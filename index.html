@@ -16,16 +16,16 @@
     <div class="flex justify-between items-center mb-2">
       <h1 class="text-2xl font-bold text-slate-800 dark:text-white">今天吃什麼？</h1>
       <div class="flex items-center gap-1">
-        <button onclick="openStatsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition" title="數據統計">
+        <button id="btn-open-stats" onclick="openStatsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition" title="數據統計">
           📊 統計
         </button>
-        <button onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition" title="系統設定">
+        <button id="btn-open-settings" onclick="openSettingsModal()" class="p-2 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition" title="系統設定">
           ⚙️ 設定
         </button>
       </div>
     </div>
 
-    <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-4 font-medium">✨ 正在計算您的五行開運屬性...</p>
+    <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-4 font-medium">✨ 請輸入生日以計算今日五行開運屬性...</p>
     
     <!-- 情境篩選按鈕列 -->
     <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
@@ -51,14 +51,14 @@
       <div id="favorite-container"></div>
     </div>
 
-    <!-- 1. 核心抽籤按鈕：改為沉穩橘暗紅色 (orange-700 / orange-800) -->
+    <!-- 核心抽籤按鈕 -->
     <button id="draw-btn" class="w-full mt-6 py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
       <span class="text-lg">🎲 隨機抽選</span>
       <span id="counter-text" class="text-xs text-orange-200 mt-0.5">剩餘刷新次數：9999 / 9999</span>
     </button>
   </div>
 
-  <!-- 彈窗 Modal 區塊 -->
+  <!-- 彈窗 Modal 覆蓋層 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     
     <!-- 1. 初次進入：生日彈窗 -->
@@ -142,7 +142,7 @@
       <button onclick="saveSettings()" class="w-full mt-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">儲存設定</button>
     </div>
 
-    <!-- 4. 2. 新增統計數據 Modal -->
+    <!-- 4. 統計數據 Modal -->
     <div id="modal-stats" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">📊 數據統計中心</h2>
@@ -150,42 +150,28 @@
       </div>
 
       <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-1 text-xs">
-        
-        <!-- 近期選擇歷史 (最新 5 筆) -->
         <div>
           <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🕒 近期選擇過的食物</h3>
-          <div id="stats-recent-list" class="space-y-1 text-slate-600 dark:text-slate-400">
-            <!-- 動態渲染 -->
-          </div>
+          <div id="stats-recent-list" class="space-y-1 text-slate-600 dark:text-slate-400"></div>
         </div>
 
-        <!-- 熱門食物選擇次數排名 -->
         <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
           <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🏆 美食選擇排行榜</h3>
-          <div id="stats-ranking-list" class="space-y-1 text-slate-600 dark:text-slate-400">
-            <!-- 動態渲染 -->
-          </div>
+          <div id="stats-ranking-list" class="space-y-1 text-slate-600 dark:text-slate-400"></div>
         </div>
 
-        <!-- 👎 不喜歡食物名單與解封選項 -->
         <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
           <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">👎 不喜歡的食物名單</h3>
-          <div id="stats-dislike-list" class="space-y-1.5">
-            <!-- 動態渲染 -->
-          </div>
+          <div id="stats-dislike-list" class="space-y-1.5"></div>
         </div>
 
-        <!-- ⛔ VIP 專屬：被禁用的食物名單與解封選項 -->
         <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
           <div class="flex justify-between items-center mb-1">
             <h3 class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">⛔ 完全禁用的食物 (VIP 獨享)</h3>
             <span id="vip-status-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium">免費版</span>
           </div>
-          <div id="stats-banned-list" class="space-y-1.5">
-            <!-- 動態渲染 -->
-          </div>
+          <div id="stats-banned-list" class="space-y-1.5"></div>
         </div>
-
       </div>
     </div>
 
