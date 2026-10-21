@@ -11,14 +11,13 @@ let foodCounts = JSON.parse(localStorage.getItem('food_counts') || '{}');
 let userTaboos = JSON.parse(localStorage.getItem('user_taboos') || '[]');
 let isVIP = localStorage.getItem('is_vip') === 'true';
 let userBirth = JSON.parse(localStorage.getItem('user_birth') || 'null');
-let settingsPushTrivia = localStorage.getItem('push_trivia') !== 'false'; // 預設開啟
+let settingsPushTrivia = localStorage.getItem('push_trivia') !== 'false';
 let isDarkMode = localStorage.getItem('dark_mode') === 'true';
 
 const MAX_DRAW = 9999;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 let selectedFoodForConfirm = null;
 
-// 遠端 API 網址
 const ONLINE_FOODS_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 const ONLINE_TRIVIAS_URL = 'https://shinakasun.github.io/foodWhatDataBase/trivias.json';
 
@@ -34,9 +33,7 @@ async function initApp() {
   toggleDarkMode(isDarkMode);
   setupEventListeners();
 
-  // 1. 載入遠端食物與冷知識資料庫
   await Promise.all([fetchFoods(), fetchTrivias()]);
-
   checkAndUpdateCooldown();
 
   if (!userBirth) {
@@ -49,7 +46,6 @@ async function initApp() {
   setInterval(updateCounterUI, 1000);
 }
 
-// 讀取食物資料
 async function fetchFoods() {
   try {
     const res = await fetch(`${ONLINE_FOODS_URL}?t=${Date.now()}`);
@@ -63,7 +59,6 @@ async function fetchFoods() {
   }
 }
 
-// 3. 讀取遠端冷知識 JSON 檔
 async function fetchTrivias() {
   try {
     const res = await fetch(`${ONLINE_TRIVIAS_URL}?t=${Date.now()}`);
@@ -71,7 +66,7 @@ async function fetchTrivias() {
     allTrivias = await res.json();
     renderRandomTrivia();
   } catch (err) {
-    console.warn('遠端冷知識讀取失敗，採用預設展示');
+    console.warn('遠端冷知識讀取失敗');
   }
 }
 
@@ -182,7 +177,6 @@ window.openStatsModal = function() {
   document.getElementById('modal-stats').classList.remove('hidden');
 };
 
-// 2. 近期歷史：嚴格限制顯示最新 5 筆
 function renderStatsRecent() {
   const container = document.getElementById('stats-recent-list');
   if (foodHistory.length === 0) {
@@ -199,13 +193,12 @@ function renderStatsRecent() {
   `).join('');
 }
 
-// 2. 美食排行榜：嚴格限制顯示前 10 名
 function renderStatsRanking() {
   const container = document.getElementById('stats-ranking-list');
   const sorted = Object.entries(foodCounts)
     .map(([id, count]) => ({ id: parseInt(id), count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10); // 前 10 名
+    .slice(0, 10);
 
   if (sorted.length === 0) {
     container.innerHTML = '<p class="text-slate-400 italic py-2">尚未產生排名數據</p>';
@@ -224,7 +217,6 @@ function renderStatsRanking() {
   }).join('');
 }
 
-// 1. 不喜歡名單：更新標籤與清單
 function renderStatsDislikes() {
   const label = document.getElementById('dislike-toggle-label');
   label.innerText = `👎 不喜歡的食物名單 (${userDislikes.length} 項)`;
@@ -247,7 +239,6 @@ function renderStatsDislikes() {
   }).join('');
 }
 
-// 1. 切換不喜歡區塊的展開/折疊
 window.toggleDislikeSection = function() {
   const container = document.getElementById('stats-dislike-container');
   const arrow = document.getElementById('dislike-toggle-arrow');
@@ -336,6 +327,21 @@ window.clearLocalStorage = function() {
     localStorage.clear();
     location.reload();
   }
+};
+
+window.simulateWatchAd = function() {
+  const btn = document.getElementById('btn-watch-ad');
+  btn.disabled = true;
+  btn.innerText = '⏳ 廣告播放中...';
+
+  setTimeout(() => {
+    drawState.count += 5;
+    saveState();
+    updateCounterUI();
+    btn.disabled = false;
+    btn.innerText = '🎬 看廣告 +5 次';
+    alert('🎉 感謝觀看！刷新次數已增加 5 次！');
+  }, 2000);
 };
 
 function setupEventListeners() {
