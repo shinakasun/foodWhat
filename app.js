@@ -1,15 +1,15 @@
 let allFoods = [];
 let currentFilter = 'all';
 
-// 偏好清單 (Likes & Dislikes) 與 VIP 狀態
 let userLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
 let userDislikes = JSON.parse(localStorage.getItem('user_dislikes') || '[]');
-let isVIP = localStorage.getItem('is_vip') === 'true'; // 預設非 VIP
+let isVIP = localStorage.getItem('is_vip') === 'true';
 
 const MAX_DRAW = 9999;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 
-// 遠端資料庫網址
+let selectedFoodForConfirm = null; // 當前被點擊的食物紀錄
+
 const ONLINE_DATABASE_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 
 async function initApp() {
@@ -51,26 +51,26 @@ function setupEventListeners() {
     saveState();
     filterAndDraw(true);
   });
+
+  // 彈窗按鈕綁定
+  document.getElementById('btn-confirm-only').addEventListener('click', () => handleConfirm(false));
+  document.getElementById('btn-confirm-map').addEventListener('click', () => handleConfirm(true));
+  document.getElementById('btn-cancel').addEventListener('click', closeModal);
 }
 
 // 核心過濾與加權抽樣邏輯
 function filterAndDraw(isDrawn) {
   let pool = [...allFoods];
 
-  // 1. VIP 玩家直接過濾「不喜歡」；非 VIP 玩家保留但降低權重
   if (isVIP) {
     pool = pool.filter(f => !userDislikes.includes(f.id));
   }
 
-  // 2. 情境標籤過濾
   if (currentFilter !== 'all') {
     pool = pool.filter(f => f.tags && f.tags.includes(currentFilter));
   }
 
-  // 3. 算子加權抽樣前 5 樣 (不喜歡的權重 0.2，普通的權重 1.0)
   const selected5 = weightedSample(pool, 5);
-
-  // 4. 抽樣精選最愛欄位
   const favoriteOne = sampleFavorite();
 
   renderMainUI(selected5);
@@ -78,7 +78,6 @@ function filterAndDraw(isDrawn) {
   updateCounterUI();
 }
 
-// 權重隨機抽樣 (Weighted Random Sampling)
 function weightedSample(list, k) {
   let tempPool = [...list];
   let result = [];
@@ -109,14 +108,12 @@ function weightedSample(list, k) {
   return result;
 }
 
-// 抽樣固定最愛項目
 function sampleFavorite() {
   const likedFoods = allFoods.filter(f => userLikes.includes(f.id));
   if (likedFoods.length === 0) return null;
   return likedFoods[Math.floor(Math.random() * likedFoods.length)];
 }
 
-// 渲染前 5 個卡片
 function renderMainUI(foods) {
   const container = document.getElementById('food-container');
   container.innerHTML = '';
@@ -131,7 +128,6 @@ function renderMainUI(foods) {
   });
 }
 
-// 渲染個人最愛精選卡片
 function renderFavoriteUI(food) {
   const container = document.getElementById('favorite-container');
   container.innerHTML = '';
@@ -150,7 +146,6 @@ function renderFavoriteUI(food) {
   container.appendChild(card);
 }
 
-// 建立單一食物卡片 HTML 的共用函數
 function createFoodCardHTML(food, isFavoriteSlot) {
   const isLiked = userLikes.includes(food.id);
   const isDisliked = userDislikes.includes(food.id);
@@ -159,7 +154,6 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   card.id = `food-card-${food.id}`;
   card.className = 'p-3 border rounded-xl bg-slate-50 flex justify-between items-center shadow-sm hover:bg-slate-100 transition';
   
-  // 2 & 3. 喜歡與不喜歡按鈕的白灰底色與按壓亮起樣式設定
   const likeBtnClass = isLiked 
     ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' 
     : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200';
@@ -169,16 +163,14 @@ function createFoodCardHTML(food, isFavoriteSlot) {
     : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200';
 
   card.innerHTML = `
-    <div class="cursor-pointer flex-grow" onclick="openGoogleMap('${food.name}')">
+    <div class="cursor-pointer flex-grow" onclick="openFoodConfirmModal(${food.id})">
       <h3 class="font-bold text-slate-800">${food.name}</h3>
     </div>
     <div class="flex items-center gap-1.5 ml-2">
-      <!-- 👍 按鈕 -->
       <button id="like-btn-${food.id}" onclick="togglePreference(${food.id}, 'like')" 
         class="px-2.5 py-1 text-xs rounded-lg border transition ${likeBtnClass}">
         👍
       </button>
-      <!-- 👎 按鈕 -->
       <button id="dislike-btn-${food.id}" onclick="togglePreference(${food.id}, 'dislike')" 
         class="px-2.5 py-1 text-xs rounded-lg border transition ${dislikeBtnClass}">
         👎
@@ -188,7 +180,7 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   return card;
 }
 
-// 1. 切換喜好狀態 (不自動觸發抽籤刷新，僅更新 DOM 按鈕外觀與數據)
+// 1. 點擊喜好按鈕：不自動刷新個人最愛精選，僅更新 DOM 燈號狀態與記憶體
 window.togglePreference = function(id, type) {
   if (type === 'like') {
     if (userLikes.includes(id)) {
@@ -209,15 +201,9 @@ window.togglePreference = function(id, type) {
   localStorage.setItem('user_likes', JSON.stringify(userLikes));
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
 
-  // 僅更新畫面上該品項對應的按鈕狀態，不重新觸發全頁抽籤
   updateButtonUI(id);
-
-  // 如果喜好清單改變，僅重新渲染「個人最愛精選」區塊
-  const favoriteOne = sampleFavorite();
-  renderFavoriteUI(favoriteOne);
 };
 
-// 單一按鈕視覺狀態即時更新
 function updateButtonUI(id) {
   const isLiked = userLikes.includes(id);
   const isDisliked = userDislikes.includes(id);
@@ -242,10 +228,56 @@ function updateButtonUI(id) {
   });
 }
 
-window.openGoogleMap = function(foodName) {
-  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(foodName)}`;
-  window.open(url, '_blank');
+// 2. 點擊食物開啟確認 Modal 邏輯
+window.openFoodConfirmModal = function(id) {
+  selectedFoodForConfirm = allFoods.find(f => f.id === id);
+  if (!selectedFoodForConfirm) return;
+
+  document.getElementById('confirm-title').innerText = `確定要吃 ${selectedFoodForConfirm.name} 嗎？`;
+  document.getElementById('modal-step1').classList.remove('hidden');
+  document.getElementById('modal-step2').classList.add('hidden');
+  document.getElementById('modal-overlay').classList.remove('hidden');
 };
+
+// 處理點擊「確定」或「確定 + 地圖搜尋」
+function handleConfirm(needMap) {
+  if (!selectedFoodForConfirm) return;
+
+  // 自動變成喜歡 (若不在喜歡清單內)
+  if (!userLikes.includes(selectedFoodForConfirm.id)) {
+    userLikes.push(selectedFoodForConfirm.id);
+    userDislikes = userDislikes.filter(i => i !== selectedFoodForConfirm.id);
+    localStorage.setItem('user_likes', JSON.stringify(userLikes));
+    localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
+    updateButtonUI(selectedFoodForConfirm.id);
+  }
+
+  // 切換至第二階段祝賀 Modal
+  document.getElementById('modal-step1').classList.add('hidden');
+  document.getElementById('modal-step2').classList.remove('hidden');
+  document.getElementById('congrat-text').innerText = `今天就吃 ${selectedFoodForConfirm.name} 吧！`;
+
+  const finalBtn = document.getElementById('btn-final-action');
+  
+  if (needMap) {
+    finalBtn.innerText = '耶！找找！';
+    finalBtn.onclick = () => {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedFoodForConfirm.name)}`;
+      window.open(url, '_blank');
+      closeModal();
+    };
+  } else {
+    finalBtn.innerText = '耶！';
+    finalBtn.onclick = closeModal;
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  document.getElementById('modal-step1').classList.add('hidden');
+  document.getElementById('modal-step2').classList.add('hidden');
+  selectedFoodForConfirm = null;
+}
 
 function checkAndUpdateCooldown() {
   const now = Date.now();
