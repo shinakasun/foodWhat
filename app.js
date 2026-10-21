@@ -67,7 +67,6 @@ async function initApp() {
   setInterval(updateCountersAndTimer, 1000);
 }
 
-// 同步更新頂部與底部雙重經驗條與狀態
 function updateLevelAndUI(shouldCheckLevelUp = true) {
   let oldLevel = userLevel;
   let currentLv = 1;
@@ -156,7 +155,7 @@ function applyFeatureUnlocks() {
     filterLocked.classList.add('hidden');
     filterBar.classList.remove('hidden');
   } else {
-    filterLocked.classList.add('hidden'); // 或者維持原本邏輯
+    filterLocked.classList.remove('hidden');
     filterBar.classList.add('hidden');
   }
 
@@ -261,7 +260,7 @@ function renderRandomTrivia() {
   triviaWrapper.classList.remove('hidden');
 }
 
-// 1. 刷新冷知識區同時扣除 1 水晶並獲得 +1 經驗值
+// 1. 刷新冷知識區 + 經驗值快速浮動提示 (Toast)
 window.refreshTriviaWithCoin = function() {
   if (drawState.count <= 0) {
     alert('刷新水晶不足！請觀看廣告補充。');
@@ -276,7 +275,20 @@ window.refreshTriviaWithCoin = function() {
 
   updateCountersAndTimer();
   renderRandomTrivia();
+  showExpToast();
 };
+
+function showExpToast() {
+  const toast = document.getElementById('toast-exp-floating');
+  if (!toast) return;
+  toast.classList.remove('opacity-0');
+  toast.classList.add('-translate-y-3', 'opacity-100');
+  
+  setTimeout(() => {
+    toast.classList.remove('-translate-y-3', 'opacity-100');
+    toast.classList.add('opacity-0');
+  }, 1000);
+}
 
 window.toggleTriviaBox = function(show) {
   if (userLevel < 6) {
@@ -536,7 +548,7 @@ window.simulateWatchAd = function() {
     saveState();
     updateCountersAndTimer();
     btn.disabled = false;
-    btn.innerText = '🎬 看廣告 +10 刷新水晶';
+    btn.innerText = '🎬 看廣告 +10 💎';
     alert('🎉 感謝觀看！刷新水晶已增加 10 個！');
   }, 2000);
 };
