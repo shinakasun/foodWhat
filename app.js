@@ -342,7 +342,6 @@ window.handleGuildClick = function() {
   }
 };
 
-// 3, 4. 動態渲染公會佈告欄（全完成提示、進行中任務顯示、放棄按鈕）
 window.openGuildModal = function() {
   const container = document.getElementById('guild-quest-list-container');
   const subtext = document.getElementById('guild-modal-subtext');
@@ -354,7 +353,6 @@ window.openGuildModal = function() {
   const remainingQuests = ALL_QUEST_TYPES.filter(t => !unlockedAuras.includes(t));
 
   if (guildQuest) {
-    // 3. 有進行中任務時，顯示目前任務與「放棄任務」按鈕
     abandonBtn.classList.remove('hidden');
     subtext.innerText = "當前正在執行的副本任務：";
 
@@ -371,7 +369,6 @@ window.openGuildModal = function() {
       </div>
     `;
   } else if (remainingQuests.length === 0) {
-    // 4. 所有任務皆已完成時
     abandonBtn.classList.add('hidden');
     subtext.innerText = "";
 
@@ -383,7 +380,6 @@ window.openGuildModal = function() {
       </div>
     `;
   } else {
-    // 正常列出未完成任務
     abandonBtn.classList.add('hidden');
     subtext.innerText = "選擇一項副本任務進行挑戰：";
 
@@ -412,13 +408,12 @@ window.openGuildModal = function() {
   document.getElementById('modal-guild-complete').classList.add('hidden');
 };
 
-// 3. 放棄任務
 window.abandonQuest = function() {
   if (confirm('確定要放棄當前的副本任務嗎？進度將會歸零。')) {
     guildQuest = null;
     localStorage.removeItem('guild_quest');
     updateGuildBannerUI();
-    filterAndDraw(true);
+    filterAndDraw(false);
     openGuildModal();
     showAuraToast("已放棄任務");
   }
@@ -438,20 +433,18 @@ window.openAcceptQuestModal = function(type) {
   document.getElementById('modal-guild-accept').classList.remove('hidden');
 };
 
-// 1, 2. 接取任務時：自動關閉原本開啟的靈氣
 window.confirmAcceptQuest = function() {
   if (!tempSelectedQuestType) return;
   guildQuest = { type: tempSelectedQuestType, progress: 0 };
   localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
 
-  // 自動關閉靈氣
   activeAura = null;
   localStorage.setItem('active_aura', '');
   updateAuraButtonsUI();
 
   closeModal();
   updateGuildBannerUI();
-  filterAndDraw(true);
+  filterAndDraw(false);
   showAuraToast("成功接取任務！任務期間已自動關閉靈氣");
 };
 
@@ -462,7 +455,6 @@ function openCompleteQuestModal() {
   document.getElementById('modal-guild-complete').classList.remove('hidden');
 }
 
-// 2. 領取獎勵時自動關閉靈氣
 window.claimQuestReward = function() {
   if (!guildQuest) return;
   const type = guildQuest.type;
@@ -471,7 +463,6 @@ window.claimQuestReward = function() {
     localStorage.setItem('unlocked_auras', JSON.stringify(unlockedAuras));
   }
   
-  // 領取獎勵時自動關閉靈氣
   activeAura = null;
   localStorage.setItem('active_aura', '');
 
@@ -481,15 +472,14 @@ window.claimQuestReward = function() {
   closeModal();
   updateGuildBannerUI();
   applyFeatureUnlocks();
-  filterAndDraw(true);
+  filterAndDraw(false);
   showAuraToast(`🎉 成功領取獎勵：解鎖了新靈氣！`);
 };
 
-// 1, 2. 切換靈氣邏輯：接取任務時禁用靈氣
+// 1. 核心重點修復：開關靈氣時傳入 false，徹底禁止自動刷新盲盒！
 window.toggleAura = function(auraType) {
   if (!unlockedAuras.includes(auraType)) return;
 
-  // 1, 2. 接取任務時不可開啟靈氣
   if (guildQuest) {
     showAuraToast("⚔️ 任務進行中無法開啟靈氣");
     return;
@@ -504,7 +494,9 @@ window.toggleAura = function(auraType) {
   }
   localStorage.setItem('active_aura', activeAura || '');
   updateAuraButtonsUI();
-  filterAndDraw(true);
+
+  // 1. 傳入 false，僅過濾當前已顯示的盲盒內容，絕對不刷新洗牌！
+  filterAndDraw(false);
 };
 
 function triggerAuraTextToast(type) {
@@ -558,7 +550,7 @@ window.resetCooldownForTest = function() {
   localStorage.setItem('last_eat_time', '0');
   closeModal();
   updateCountersAndTimer();
-  filterAndDraw(true);
+  filterAndDraw(false);
   alert('⚡ [測試功能] 經驗值冷卻已成功歸零！現在選擇食物可獲得經驗值與推進任務進度。');
 };
 
@@ -918,7 +910,7 @@ window.buyVIP = function() {
 };
 
 window.clearLocalStorage = function() {
-  if (confirm('確定要清空所有 LocalStorage 資料並重置 App 吧？')) {
+  if (confirm('確定要清空所有 LocalStorage 資料並重置 App 嗎？')) {
     localStorage.clear();
     location.reload();
   }
@@ -954,6 +946,7 @@ function setupEventListeners() {
       localStorage.setItem('user_exp', userExp);
       updateLevelAndUI(true);
 
+      // 只有按下「隨機抽選」時，才進行全新的抽牌洗牌！
       filterAndDraw(true); 
       showExpToast('toast-draw-exp-floating');
     });
@@ -965,11 +958,13 @@ function setupEventListeners() {
   if (confirmMap) confirmMap.onclick = () => handleConfirm(true);
 }
 
+// 1. 核心重點修復：只有在 isDrawn 為 true 時才會抽取新牌！
 function filterAndDraw(isDrawn = false) {
   if (allFoods.length === 0) return;
 
   const userElement = userBirth ? calculateElement(userBirth.year) : { name: '土', key: 'elementEarth' };
 
+  // 只有在按下「隨機抽選」或初次載入時 (isDrawn=true)，才抽取全新的盲盒列表！
   if (isDrawn || currentDisplayedFoods.length === 0) {
     let pool = [...allFoods];
 
@@ -984,6 +979,7 @@ function filterAndDraw(isDrawn = false) {
       pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
     }
 
+    // 若點擊「隨機抽選」時已開啟靈氣，則抽牌池會限定為該靈氣
     if (activeAura) {
       pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
     }
@@ -994,6 +990,7 @@ function filterAndDraw(isDrawn = false) {
 
   const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
 
+  // 渲染畫面時，針對當前的 currentDisplayedFoods 進行動態靈氣標籤檢驗
   renderMainUI(currentDisplayedFoods);
   renderFavoriteUI(favoriteOne);
   updateCountersAndTimer();
@@ -1038,6 +1035,7 @@ function sampleFavorite() {
   return likedFoods[Math.floor(Math.random() * likedFoods.length)];
 }
 
+// 1. 畫面渲染：若開啟靈氣，不符合該靈氣的盲盒卡片會轉換為提示狀態，完全不洗牌重新抽取！
 function renderMainUI(foods) {
   const container = document.getElementById('food-container');
   container.innerHTML = '';
@@ -1051,7 +1049,22 @@ function renderMainUI(foods) {
     if (index === 0 && guildQuest && guildQuest.progress < 3) {
       container.appendChild(createGuildQuestCardHTML());
     }
-    container.appendChild(createFoodCardHTML(food, false));
+
+    // 檢查當前食物是否符合開啟中的靈氣
+    const matchesAura = !activeAura || (food.tags && food.tags.includes(activeAura));
+
+    if (matchesAura) {
+      container.appendChild(createFoodCardHTML(food, false));
+    } else {
+      // 不符合靈氣時，原地呈現預留卡片，卡片順序與數量完全不動！
+      const maskedCard = document.createElement('div');
+      maskedCard.className = 'p-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 text-xs flex justify-between items-center opacity-70';
+      maskedCard.innerHTML = `
+        <span>🌀 [非當前靈氣食物]</span>
+        <span class="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">未符合標籤</span>
+      `;
+      container.appendChild(maskedCard);
+    }
   });
 }
 
