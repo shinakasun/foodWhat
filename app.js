@@ -26,8 +26,11 @@ let auraToastTimer = null;
 
 let currentDisplayedFoods = [];
 
-const MAX_DRAW = 9999;
+// 第 2 項修改：水晶上限改回 20
+const MAX_DRAW = 20;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
+if (drawState.count > MAX_DRAW) drawState.count = MAX_DRAW;
+
 let lastTriviaAutoTime = parseInt(localStorage.getItem('last_trivia_auto_time') || Date.now());
 let currentTriviaIndex = -1;
 
@@ -75,42 +78,47 @@ function calculateKyusei(year, month, day) {
   return KYUSEI_DATA[starNum] || KYUSEI_DATA[3];
 }
 
-// 2. 核心大升級：25 套專屬五行生剋玄學文案庫
+// 第 4 項修改：為文案中的建議屬性帶上獨立的背景框（底色與標籤風格一致）
+function buildElementBadge(elementKey) {
+  const elem = ELEMENT_MAP[elementKey] || { name: '屬性', icon: '✨', class: 'bg-indigo-100 text-indigo-800' };
+  return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-bold border ${elem.class}">${elem.icon} ${elem.name}屬性</span>`;
+}
+
 const FORTUNE_SPELLS = {
-  elementMetal: { // 本命屬金
-    0: { relation: '生我 (相生)', text: '「土能生金，今日坤土滋養乾金，積厚成勢，食【土屬性 ⛰️】食物如土培珍寶，財源滾滾！」', target: 'elementEarth' },
-    1: { relation: '同我 (旺本)', text: '「今日乾金氣場剛健，同氣相求，食【金屬性 🪙】食物強化本命，無堅不摧、威震八方！」', target: 'elementMetal' },
-    2: { relation: '我生 (洩秀)', text: '「金能生水，今日金溫水軟、靈感泉湧，食【水屬性 💧】食物抒發英銳，智謀大顯！」', target: 'elementWater' },
-    3: { relation: '克我 (官鬼/挑戰)', text: '「今日烈火熔金、逢官鬼鍛造，食【土屬性 ⛰️】食物化火生金、轉危為安！」', target: 'elementEarth' },
-    4: { relation: '我克 (財星)', text: '「金能克木，今日金銳伐木、斬獲頗豐，食【木屬性 🪵】食物如斧斤入林，收穫滿載！」', target: 'elementWood' }
+  elementMetal: {
+    0: { relation: '生我 (相生)', text: '「土能生金，今日坤土滋養乾金，積厚成勢，食 TARGET_BADGE 食物如土培珍寶，財源滾滾！」', target: 'elementEarth' },
+    1: { relation: '同我 (旺本)', text: '「今日乾金氣場剛健，同氣相求，食 TARGET_BADGE 食物強化本命，無堅不摧、威震八方！」', target: 'elementMetal' },
+    2: { relation: '我生 (洩秀)', text: '「金能生水，今日金溫水軟、靈感泉湧，食 TARGET_BADGE 食物抒發英銳，智謀大顯！」', target: 'elementWater' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日烈火熔金、逢官鬼鍛造，食 TARGET_BADGE 食物化火生金、轉危為安！」', target: 'elementEarth' },
+    4: { relation: '我克 (財星)', text: '「金能克木，今日金銳伐木、斬獲頗豐，食 TARGET_BADGE 食物如斧斤入林，收穫滿載！」', target: 'elementWood' }
   },
-  elementWood: { // 本命屬木
-    0: { relation: '生我 (相生)', text: '「水能生木，今日甘霖潤澤本命，順勢而為，食【水屬性 💧】食物助生木氣，運勢水到渠成！」', target: 'elementWater' },
-    1: { relation: '同我 (旺本)', text: '「今日木氣大旺，同氣相求，食【木屬性 🪵】食物強化本命，參天立地、木秀於林！」', target: 'elementWood' },
-    2: { relation: '我生 (洩秀)', text: '「木能生火，今日適逢木火通明之局，才華外露，食【火屬性 🔥】食物抒發才智，大展鴻圖！」', target: 'elementFire' },
-    3: { relation: '克我 (官鬼/挑戰)', text: '「今日金氣剋木，需以土培根、穩固陣腳，食【土屬性 ⛰️】食物厚德載物以禦外敵！」', target: 'elementEarth' },
-    4: { relation: '我克 (財星)', text: '「今日逢木克土之財星局，利於開闢新局，食【金屬性 🪙】食物收斂成果、聚財納福！」', target: 'elementMetal' }
+  elementWood: {
+    0: { relation: '生我 (相生)', text: '「水能生木，今日甘霖潤澤本命，順勢而為，食 TARGET_BADGE 食物助生木氣，運勢水到渠成！」', target: 'elementWater' },
+    1: { relation: '同我 (旺本)', text: '「今日木氣大旺，同氣相求，食 TARGET_BADGE 食物強化本命，參天立地、木秀於林！」', target: 'elementWood' },
+    2: { relation: '我生 (洩秀)', text: '「木能生火，今日適逢木火通明之局，才華外露，食 TARGET_BADGE 食物抒發才智，大展鴻圖！」', target: 'elementFire' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日金氣剋木，需以土培根、穩固陣腳，食 TARGET_BADGE 食物厚德載物以禦外敵！」', target: 'elementEarth' },
+    4: { relation: '我克 (財星)', text: '「今日逢木克土之財星局，利於開闢新局，食 TARGET_BADGE 食物收斂成果、聚財納福！」', target: 'elementMetal' }
   },
-  elementWater: { // 本命屬水
-    0: { relation: '生我 (相生)', text: '「金能生水，今日金天思真、源頭活水，食【金屬性 🪙】食物源源不絕，運勢源遠流長！」', target: 'elementMetal' },
-    1: { relation: '同我 (旺本)', text: '「今日百川匯海、水勢滔滔，食【水屬性 💧】食物融合本命，上善若水、無往不利！」', target: 'elementWater' },
-    2: { relation: '我生 (洩秀)', text: '「水能生木，今日水潤木榮、萬物萌發，食【木屬性 🪵】食物條達氣機，生機勃勃！」', target: 'elementWood' },
-    3: { relation: '克我 (官鬼/挑戰)', text: '「今日厚土禦水、逢貴人管束，食【火屬性 🔥】食物溫暖寒凍、驅散陰霾、逢凶化吉！」', target: 'elementFire' },
-    4: { relation: '我克 (財星)', text: '「水能克火，今日水火相濟、財星入命，食【火屬性 🔥】食物招財進寶、紅紅火火！」', target: 'elementFire' }
+  elementWater: {
+    0: { relation: '生我 (相生)', text: '「金能生水，今日金天思真、源頭活水，食 TARGET_BADGE 食物源源不絕，運勢源遠流長！」', target: 'elementMetal' },
+    1: { relation: '同我 (旺本)', text: '「今日百川匯海、水勢滔滔，食 TARGET_BADGE 食物融合本命，上善若水、無往不利！」', target: 'elementWater' },
+    2: { relation: '我生 (洩秀)', text: '「水能生木，今日水潤木榮、萬物萌發，食 TARGET_BADGE 食物條達氣機，生機勃勃！」', target: 'elementWood' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日厚土禦水、逢貴人管束，食 TARGET_BADGE 食物溫暖寒凍、驅散陰霾、逢凶化吉！」', target: 'elementFire' },
+    4: { relation: '我克 (財星)', text: '「水能克火，今日水火相濟、財星入命，食 TARGET_BADGE 食物招財進寶、紅紅火火！」', target: 'elementFire' }
   },
-  elementFire: { // 本命屬火
-    0: { relation: '生我 (相生)', text: '「木能生火，今日薪火相傳、勢不可擋，食【木屬性 🪵】食物添磚加柴，事業扶搖直上！」', target: 'elementWood' },
-    1: { relation: '同我 (旺本)', text: '「今日烈火燎原、赫赫炎炎，食【火屬性 🔥】食物激發熱情，光明磊落、氣貫長虹！」', target: 'elementFire' },
-    2: { relation: '我生 (洩秀)', text: '「火能生土，今日火結成土、化為萬物，食【土屬性 ⛰️】食物沉澱智慧，成果結實纍纍！」', target: 'elementEarth' },
-    3: { relation: '克我 (官鬼/挑戰)', text: '「今日水來克火、需木來通關，食【木屬性 🪵】食物化水為木、轉禍為福！」', target: 'elementWood' },
-    4: { relation: '我克 (財星)', text: '「火能克金，今日烈火煉金、熔鑄萬物，食【金屬性 🪙】食物精煉財源，金玉滿堂！」', target: 'elementMetal' }
+  elementFire: {
+    0: { relation: '生我 (相生)', text: '「木能生火，今日薪火相傳、勢不可擋，食 TARGET_BADGE 食物添磚加柴，事業扶搖直上！」', target: 'elementWood' },
+    1: { relation: '同我 (旺本)', text: '「今日烈火燎原、赫赫炎炎，食 TARGET_BADGE 食物激發熱情，光明磊落、氣貫長虹！」', target: 'elementFire' },
+    2: { relation: '我生 (洩秀)', text: '「火能生土，今日火結成土、化為萬物，食 TARGET_BADGE 食物沉澱智慧，成果結實纍纍！」', target: 'elementEarth' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日水來克火、需木來通關，食 TARGET_BADGE 食物化水為木、轉禍為福！」', target: 'elementWood' },
+    4: { relation: '我克 (財星)', text: '「火能克金，今日烈火煉金、熔鑄萬物，食 TARGET_BADGE 食物精煉財源，金玉滿堂！」', target: 'elementMetal' }
   },
-  elementEarth: { // 本命屬土
-    0: { relation: '生我 (相生)', text: '「火能生土，今日丹鳳朝陽、溫養大地，食【火屬性 🔥】食物注入能量，厚積薄發！」', target: 'elementFire' },
-    1: { relation: '同我 (旺本)', text: '「今日重山複嶺、基業堅如磐石，食【土屬性 ⛰️】食物穩固本命，安如泰山！」', target: 'elementEarth' },
-    2: { relation: '我生 (洩秀)', text: '「土能生金，今日淘金於土、奇珍現世，食【金屬性 🪙】食物彰顯價值，卓爾不群！」', target: 'elementMetal' },
-    3: { relation: '克我 (官鬼/挑戰)', text: '「今日木來破土、需火來化解，食【火屬性 🔥】食物焚木生土、轉危為安！」', target: 'elementFire' },
-    4: { relation: '我克 (財星)', text: '「土能克水，今日築堤禦水、聚水為池，食【水屬性 💧】食物守住財庫，大富大貴！」', target: 'elementWater' }
+  elementEarth: {
+    0: { relation: '生我 (相生)', text: '「火能生土，今日丹鳳朝陽、溫養大地，食 TARGET_BADGE 食物注入能量，厚積薄發！」', target: 'elementFire' },
+    1: { relation: '同我 (旺本)', text: '「今日重山複嶺、基業堅如磐石，食 TARGET_BADGE 食物穩固本命，安如泰山！」', target: 'elementEarth' },
+    2: { relation: '我生 (洩秀)', text: '「土能生金，今日淘金於土、奇珍現世，食 TARGET_BADGE 食物彰顯價值，卓爾不群！」', target: 'elementMetal' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日木來破土、需火來化解，食 TARGET_BADGE 食物焚木生土、轉危為安！」', target: 'elementFire' },
+    4: { relation: '我克 (財星)', text: '「土能克水，今日築堤禦水、聚水為池，食 TARGET_BADGE 食物守住財庫，大富大貴！」', target: 'elementWater' }
   }
 };
 
@@ -124,13 +132,13 @@ function getTodayFortuneAnalysis(userElementKey) {
   const spellBook = FORTUNE_SPELLS[userElementKey] || FORTUNE_SPELLS['elementWood'];
   const spell = spellBook[dayHash];
 
-  const targetElemInfo = ELEMENT_MAP[spell.target];
+  const badgeHtml = buildElementBadge(spell.target);
+  const finalText = spell.text.replace('TARGET_BADGE', badgeHtml);
 
   return {
     relationLabel: spell.relation,
     targetElementKey: spell.target,
-    targetElementName: targetElemInfo.name,
-    text: spell.text
+    text: finalText
   };
 }
 
@@ -761,7 +769,7 @@ window.toggleTriviaBox = function(show) {
   else document.getElementById('trivia-wrapper').classList.add('hidden');
 };
 
-// 1. 整合生剋標籤與專屬話術更新主介面
+// 第 3 項修改：更新本命與局勢到同一行
 function updateFortuneText() {
   if (!userBirth) return;
   
@@ -773,14 +781,14 @@ function updateFortuneText() {
     tagEl.innerText = `${kyusei.star} [${kyusei.name}]`;
   }
 
+  const relationEl = document.getElementById('user-relation-tag');
+  if (relationEl) {
+    relationEl.innerText = fortune.relationLabel;
+  }
+
   const fortuneEl = document.getElementById('fortune-text');
   if (fortuneEl) {
-    fortuneEl.innerHTML = `
-      <div class="inline-block px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-[11px] font-bold mb-1">
-        🔮 當前運勢局勢：${fortune.relationLabel}
-      </div>
-      <div class="leading-relaxed text-xs text-indigo-900 dark:text-indigo-200 font-medium">${fortune.text}</div>
-    `;
+    fortuneEl.innerHTML = fortune.text;
   }
 }
 
@@ -1025,12 +1033,12 @@ window.simulateWatchAd = function() {
   btn.innerText = '⏳ 廣告播放中...';
 
   setTimeout(() => {
-    drawState.count += 10;
+    drawState.count = Math.min(MAX_DRAW, drawState.count + 10);
     saveState();
     updateCountersAndTimer();
     btn.disabled = false;
     btn.innerText = '🎬 看廣告 +10 💎';
-    alert('🎉 感謝觀看！刷新水晶已增加 10 個！');
+    alert('🎉 感謝觀看！刷新水晶已增加！');
   }, 2000);
 };
 
@@ -1518,16 +1526,30 @@ function checkAndUpdateCooldown() {
   }
 }
 
+// 第 1 項修改：新增 4小時冷知識動態倒數顯示
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
   const now = Date.now();
 
   const triviaIntervalMs = 4 * 60 * 60 * 1000;
-  if (userLevel >= 6 && settingsPushTrivia && now - lastTriviaAutoTime >= triviaIntervalMs) {
+  const elapsedTrivia = now - lastTriviaAutoTime;
+
+  if (userLevel >= 6 && settingsPushTrivia && elapsedTrivia >= triviaIntervalMs) {
     renderRandomTrivia();
     lastTriviaAutoTime = now;
     localStorage.setItem('last_trivia_auto_time', lastTriviaAutoTime);
+  }
+
+  // 冷知識倒數計時顯示
+  const triviaCountdownEl = document.getElementById('trivia-countdown-text');
+  if (triviaCountdownEl) {
+    const remainingTriviaMs = Math.max(0, triviaIntervalMs - (elapsedTrivia % triviaIntervalMs));
+    const hrs = Math.floor(remainingTriviaMs / (1000 * 60 * 60));
+    const mins = Math.floor((remainingTriviaMs % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((remainingMs = (remainingTriviaMs % (1000 * 60))) / 1000);
+    const timeStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    triviaCountdownEl.innerText = `${timeStr} 後刷新`;
   }
 
   const coinValEl = document.getElementById('coin-counter-val');
