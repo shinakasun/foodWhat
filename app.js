@@ -24,6 +24,9 @@ let activeAura = localStorage.getItem('active_aura') || null;
 let tempSelectedQuestType = null;
 let auraToastTimer = null;
 
+// 2. 紀錄當前盲盒中顯示的食物列表，供靈氣開關時過濾（避免重新隨機刷新）
+let currentDisplayedFoods = [];
+
 const MAX_DRAW = 9999;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 let lastTriviaAutoTime = parseInt(localStorage.getItem('last_trivia_auto_time') || Date.now());
@@ -74,7 +77,7 @@ async function initApp() {
     showBirthModal();
   } else {
     updateFortuneText();
-    filterAndDraw(false);
+    filterAndDraw(true); // 初次進頁面隨機抽選一組盲盒
   }
   
   setInterval(updateCountersAndTimer, 1000);
@@ -372,7 +375,7 @@ window.confirmAcceptQuest = function() {
   localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
   closeModal();
   updateGuildBannerUI();
-  filterAndDraw(false);
+  filterAndDraw(true);
   showAuraToast("成功接取任務！任務目標已出現於公會區");
 };
 
@@ -399,11 +402,11 @@ window.claimQuestReward = function() {
   closeModal();
   updateGuildBannerUI();
   applyFeatureUnlocks();
-  filterAndDraw(false);
+  filterAndDraw(true);
   triggerAuraTextToast(type);
 };
 
-// 3, 4, 5. 客製化靈氣語錄 & 靈氣切換邏輯
+// 2. 切換靈氣時：不重新隨機抽選項，對既有已顯示內容進行動態過濾
 window.toggleAura = function(auraType) {
   if (!unlockedAuras.includes(auraType)) return;
 
@@ -416,7 +419,7 @@ window.toggleAura = function(auraType) {
   }
   localStorage.setItem('active_aura', activeAura || '');
   updateAuraButtonsUI();
-  filterAndDraw(false);
+  filterAndDraw(false); // 2. 傳入 false，代表純過濾不重新隨機抽選！
 };
 
 function triggerAuraTextToast(type) {
@@ -428,7 +431,7 @@ function triggerAuraTextToast(type) {
   showAuraToast(texts[type] || '靈氣已啟動！');
 }
 
-// 2. 簡化按鈕文字（移除已解鎖三字）
+// 1. 移除 (開啟中) 這三個字，純以視覺樣式標示啟用狀態
 function updateAuraButtonsUI() {
   const types = ['cold', 'hot', 'snack'];
   const labels = { cold: '❄️ 極寒靈氣', hot: '🔥 灼熱靈氣', snack: '⚡ 迅捷靈氣' };
@@ -441,16 +444,16 @@ function updateAuraButtonsUI() {
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60";
       btn.innerText = `${labels[t]} (未解鎖)`;
     } else if (activeAura === t) {
+      // 1. 啟用時高亮外框與樣式，但文字保持純粹標籤名稱（不含 "(開啟中)"）
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-indigo-600 text-white border-indigo-600 shadow-sm";
-      btn.innerText = `${labels[t]} (開啟中)`;
+      btn.innerText = labels[t]; 
     } else {
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50";
-      btn.innerText = labels[t]; // 2. 移除 "(已解鎖)"
+      btn.innerText = labels[t];
     }
   });
 }
 
-// 1. 飄浮 Toast 提示（2秒後消失）
 function showAuraToast(htmlContent) {
   const toast = document.getElementById('toast-aura-floating');
   if (!toast) return;
@@ -634,7 +637,7 @@ window.saveBirthdate = function() {
   closeModal();
   updateMainTitle();
   updateFortuneText();
-  filterAndDraw(false);
+  filterAndDraw(true);
 };
 
 window.openSettingsModal = function() {
@@ -868,7 +871,7 @@ function setupEventListeners() {
       localStorage.setItem('user_exp', userExp);
       updateLevelAndUI(true);
 
-      filterAndDraw(true);
+      filterAndDraw(true); // 點擊隨機抽選時才重新隨機抽選項
       showExpToast('toast-draw-exp-floating');
     });
   }
@@ -879,32 +882,41 @@ function setupEventListeners() {
   if (confirmMap) confirmMap.onclick = () => handleConfirm(true);
 }
 
-function filterAndDraw(isDrawn) {
+// 2. 核心邏輯修正：區分「重新隨機抽 (isDrawn=true)」與「純過濾 (isDrawn=false)」
+function filterAndDraw(isDrawn = false) {
   if (allFoods.length === 0) return;
 
-  let pool = [...allFoods];
   const userElement = userBirth ? calculateElement(userBirth.year) : { name: '土', key: 'elementEarth' };
 
-  if (userTaboos.length > 0) {
-    pool = pool.filter(f => {
-      if (!f.tags) return true;
-      return !userTaboos.some(taboo => f.tags.includes(taboo));
-    });
+  if (isDrawn || currentDisplayedFoods.length === 0) {
+    // 只有在按下「隨機抽選」或初次載入時，才從全資料庫中隨機抽出全新一組盲盒
+    let pool = [...allFoods];
+
+    if (userTaboos.length > 0) {
+      pool = pool.filter(f => {
+        if (!f.tags) return true;
+        return !userTaboos.some(taboo => f.tags.includes(taboo));
+      });
+    }
+
+    if (isVIP) {
+      pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
+    }
+
+    const boxCount = getUnlockBoxCount();
+    currentDisplayedFoods = weightedSample(pool, boxCount, userElement.key);
   }
 
-  if (isVIP) {
-    pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
-  }
+  // 純過濾模式：基於目前已在畫面上的 currentDisplayedFoods，進行靈氣 tag 等條件的動態過濾
+  let finalBoxesToRender = [...currentDisplayedFoods];
 
   if (activeAura) {
-    pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
+    finalBoxesToRender = finalBoxesToRender.filter(f => f.tags && f.tags.includes(activeAura));
   }
 
-  const boxCount = getUnlockBoxCount();
-  const selectedBoxes = weightedSample(pool, boxCount, userElement.key);
   const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
 
-  renderMainUI(selectedBoxes);
+  renderMainUI(finalBoxesToRender);
   renderFavoriteUI(favoriteOne);
   updateCountersAndTimer();
 }
@@ -953,7 +965,7 @@ function renderMainUI(foods) {
   container.innerHTML = '';
 
   if (foods.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 text-center py-6">沒有符合條件的食物！</p>';
+    container.innerHTML = '<p class="text-slate-400 text-center py-6">當前畫面的美食不符靈氣屬性！<br><span class="text-xs text-slate-500">（請再次點擊「隨機抽選」或調整靈氣）</span></p>';
     return;
   }
 
@@ -1273,7 +1285,7 @@ function handleConfirm(needMap) {
 
   updateLevelAndUI(false);
   updateGuildBannerUI();
-  filterAndDraw(false);
+  filterAndDraw(false); // 選取完成後進行畫面純重新渲染與過濾，不強行洗牌
 }
 
 function showCongratModal(foodName, expMsg, needMap) {
