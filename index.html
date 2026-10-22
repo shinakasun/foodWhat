@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>吃什麼 2 - 美食盲盒</title>
+  <title>吃什麼 2 - 冒險者公會</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = { darkMode: 'class' };
@@ -60,11 +60,11 @@
     <p id="fortune-text" class="text-xs text-indigo-600 dark:text-indigo-400 mb-2 font-medium">✨ 正在計算您的五行開運屬性...</p>
     
     <!-- 美食冷知識區 -->
-    <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
+    <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (達到指定等級解鎖)
     </div>
-    <div id="trivia-wrapper" class="mb-4 flex items-center gap-2 hidden relative">
-      <div id="trivia-box" class="flex-grow p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 h-[96px] flex flex-col">
+    <div id="trivia-wrapper" class="mb-3 flex items-center gap-2 hidden relative">
+      <div id="trivia-box" class="flex-grow p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 h-[90px] flex flex-col">
         <div class="font-bold text-amber-800 dark:text-amber-300 text-xs mb-1 flex items-center gap-1">
           💡 美食冷知識
         </div>
@@ -73,7 +73,6 @@
         </div>
       </div>
       
-      <!-- 重新整理按鈕與說明 -->
       <div class="flex flex-col items-center justify-center">
         <button onclick="refreshTriviaWithCoin()" class="w-12 h-12 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center justify-center shadow-sm" title="換一個冷知識">
           <span class="text-xl">🔄</span>
@@ -81,28 +80,38 @@
         <span class="text-[9px] text-slate-500 dark:text-slate-400 font-bold text-center mt-1 leading-tight whitespace-nowrap">💎-1<br>每4h自動</span>
       </div>
 
-      <!-- 經驗值飄浮提示 (Toast) -->
       <div id="toast-exp-floating" class="absolute -top-6 right-12 bg-amber-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none">
         ✨ 經驗值 +1
       </div>
     </div>
 
-    <!-- 食物篩選按鈕列 -->
-    <div id="filter-locked-box" onclick="checkFeatureLock('filters')" class="mb-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
-      ❓ <strong>[已鎖定] 情境篩選按鈕組</strong> (達到最高等級解鎖)
+    <!-- 冒險者公會區 (Lv.4 解鎖) -->
+    <div id="guild-locked-box" onclick="checkFeatureLock('guild')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
+      🔒 <strong>[已鎖定] 冒險者公會</strong> (達到 Lv.4 解鎖)
     </div>
-    <div id="filter-bar" class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none hidden">
-      <button data-tag="all" class="filter-btn px-3 py-1 bg-indigo-600 text-white rounded-full text-sm whitespace-nowrap transition">全部</button>
-      <button data-tag="hot" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🔥 熱呼呼</button>
-      <button data-tag="refreshing" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🥗 清爽</button>
-      <button data-tag="heavy" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🌶️ 重口味</button>
-      <button data-tag="snack" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🍡 小吃</button>
-      <button data-tag="highProtein" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🥩 高蛋白</button>
-      <button data-tag="takeout" class="filter-btn px-3 py-1 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm whitespace-nowrap transition">🍱 外帶</button>
+    <div id="guild-wrapper" class="mb-3 hidden">
+      <div id="guild-banner" onclick="handleGuildClick()" class="p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-bold shadow-md cursor-pointer hover:opacity-95 transition flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-base">🛡️</span>
+          <div>
+            <div id="guild-banner-title" class="text-sm font-extrabold">冒險者公會</div>
+            <div id="guild-banner-sub" class="text-[10px] text-indigo-200 font-normal">點擊接取副本任務，贏取稀有靈氣！</div>
+          </div>
+        </div>
+        <span class="text-sm">▶</span>
+      </div>
+    </div>
+
+    <!-- 靈氣開關區 (位於第一個盲盒上方) -->
+    <div id="aura-control-panel" class="mb-3 flex items-center gap-1.5 overflow-x-auto pb-1 hidden">
+      <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">靈氣：</span>
+      <button id="aura-btn-cold" onclick="toggleAura('cold')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">❄️ 極寒靈氣 (未解鎖)</button>
+      <button id="aura-btn-hot" onclick="toggleAura('hot')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🔥 灼熱靈氣 (未解鎖)</button>
+      <button id="aura-btn-snack" onclick="toggleAura('snack')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">⚡ 迅捷靈氣 (未解鎖)</button>
     </div>
 
     <!-- 盲盒選項區 -->
-    <div id="food-container" class="space-y-2 min-h-[180px]">
+    <div id="food-container" class="space-y-2 min-h-[160px]">
       <div class="p-4 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 text-center text-slate-500">載入中...</div>
     </div>
 
@@ -179,6 +188,65 @@
       <button onclick="closeModal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">確認</button>
     </div>
 
+    <!-- 冒險者公會：副本任務列表 Modal -->
+    <div id="modal-guild-list" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-1.5">🛡️ 冒險者公會佈告欄</h2>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">選擇一項副本任務進行挑戰：</p>
+      <div class="space-y-2.5 mb-4">
+        <div onclick="openAcceptQuestModal('cold')" class="p-3 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/30 cursor-pointer hover:bg-blue-100 transition flex justify-between items-center">
+          <div>
+            <div class="text-xs font-bold text-blue-900 dark:text-blue-200">❄️ 凜冬陣地</div>
+            <div class="text-[10px] text-blue-700 dark:text-blue-400">任務獎勵：極寒靈氣</div>
+          </div>
+          <span class="text-xs text-blue-600 font-bold">接取 ▶</span>
+        </div>
+        <div onclick="openAcceptQuestModal('hot')" class="p-3 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/30 cursor-pointer hover:bg-rose-100 transition flex justify-between items-center">
+          <div>
+            <div class="text-xs font-bold text-rose-900 dark:text-rose-200">🔥 灼熱地城</div>
+            <div class="text-[10px] text-rose-700 dark:text-rose-400">任務獎勵：灼熱靈氣</div>
+          </div>
+          <span class="text-xs text-rose-600 font-bold">接取 ▶</span>
+        </div>
+        <div onclick="openAcceptQuestModal('snack')" class="p-3 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/30 cursor-pointer hover:bg-amber-100 transition flex justify-between items-center">
+          <div>
+            <div class="text-xs font-bold text-amber-900 dark:text-amber-200">🍡 小惡魔城</div>
+            <div class="text-[10px] text-amber-700 dark:text-amber-400">任務獎勵：迅捷靈氣</div>
+          </div>
+          <span class="text-xs text-amber-600 font-bold">接取 ▶</span>
+        </div>
+      </div>
+      <button onclick="closeModal()" class="w-full py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition text-sm">關閉</button>
+    </div>
+
+    <!-- 冒險者公會：接受任務確認 Modal -->
+    <div id="modal-guild-accept" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
+      <div class="text-3xl mb-2" id="accept-quest-icon">❄️</div>
+      <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-1" id="accept-quest-title">是否接受：凜冬陣地？</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="accept-quest-desc">完成後將獲取極寒靈氣！</p>
+      <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-600 dark:text-slate-300 mb-4 text-left space-y-1">
+        <div>📌 <strong>任務目標</strong>：選取任務食物 3 次</div>
+        <div>⚡ <strong>特殊規則</strong>：需在額外經驗值「未冷卻」時選取才計入進度！</div>
+      </div>
+      <div class="space-y-2">
+        <button onclick="confirmAcceptQuest()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">接受任務</button>
+        <button onclick="openGuildModal()" class="w-full py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition text-sm">返回</button>
+      </div>
+    </div>
+
+    <!-- 冒險者公會：任務完成結算 Modal -->
+    <div id="modal-guild-complete" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
+      <div class="text-4xl mb-2">🎉</div>
+      <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2">副本任務大成功！</h2>
+      <p class="text-xs text-slate-600 dark:text-slate-300 font-medium mb-3" id="complete-reward-text">恭喜完成挑戰，解鎖了稀有靈氣！</p>
+      <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-700 dark:text-amber-300 text-xs font-bold mb-4">
+        ✨ 解鎖新能力：可在上方開啟靈氣開關！
+      </div>
+      <button onclick="claimQuestReward()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg transition">領取靈氣獎勵</button>
+    </div>
+
     <!-- 初次進入：生日彈窗 -->
     <div id="modal-birth" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">歡迎來到吃什麼 2</h2>
@@ -191,7 +259,7 @@
       <button onclick="saveBirthdate()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">開始探索</button>
     </div>
 
-    <!-- 食物確認 Modal (3. 字體加大醒目 & 4. 倒數計時整合) -->
+    <!-- 食物確認 Modal -->
     <div id="modal-confirm-step1" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2" id="confirm-title">確定要吃 XXX 嗎？</h2>
       
@@ -311,6 +379,11 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- 靈氣功能提示 Toast 視窗 (馬上消失) -->
+  <div id="aura-toast" class="fixed top-8 left-1/2 -translate-x-1/2 bg-slate-900/90 dark:bg-slate-100 dark:text-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-2xl opacity-0 transition-all duration-300 pointer-events-none z-50 text-center">
+    ✨ 靈氣提示訊息
   </div>
 
   <script src="app.js"></script>
