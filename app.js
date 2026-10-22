@@ -476,7 +476,7 @@ window.claimQuestReward = function() {
   showAuraToast(`🎉 成功領取獎勵：解鎖了新靈氣！`);
 };
 
-// 1. 核心重點修復：開關靈氣時傳入 false，徹底禁止自動刷新盲盒！
+// 1. 核心重點：點擊開關靈氣只更新狀態與按鈕 UI，完全不改動當前盲盒畫面！
 window.toggleAura = function(auraType) {
   if (!unlockedAuras.includes(auraType)) return;
 
@@ -495,15 +495,14 @@ window.toggleAura = function(auraType) {
   localStorage.setItem('active_aura', activeAura || '');
   updateAuraButtonsUI();
 
-  // 1. 傳入 false，僅過濾當前已顯示的盲盒內容，絕對不刷新洗牌！
-  filterAndDraw(false);
+  // 僅更新提示與按鈕狀態，不對盲盒進行過濾或洗牌！下一次點擊「隨機抽選」時才會生效！
 };
 
 function triggerAuraTextToast(type) {
   const texts = {
-    cold: '極寒靈氣開啟<br>接下來只會出現清爽的食物囉！',
-    hot: '灼熱靈氣開啟<br>接下來只會出現熱呼呼的食物囉！',
-    snack: '迅捷靈氣開啟<br>吃飯只會影響我拔劍的速度'
+    cold: '極寒靈氣開啟<br>下一次隨機抽選只會出現清爽的食物囉！',
+    hot: '灼熱靈氣開啟<br>下一次隨機抽選只會出現熱呼呼的食物囉！',
+    snack: '迅捷靈氣開啟<br>下一次隨機抽選只會出現點心/輕食囉！'
   };
   showAuraToast(texts[type] || '靈氣已啟動！');
 }
@@ -946,7 +945,7 @@ function setupEventListeners() {
       localStorage.setItem('user_exp', userExp);
       updateLevelAndUI(true);
 
-      // 只有按下「隨機抽選」時，才進行全新的抽牌洗牌！
+      // 按下「隨機抽選」按鈕時才執行抽牌與靈氣過濾！
       filterAndDraw(true); 
       showExpToast('toast-draw-exp-floating');
     });
@@ -958,13 +957,12 @@ function setupEventListeners() {
   if (confirmMap) confirmMap.onclick = () => handleConfirm(true);
 }
 
-// 1. 核心重點修復：只有在 isDrawn 為 true 時才會抽取新牌！
+// 只有在 isDrawn 為 true 時才會從候選池抽取全新盲盒
 function filterAndDraw(isDrawn = false) {
   if (allFoods.length === 0) return;
 
   const userElement = userBirth ? calculateElement(userBirth.year) : { name: '土', key: 'elementEarth' };
 
-  // 只有在按下「隨機抽選」或初次載入時 (isDrawn=true)，才抽取全新的盲盒列表！
   if (isDrawn || currentDisplayedFoods.length === 0) {
     let pool = [...allFoods];
 
@@ -979,7 +977,7 @@ function filterAndDraw(isDrawn = false) {
       pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
     }
 
-    // 若點擊「隨機抽選」時已開啟靈氣，則抽牌池會限定為該靈氣
+    // 當前開啟了靈氣，則在隨機抽選時限定候選池標籤
     if (activeAura) {
       pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
     }
@@ -990,7 +988,6 @@ function filterAndDraw(isDrawn = false) {
 
   const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
 
-  // 渲染畫面時，針對當前的 currentDisplayedFoods 進行動態靈氣標籤檢驗
   renderMainUI(currentDisplayedFoods);
   renderFavoriteUI(favoriteOne);
   updateCountersAndTimer();
@@ -1035,7 +1032,7 @@ function sampleFavorite() {
   return likedFoods[Math.floor(Math.random() * likedFoods.length)];
 }
 
-// 1. 畫面渲染：若開啟靈氣，不符合該靈氣的盲盒卡片會轉換為提示狀態，完全不洗牌重新抽取！
+// 直接渲染當前的盲盒食物，不做任何隱藏或覆蓋
 function renderMainUI(foods) {
   const container = document.getElementById('food-container');
   container.innerHTML = '';
@@ -1049,22 +1046,7 @@ function renderMainUI(foods) {
     if (index === 0 && guildQuest && guildQuest.progress < 3) {
       container.appendChild(createGuildQuestCardHTML());
     }
-
-    // 檢查當前食物是否符合開啟中的靈氣
-    const matchesAura = !activeAura || (food.tags && food.tags.includes(activeAura));
-
-    if (matchesAura) {
-      container.appendChild(createFoodCardHTML(food, false));
-    } else {
-      // 不符合靈氣時，原地呈現預留卡片，卡片順序與數量完全不動！
-      const maskedCard = document.createElement('div');
-      maskedCard.className = 'p-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 text-xs flex justify-between items-center opacity-70';
-      maskedCard.innerHTML = `
-        <span>🌀 [非當前靈氣食物]</span>
-        <span class="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">未符合標籤</span>
-      `;
-      container.appendChild(maskedCard);
-    }
+    container.appendChild(createFoodCardHTML(food, false));
   });
 }
 
