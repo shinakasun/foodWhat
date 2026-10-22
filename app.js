@@ -24,7 +24,6 @@ let activeAura = localStorage.getItem('active_aura') || null;
 let tempSelectedQuestType = null;
 let auraToastTimer = null;
 
-// 2. 紀錄當前盲盒中顯示的食物列表，供靈氣開關時過濾（避免重新隨機刷新）
 let currentDisplayedFoods = [];
 
 const MAX_DRAW = 9999;
@@ -77,7 +76,7 @@ async function initApp() {
     showBirthModal();
   } else {
     updateFortuneText();
-    filterAndDraw(true); // 初次進頁面隨機抽選一組盲盒
+    filterAndDraw(true);
   }
   
   setInterval(updateCountersAndTimer, 1000);
@@ -406,7 +405,7 @@ window.claimQuestReward = function() {
   triggerAuraTextToast(type);
 };
 
-// 2. 切換靈氣時：不重新隨機抽選項，對既有已顯示內容進行動態過濾
+// 切換靈氣時：重新進行隨機抽選，確保抽樣池只包含對應靈氣的食物，數量固定
 window.toggleAura = function(auraType) {
   if (!unlockedAuras.includes(auraType)) return;
 
@@ -419,7 +418,7 @@ window.toggleAura = function(auraType) {
   }
   localStorage.setItem('active_aura', activeAura || '');
   updateAuraButtonsUI();
-  filterAndDraw(false); // 2. 傳入 false，代表純過濾不重新隨機抽選！
+  filterAndDraw(true); // 開關靈氣時重新隨機抽選符合條件的固定數量盲盒
 };
 
 function triggerAuraTextToast(type) {
@@ -431,7 +430,6 @@ function triggerAuraTextToast(type) {
   showAuraToast(texts[type] || '靈氣已啟動！');
 }
 
-// 1. 移除 (開啟中) 這三個字，純以視覺樣式標示啟用狀態
 function updateAuraButtonsUI() {
   const types = ['cold', 'hot', 'snack'];
   const labels = { cold: '❄️ 極寒靈氣', hot: '🔥 灼熱靈氣', snack: '⚡ 迅捷靈氣' };
@@ -444,7 +442,6 @@ function updateAuraButtonsUI() {
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60";
       btn.innerText = `${labels[t]} (未解鎖)`;
     } else if (activeAura === t) {
-      // 1. 啟用時高亮外框與樣式，但文字保持純粹標籤名稱（不含 "(開啟中)"）
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-indigo-600 text-white border-indigo-600 shadow-sm";
       btn.innerText = labels[t]; 
     } else {
@@ -475,7 +472,7 @@ window.resetCooldownForTest = function() {
   localStorage.setItem('last_eat_time', '0');
   closeModal();
   updateCountersAndTimer();
-  filterAndDraw(false);
+  filterAndDraw(true);
   alert('⚡ [測試功能] 經驗值冷卻已成功歸零！現在選擇食物可獲得經驗值與推進任務進度。');
 };
 
@@ -871,7 +868,7 @@ function setupEventListeners() {
       localStorage.setItem('user_exp', userExp);
       updateLevelAndUI(true);
 
-      filterAndDraw(true); // 點擊隨機抽選時才重新隨機抽選項
+      filterAndDraw(true); 
       showExpToast('toast-draw-exp-floating');
     });
   }
@@ -882,14 +879,13 @@ function setupEventListeners() {
   if (confirmMap) confirmMap.onclick = () => handleConfirm(true);
 }
 
-// 2. 核心邏輯修正：區分「重新隨機抽 (isDrawn=true)」與「純過濾 (isDrawn=false)」
+// 修正靈氣邏輯：在隨機抽選的候選池階段即過濾符合靈氣條件的食物，確保盲盒數量固定
 function filterAndDraw(isDrawn = false) {
   if (allFoods.length === 0) return;
 
   const userElement = userBirth ? calculateElement(userBirth.year) : { name: '土', key: 'elementEarth' };
 
   if (isDrawn || currentDisplayedFoods.length === 0) {
-    // 只有在按下「隨機抽選」或初次載入時，才從全資料庫中隨機抽出全新一組盲盒
     let pool = [...allFoods];
 
     if (userTaboos.length > 0) {
@@ -903,20 +899,18 @@ function filterAndDraw(isDrawn = false) {
       pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
     }
 
+    // 將啟動的靈氣條件直接套用到抽樣候選池中
+    if (activeAura) {
+      pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
+    }
+
     const boxCount = getUnlockBoxCount();
     currentDisplayedFoods = weightedSample(pool, boxCount, userElement.key);
   }
 
-  // 純過濾模式：基於目前已在畫面上的 currentDisplayedFoods，進行靈氣 tag 等條件的動態過濾
-  let finalBoxesToRender = [...currentDisplayedFoods];
-
-  if (activeAura) {
-    finalBoxesToRender = finalBoxesToRender.filter(f => f.tags && f.tags.includes(activeAura));
-  }
-
   const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
 
-  renderMainUI(finalBoxesToRender);
+  renderMainUI(currentDisplayedFoods);
   renderFavoriteUI(favoriteOne);
   updateCountersAndTimer();
 }
@@ -965,7 +959,7 @@ function renderMainUI(foods) {
   container.innerHTML = '';
 
   if (foods.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 text-center py-6">當前畫面的美食不符靈氣屬性！<br><span class="text-xs text-slate-500">（請再次點擊「隨機抽選」或調整靈氣）</span></p>';
+    container.innerHTML = '<p class="text-slate-400 text-center py-6">沒有符合目前靈氣條件的食物！<br><span class="text-xs text-slate-500">（請嘗試關閉靈氣或切換其他靈氣）</span></p>';
     return;
   }
 
@@ -1285,7 +1279,7 @@ function handleConfirm(needMap) {
 
   updateLevelAndUI(false);
   updateGuildBannerUI();
-  filterAndDraw(false); // 選取完成後進行畫面純重新渲染與過濾，不強行洗牌
+  filterAndDraw(false); 
 }
 
 function showCongratModal(foodName, expMsg, needMap) {
