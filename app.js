@@ -45,6 +45,76 @@ const ELEMENT_MAP = {
   elementEarth: { name: '土', icon: '⛰️', class: 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-800' }
 };
 
+// 1. 日本九星氣學資料庫與判定機制
+const KYUSEI_DATA = {
+  1: { star: '一白水星', elementKey: 'elementWater', name: '水', traits: '柔軟、流動、沉靜、適應力強' },
+  2: { star: '二黑土星', elementKey: 'elementEarth', name: '土', traits: '包容、大地、穩重、滋養' },
+  3: { star: '三碧木星', elementKey: 'elementWood',  name: '木', traits: '萌芽、雷鳴、衝勁、活力' },
+  4: { star: '四綠木星', elementKey: 'elementWood',  name: '木', traits: '風吹、柔順、人緣、調和' },
+  5: { star: '五黃土星', elementKey: 'elementEarth', name: '土', traits: '帝王、核心、重組、強大' },
+  6: { star: '六白金星', elementKey: 'elementMetal', name: '金', traits: '堅硬、天道、完美、領導' },
+  7: { star: '七赤金星', elementKey: 'elementMetal', name: '金', traits: '喜悅、澤水、社交、美食' },
+  8: { star: '八白土星', elementKey: 'elementEarth', name: '土', traits: '高山、停止、變革、轉折' },
+  9: { star: '九紫火星', elementKey: 'elementFire',  name: '火', traits: '熱情、光明、智慧、華麗' }
+};
+
+// 九星氣學判定演算法（考量立春 2/4）
+function calculateKyusei(year, month, day) {
+  let calcYear = year;
+  // 立春前屬前一年
+  if (month < 2 || (month === 2 && day < 4)) {
+    calcYear = year - 1;
+  }
+
+  // 年份數字總和折算為個位數
+  let sum = String(calcYear).split('').reduce((acc, num) => acc + parseInt(num), 0);
+  while (sum >= 10) {
+    sum = String(sum).split('').reduce((acc, num) => acc + parseInt(num), 0);
+  }
+
+  // 1999(含)前用 11 扣減，2000(含)後用 10 扣減
+  let starNum = (calcYear <= 1999) ? (11 - sum) : (10 - sum);
+  while (starNum <= 0) starNum += 9;
+  while (starNum > 9) starNum -= 9;
+
+  return KYUSEI_DATA[starNum] || KYUSEI_DATA[3];
+}
+
+// 日辰五行轉化演算法（本命五行 + 當日日期 -> 今日推薦食補屬性）
+function getTodayFortuneAnalysis(userElementKey) {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = today.getMonth() + 1;
+  const d = today.getDate();
+
+  // 日辰 Hash 偏移量 (0~4)
+  const dayHash = (y * 13 + m * 31 + d) % 5;
+  const elemKeys = ['elementMetal', 'elementWood', 'elementWater', 'elementFire', 'elementEarth'];
+  const userIdx = elemKeys.indexOf(userElementKey);
+
+  // 0: 生我(相生), 1: 同我(旺本), 2: 我生(洩秀), 3: 克我(官鬼), 4: 我克(財星)
+  const relationType = (dayHash + 5) % 5; 
+  
+  // 決定今日開運建議的食物屬性
+  const targetIdx = (userIdx + relationType) % 5;
+  const targetElementKey = elemKeys[targetIdx];
+  const targetElemInfo = ELEMENT_MAP[targetElementKey];
+
+  const relationTexts = [
+    `今日氣場源源不絕滋養本命，順勢而為，建議享用【${targetElemInfo.name}屬性】食物，可獲得額外經驗值！`,
+    `今日同氣相求、氣場大旺，同屬強本，建議享用【${targetElemInfo.name}屬性】食物，可獲得額外經驗值！`,
+    `今日適逢通明發越之局，才華外露，建議享用【${targetElemInfo.name}屬性】食物，可獲得額外經驗值！`,
+    `今日局勢頗具挑戰、需穩固陣腳，建議享用【${targetElemInfo.name}屬性】食物以禦外敵，可獲得額外經驗值！`,
+    `今日適逢財星大開局，利於開闢新局，建議享用【${targetElemInfo.name}屬性】食物收斂成果，可獲得額外經驗值！`
+  ];
+
+  return {
+    targetElementKey: targetElementKey,
+    targetElementName: targetElemInfo.name,
+    text: relationTexts[relationType]
+  };
+}
+
 const LEVEL_UNLOCKS = [
   { level: 1, name: "初始狀態 (3選項)", expNeeded: 0, unlockDesc: "初始開局" },
   { level: 2, name: "解鎖第四選項", expNeeded: 5, unlockDesc: "第四個盲盒選項" },
@@ -476,7 +546,6 @@ window.claimQuestReward = function() {
   showAuraToast(`🎉 成功領取獎勵：解鎖了新靈氣！`);
 };
 
-// 1. 核心重點：點擊開關靈氣只更新狀態與按鈕 UI，完全不改動當前盲盒畫面！
 window.toggleAura = function(auraType) {
   if (!unlockedAuras.includes(auraType)) return;
 
@@ -494,8 +563,6 @@ window.toggleAura = function(auraType) {
   }
   localStorage.setItem('active_aura', activeAura || '');
   updateAuraButtonsUI();
-
-  // 僅更新提示與按鈕狀態，不對盲盒進行過濾或洗牌！下一次點擊「隨機抽選」時才會生效！
 };
 
 function triggerAuraTextToast(type) {
@@ -675,20 +742,22 @@ window.toggleTriviaBox = function(show) {
   else document.getElementById('trivia-wrapper').classList.add('hidden');
 };
 
-function calculateElement(year) {
-  if (!year) return { name: '土', key: 'elementEarth' };
-  const lastDigit = year % 10;
-  if (lastDigit === 0 || lastDigit === 1) return { name: '金', key: 'elementMetal' };
-  if (lastDigit === 2 || lastDigit === 3) return { name: '水', key: 'elementWater' };
-  if (lastDigit === 4 || lastDigit === 5) return { name: '木', key: 'elementWood' };
-  if (lastDigit === 6 || lastDigit === 7) return { name: '火', key: 'elementFire' };
-  return { name: '土', key: 'elementEarth' };
-}
-
+// 1. 更新主介面的本命五行標籤與每日運勢分析提示
 function updateFortuneText() {
   if (!userBirth) return;
-  const element = calculateElement(userBirth.year);
-  document.getElementById('fortune-text').innerText = `✨ 本命五行【${element.name}】啟動，今日開運屬性加權中！`;
+  
+  const kyusei = calculateKyusei(userBirth.year, userBirth.month, userBirth.day);
+  const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
+
+  const tagEl = document.getElementById('user-element-tag');
+  if (tagEl) {
+    tagEl.innerText = `${kyusei.star} [${kyusei.name}]`;
+  }
+
+  const fortuneEl = document.getElementById('fortune-text');
+  if (fortuneEl) {
+    fortuneEl.innerText = fortune.text;
+  }
 }
 
 function showBirthModal() {
@@ -696,6 +765,7 @@ function showBirthModal() {
   document.getElementById('modal-birth').classList.remove('hidden');
 }
 
+// 1. 輸入生日後的九星診斷流程
 window.saveBirthdate = function() {
   const year = parseInt(document.getElementById('select-birth-year').value);
   const month = parseInt(document.getElementById('select-birth-month').value);
@@ -708,6 +778,18 @@ window.saveBirthdate = function() {
 
   userBirth = { year, month, day };
   localStorage.setItem('user_birth', JSON.stringify(userBirth));
+
+  // 計算九星氣學結果並顯示彈窗
+  const kyusei = calculateKyusei(year, month, day);
+  document.getElementById('kyusei-star-name').innerText = `根據九星氣學 您屬於：${kyusei.star}`;
+  document.getElementById('kyusei-element-name').innerText = `對應五行：${kyusei.name}`;
+  document.getElementById('kyusei-traits').innerText = `特質：${kyusei.traits}`;
+
+  document.getElementById('modal-birth').classList.add('hidden');
+  document.getElementById('modal-kyusei-result').classList.remove('hidden');
+};
+
+window.confirmKyuseiResult = function() {
   closeModal();
   updateMainTitle();
   updateFortuneText();
@@ -945,7 +1027,6 @@ function setupEventListeners() {
       localStorage.setItem('user_exp', userExp);
       updateLevelAndUI(true);
 
-      // 按下「隨機抽選」按鈕時才執行抽牌與靈氣過濾！
       filterAndDraw(true); 
       showExpToast('toast-draw-exp-floating');
     });
@@ -957,11 +1038,11 @@ function setupEventListeners() {
   if (confirmMap) confirmMap.onclick = () => handleConfirm(true);
 }
 
-// 只有在 isDrawn 為 true 時才會從候選池抽取全新盲盒
 function filterAndDraw(isDrawn = false) {
   if (allFoods.length === 0) return;
 
-  const userElement = userBirth ? calculateElement(userBirth.year) : { name: '土', key: 'elementEarth' };
+  const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
+  const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
 
   if (isDrawn || currentDisplayedFoods.length === 0) {
     let pool = [...allFoods];
@@ -977,13 +1058,13 @@ function filterAndDraw(isDrawn = false) {
       pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
     }
 
-    // 當前開啟了靈氣，則在隨機抽選時限定候選池標籤
     if (activeAura) {
       pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
     }
 
     const boxCount = getUnlockBoxCount();
-    currentDisplayedFoods = weightedSample(pool, boxCount, userElement.key);
+    // 依據今日開運建議的屬性進行加權抽樣
+    currentDisplayedFoods = weightedSample(pool, boxCount, fortune.targetElementKey);
   }
 
   const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
@@ -993,7 +1074,7 @@ function filterAndDraw(isDrawn = false) {
   updateCountersAndTimer();
 }
 
-function weightedSample(list, k, elementKey) {
+function weightedSample(list, k, targetElementKey) {
   let tempPool = [...list];
   let result = [];
 
@@ -1002,7 +1083,8 @@ function weightedSample(list, k, elementKey) {
 
     let totalWeight = tempPool.reduce((acc, item) => {
       let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
-      if (item.element === elementKey) weight *= 2.0;
+      // 今日開運屬性權重加倍！
+      if (item.element === targetElementKey) weight *= 2.0;
       return acc + weight;
     }, 0);
 
@@ -1012,7 +1094,7 @@ function weightedSample(list, k, elementKey) {
     for (let j = 0; j < tempPool.length; j++) {
       let item = tempPool[j];
       let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
-      if (item.element === elementKey) weight *= 2.0;
+      if (item.element === targetElementKey) weight *= 2.0;
       weightSum += weight;
 
       if (randomNum <= weightSum) {
@@ -1032,7 +1114,6 @@ function sampleFavorite() {
   return likedFoods[Math.floor(Math.random() * likedFoods.length)];
 }
 
-// 直接渲染當前的盲盒食物，不做任何隱藏或覆蓋
 function renderMainUI(foods) {
   const container = document.getElementById('food-container');
   container.innerHTML = '';
@@ -1212,8 +1293,9 @@ window.openFoodConfirmModal = function(id) {
   selectedFoodForConfirm = allFoods.find(f => f.id === id);
   if (!selectedFoodForConfirm) return;
 
-  const userElement = userBirth ? calculateElement(userBirth.year) : { key: 'elementEarth' };
-  const isMatchedElement = selectedFoodForConfirm.element === userElement.key;
+  const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
+  const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
+  const isMatchedElement = selectedFoodForConfirm.element === fortune.targetElementKey;
 
   document.getElementById('confirm-title').innerText = `確定要吃 ${selectedFoodForConfirm.name} 嗎？`;
   
@@ -1230,6 +1312,7 @@ window.openFoodConfirmModal = function(id) {
   document.getElementById('modal-confirm-step1').classList.remove('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-birth').classList.add('hidden');
+  document.getElementById('modal-kyusei-result').classList.add('hidden');
   document.getElementById('modal-settings').classList.add('hidden');
   document.getElementById('modal-stats').classList.add('hidden');
   document.getElementById('modal-levelup').classList.add('hidden');
@@ -1242,8 +1325,9 @@ window.openFoodConfirmModal = function(id) {
 function updateConfirmModalExpText() {
   if (!selectedFoodForConfirm) return;
 
-  const userElement = userBirth ? calculateElement(userBirth.year) : { key: 'elementEarth' };
-  const isMatchedElement = selectedFoodForConfirm.element === userElement.key;
+  const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
+  const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
+  const isMatchedElement = selectedFoodForConfirm.element === fortune.targetElementKey;
 
   const now = Date.now();
   const cooldownMs = 4 * 60 * 60 * 1000;
@@ -1282,7 +1366,9 @@ function handleConfirm(needMap) {
   const foodId = selectedFoodForConfirm.id;
   const foodName = selectedFoodForConfirm.name;
   const foodElement = selectedFoodForConfirm.element;
-  const userElement = userBirth ? calculateElement(userBirth.year) : { key: 'elementEarth' };
+  
+  const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
+  const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
 
   const timeStr = new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -1310,9 +1396,10 @@ function handleConfirm(needMap) {
     gainedExp += 5;
     expMsg = "✨ 經驗值 +5";
 
-    if (foodElement === userElement.key) {
+    // 符合今日開運屬性
+    if (foodElement === fortune.targetElementKey) {
       gainedExp += 5;
-      expMsg += "<br><span class='text-amber-600 dark:text-amber-300 font-extrabold'>🔥 食物屬性契合 經驗值額外+5！</span>";
+      expMsg += "<br><span class='text-amber-600 dark:text-amber-300 font-extrabold'>🔥 契合今日開運食補 經驗值額外+5！</span>";
     }
 
     userExp += gainedExp;
@@ -1384,6 +1471,7 @@ function showCongratModal(foodName, expMsg, needMap) {
 window.closeModal = function() {
   document.getElementById('modal-overlay').classList.add('hidden');
   document.getElementById('modal-birth').classList.add('hidden');
+  document.getElementById('modal-kyusei-result').classList.add('hidden');
   document.getElementById('modal-confirm-step1').classList.add('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-settings').classList.add('hidden');
