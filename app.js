@@ -18,10 +18,9 @@ let userBirth = JSON.parse(localStorage.getItem('user_birth') || 'null');
 let settingsPushTrivia = localStorage.getItem('push_trivia') !== 'false';
 let isDarkMode = localStorage.getItem('dark_mode') === 'true';
 
-// 冒險者公會與靈氣系統狀態
-let guildQuest = JSON.parse(localStorage.getItem('guild_quest') || 'null'); // { type: 'cold'|'hot'|'snack', progress: 0 }
-let unlockedAuras = JSON.parse(localStorage.getItem('unlocked_auras') || '[]'); // ['cold', 'hot', 'snack']
-let activeAura = localStorage.getItem('active_aura') || null; // 'cold' | 'hot' | 'snack' | null
+let guildQuest = JSON.parse(localStorage.getItem('guild_quest') || 'null'); 
+let unlockedAuras = JSON.parse(localStorage.getItem('unlocked_auras') || '[]'); 
+let activeAura = localStorage.getItem('active_aura') || null; 
 let tempSelectedQuestType = null;
 
 const MAX_DRAW = 9999;
@@ -111,7 +110,7 @@ window.openTitleModal = function() {
     const displayName = `${mealFull}${t}`;
     return `
       <div onclick="selectTitle('${t}')" class="p-2.5 rounded-xl border cursor-pointer flex justify-between items-center transition ${
-        isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-150'
+        isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
       }">
         <span>${displayName}</span>
         ${isSelected ? '<span class="text-indigo-600">✓</span>' : ''}
@@ -265,7 +264,6 @@ function applyFeatureUnlocks() {
     triviaWrapper.classList.add('hidden');
   }
 
-  // 冒險者公會解鎖控制 (Lv.4)
   const guildLocked = document.getElementById('guild-locked-box');
   const guildWrapper = document.getElementById('guild-wrapper');
   if (userLevel >= 4) {
@@ -277,7 +275,6 @@ function applyFeatureUnlocks() {
     guildWrapper.classList.add('hidden');
   }
 
-  // 靈氣開關區控制 (解鎖任一靈氣後顯示)
   const auraPanel = document.getElementById('aura-control-panel');
   if (unlockedAuras.length > 0) {
     auraPanel.classList.remove('hidden');
@@ -317,7 +314,6 @@ function applyFeatureUnlocks() {
   }
 }
 
-// 冒險者公會介面更新
 function updateGuildBannerUI() {
   const banner = document.getElementById('guild-banner');
   const titleEl = document.getElementById('guild-banner-title');
@@ -335,10 +331,8 @@ function updateGuildBannerUI() {
   }
 }
 
-// 點擊公會區域
 window.handleGuildClick = function() {
   if (guildQuest) {
-    // 若已有任務，點擊顯示進度或提示
     if (guildQuest.progress >= 3) {
       openCompleteQuestModal();
     } else {
@@ -395,7 +389,6 @@ window.claimQuestReward = function() {
     unlockedAuras.push(type);
     localStorage.setItem('unlocked_auras', JSON.stringify(unlockedAuras));
   }
-  // 結算後自動啟用該靈氣
   activeAura = type;
   localStorage.setItem('active_aura', type);
 
@@ -409,7 +402,6 @@ window.claimQuestReward = function() {
   showAuraToast(`🎉 成功領取獎勵！已自動為您開啟對應靈氣！`);
 };
 
-// 靈氣開關與提示 Toast
 window.toggleAura = function(auraType) {
   if (!unlockedAuras.includes(auraType)) return;
 
@@ -459,6 +451,16 @@ function showAuraToast(text) {
     toast.classList.add('opacity-0');
   }, 2500);
 }
+
+// 3. 測試按鈕：歸零經驗值冷卻
+window.resetCooldownForTest = function() {
+  lastEatTime = 0;
+  localStorage.setItem('last_eat_time', '0');
+  closeModal();
+  updateCountersAndTimer();
+  filterAndDraw(false);
+  alert('⚡ [測試功能] 經驗值冷卻已成功歸零！現在選擇食物可獲得經驗值與推進任務進度。');
+};
 
 window.checkFeatureLock = function(featureKey) {
   const reqLevels = {
@@ -760,7 +762,7 @@ function renderStatsBanned() {
   const badge = document.getElementById('vip-status-badge');
   if (isVIP) {
     badge.innerText = '⭐ VIP 已啟用';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-950 dark:text-amber-300 font-bold';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold';
   } else {
     badge.innerText = '免費版 (未啟用)';
     badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
@@ -863,7 +865,6 @@ function setupEventListeners() {
   if (confirmMap) confirmMap.onclick = () => handleConfirm(true);
 }
 
-// 核心盲盒過濾與生成邏輯 (整合靈氣與任務過濾)
 function filterAndDraw(isDrawn) {
   if (allFoods.length === 0) return;
 
@@ -881,7 +882,6 @@ function filterAndDraw(isDrawn) {
     pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
   }
 
-  // 靈氣啟用時鎖定對應 tag
   if (activeAura) {
     pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
   }
@@ -944,7 +944,6 @@ function renderMainUI(foods) {
   }
 
   foods.forEach((food, index) => {
-    // 檢查是否為第一個盲盒，且目前有進行中的冒險者任務
     if (index === 0 && guildQuest && guildQuest.progress < 3) {
       container.appendChild(createGuildQuestCardHTML());
     }
@@ -952,44 +951,36 @@ function renderMainUI(foods) {
   });
 }
 
-// 建立任務卡片 (放置於第一個盲盒上方)
+// 2. 任務區域字體放大、移除說明文案
 function createGuildQuestCardHTML() {
   const now = Date.now();
   const cooldownMs = 4 * 60 * 60 * 1000;
   const isCoolingDown = (now - lastEatTime < cooldownMs);
 
-  const questNames = { cold: '❄️ 凜冬陣地 (cold)', hot: '🔥 灼熱地城 (hot)', snack: '🍡 小惡魔城 (snack)' };
   const card = document.createElement('div');
   
   if (isCoolingDown) {
-    card.className = 'p-3 border border-dashed border-amber-300 dark:border-amber-800 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 flex justify-between items-center opacity-75';
+    card.className = 'p-3.5 border border-dashed border-amber-300 dark:border-amber-800 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 flex justify-between items-center opacity-75';
     card.innerHTML = `
       <div class="flex items-center gap-2">
-        <span class="text-lg">⏳</span>
-        <div>
-          <div class="font-bold text-xs text-amber-800 dark:text-amber-300">任務目標尋找中...</div>
-          <div class="text-[10px] text-slate-500">經驗值冷卻中，無法選取任務目標</div>
-        </div>
+        <span class="text-xl">⏳</span>
+        <div class="font-bold text-sm text-amber-800 dark:text-amber-300">任務目標尋找中...</div>
       </div>
-      <span class="text-[10px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-900 px-2 py-1 rounded">冷卻中</span>
+      <span class="text-[10px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-900 px-2.5 py-1 rounded">冷卻中</span>
     `;
   } else {
-    // 隨機抽選一筆符合任務標籤的食物作為任務目標
     const targetTag = guildQuest.type;
     const eligibleFoods = allFoods.filter(f => f.tags && f.tags.includes(targetTag));
     const targetFood = eligibleFoods.length > 0 ? eligibleFoods[Math.floor(Math.random() * eligibleFoods.length)] : { id: 999, name: '神祕任務料理', element: 'elementMetal' };
 
-    card.className = 'p-3 border-2 border-indigo-500 dark:border-indigo-600 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 flex justify-between items-center shadow-sm cursor-pointer hover:bg-indigo-100 transition';
+    card.className = 'p-3.5 border-2 border-indigo-500 dark:border-indigo-600 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 flex justify-between items-center shadow-sm cursor-pointer hover:bg-indigo-100 transition';
     card.onclick = () => openFoodConfirmModal(targetFood.id);
     card.innerHTML = `
       <div class="flex items-center gap-2">
         <span class="text-xl">🎯</span>
-        <div>
-          <div class="font-extrabold text-xs text-indigo-900 dark:text-indigo-200">任務目標：${targetFood.name}</div>
-          <div class="text-[10px] text-indigo-600 dark:text-indigo-400">點擊選取此任務目標 (進度: ${guildQuest.progress}/3)</div>
-        </div>
+        <div class="font-black text-sm text-indigo-900 dark:text-indigo-200">任務目標：${targetFood.name}</div>
       </div>
-      <span class="text-[10px] font-bold text-white bg-indigo-600 px-2.5 py-1 rounded-lg shadow-sm whitespace-nowrap">前往挑戰</span>
+      <span class="text-xs font-bold text-white bg-indigo-600 px-3 py-1 rounded-lg shadow-sm whitespace-nowrap">前往挑戰</span>
     `;
   }
   return card;
@@ -1187,6 +1178,7 @@ function updateConfirmModalExpText() {
   }
 }
 
+// 1. 修正確認後的冷卻計算與主畫面任務區即時刷新
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
@@ -1227,11 +1219,11 @@ function handleConfirm(needMap) {
     }
 
     userExp += gainedExp;
+    // 重置最後食用時間，啟動 4 小時冷卻
     lastEatTime = now;
     localStorage.setItem('user_exp', userExp);
     localStorage.setItem('last_eat_time', lastEatTime);
 
-    // 冒險者公會任務進度判定：需在經驗值未冷卻時選取對應標籤食物
     if (guildQuest && guildQuest.progress < 3) {
       if (selectedFoodForConfirm.tags && selectedFoodForConfirm.tags.includes(guildQuest.type)) {
         guildQuest.progress++;
@@ -1270,6 +1262,7 @@ function handleConfirm(needMap) {
 
   updateLevelAndUI(false);
   updateGuildBannerUI();
+  filterAndDraw(false); // 1. 立即重新渲染盲盒區（任務區自動改為「任務目標尋找中...」）
 }
 
 function showCongratModal(foodName, expMsg, needMap) {
