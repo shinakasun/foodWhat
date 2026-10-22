@@ -22,6 +22,7 @@ let guildQuest = JSON.parse(localStorage.getItem('guild_quest') || 'null');
 let unlockedAuras = JSON.parse(localStorage.getItem('unlocked_auras') || '[]'); 
 let activeAura = localStorage.getItem('active_aura') || null; 
 let tempSelectedQuestType = null;
+let auraToastTimer = null;
 
 const MAX_DRAW = 9999;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
@@ -275,12 +276,12 @@ function applyFeatureUnlocks() {
     guildWrapper.classList.add('hidden');
   }
 
-  const auraPanel = document.getElementById('aura-control-panel');
+  const auraContainer = document.getElementById('aura-container');
   if (unlockedAuras.length > 0) {
-    auraPanel.classList.remove('hidden');
+    auraContainer.classList.remove('hidden');
     updateAuraButtonsUI();
   } else {
-    auraPanel.classList.add('hidden');
+    auraContainer.classList.add('hidden');
   }
 
   const statBtn = document.getElementById('btn-stats-action');
@@ -372,7 +373,7 @@ window.confirmAcceptQuest = function() {
   closeModal();
   updateGuildBannerUI();
   filterAndDraw(false);
-  showAuraToast(`成功接取任務！任務目標已出現於公會區`);
+  showAuraToast("成功接取任務！任務目標已出現於公會區");
 };
 
 function openCompleteQuestModal() {
@@ -399,9 +400,10 @@ window.claimQuestReward = function() {
   updateGuildBannerUI();
   applyFeatureUnlocks();
   filterAndDraw(false);
-  showAuraToast(`🎉 成功領取獎勵！已自動為您開啟對應靈氣！`);
+  triggerAuraTextToast(type);
 };
 
+// 3, 4, 5. 客製化靈氣語錄 & 靈氣切換邏輯
 window.toggleAura = function(auraType) {
   if (!unlockedAuras.includes(auraType)) return;
 
@@ -410,14 +412,23 @@ window.toggleAura = function(auraType) {
     showAuraToast("靈氣已關閉");
   } else {
     activeAura = auraType;
-    const auraNames = { cold: '極寒靈氣 (鎖定 cold 標籤食物)', hot: '灼熱靈氣 (鎖定 hot 標籤食物)', snack: '迅捷靈氣 (鎖定 snack 標籤食物)' };
-    showAuraToast(`✨ 啟動${auraNames[auraType]}`);
+    triggerAuraTextToast(auraType);
   }
   localStorage.setItem('active_aura', activeAura || '');
   updateAuraButtonsUI();
   filterAndDraw(false);
 };
 
+function triggerAuraTextToast(type) {
+  const texts = {
+    cold: '極寒靈氣開啟<br>接下來只會出現清爽的食物囉！',
+    hot: '灼熱靈氣開啟<br>接下來只會出現熱呼呼的食物囉！',
+    snack: '迅捷靈氣開啟<br>吃飯只會影響我拔劍的速度'
+  };
+  showAuraToast(texts[type] || '靈氣已啟動！');
+}
+
+// 2. 簡化按鈕文字（移除已解鎖三字）
 function updateAuraButtonsUI() {
   const types = ['cold', 'hot', 'snack'];
   const labels = { cold: '❄️ 極寒靈氣', hot: '🔥 灼熱靈氣', snack: '⚡ 迅捷靈氣' };
@@ -434,25 +445,28 @@ function updateAuraButtonsUI() {
       btn.innerText = `${labels[t]} (開啟中)`;
     } else {
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50";
-      btn.innerText = `${labels[t]} (已解鎖)`;
+      btn.innerText = labels[t]; // 2. 移除 "(已解鎖)"
     }
   });
 }
 
-function showAuraToast(text) {
-  const toast = document.getElementById('aura-toast');
+// 1. 飄浮 Toast 提示（2秒後消失）
+function showAuraToast(htmlContent) {
+  const toast = document.getElementById('toast-aura-floating');
   if (!toast) return;
-  toast.innerText = text;
-  toast.classList.remove('opacity-0');
-  toast.classList.add('opacity-100', 'translate-y-2');
 
-  setTimeout(() => {
-    toast.classList.remove('opacity-100', 'translate-y-2');
+  if (auraToastTimer) clearTimeout(auraToastTimer);
+
+  toast.innerHTML = htmlContent;
+  toast.classList.remove('opacity-0', '-translate-y-2');
+  toast.classList.add('opacity-100', '-translate-y-4');
+
+  auraToastTimer = setTimeout(() => {
+    toast.classList.remove('opacity-100', '-translate-y-4');
     toast.classList.add('opacity-0');
-  }, 2500);
+  }, 2000);
 }
 
-// 3. 測試按鈕：歸零經驗值冷卻
 window.resetCooldownForTest = function() {
   lastEatTime = 0;
   localStorage.setItem('last_eat_time', '0');
@@ -951,7 +965,6 @@ function renderMainUI(foods) {
   });
 }
 
-// 2. 任務區域字體放大、移除說明文案
 function createGuildQuestCardHTML() {
   const now = Date.now();
   const cooldownMs = 4 * 60 * 60 * 1000;
@@ -1178,7 +1191,6 @@ function updateConfirmModalExpText() {
   }
 }
 
-// 1. 修正確認後的冷卻計算與主畫面任務區即時刷新
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
@@ -1219,7 +1231,6 @@ function handleConfirm(needMap) {
     }
 
     userExp += gainedExp;
-    // 重置最後食用時間，啟動 4 小時冷卻
     lastEatTime = now;
     localStorage.setItem('user_exp', userExp);
     localStorage.setItem('last_eat_time', lastEatTime);
@@ -1262,7 +1273,7 @@ function handleConfirm(needMap) {
 
   updateLevelAndUI(false);
   updateGuildBannerUI();
-  filterAndDraw(false); // 1. 立即重新渲染盲盒區（任務區自動改為「任務目標尋找中...」）
+  filterAndDraw(false);
 }
 
 function showCongratModal(foodName, expMsg, needMap) {
