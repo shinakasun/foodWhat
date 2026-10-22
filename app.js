@@ -335,23 +335,93 @@ function updateGuildBannerUI() {
 }
 
 window.handleGuildClick = function() {
-  if (guildQuest) {
-    if (guildQuest.progress >= 3) {
-      openCompleteQuestModal();
-    } else {
-      const questNames = { cold: '凜冬陣地', hot: '灼熱地城', snack: '小惡魔城' };
-      alert(`⚔️ 當前任務【${questNames[guildQuest.type]}】進行中！\n已完成進度：${guildQuest.progress} / 3\n提示：需在經驗值未冷卻時選取對應食物才算完成喔！`);
-    }
+  if (guildQuest && guildQuest.progress >= 3) {
+    openCompleteQuestModal();
   } else {
     openGuildModal();
   }
 };
 
+// 3, 4. 動態渲染公會佈告欄（全完成提示、進行中任務顯示、放棄按鈕）
 window.openGuildModal = function() {
+  const container = document.getElementById('guild-quest-list-container');
+  const subtext = document.getElementById('guild-modal-subtext');
+  const abandonBtn = document.getElementById('btn-abandon-quest');
+
+  container.innerHTML = '';
+
+  const ALL_QUEST_TYPES = ['cold', 'hot', 'snack'];
+  const remainingQuests = ALL_QUEST_TYPES.filter(t => !unlockedAuras.includes(t));
+
+  if (guildQuest) {
+    // 3. 有進行中任務時，顯示目前任務與「放棄任務」按鈕
+    abandonBtn.classList.remove('hidden');
+    subtext.innerText = "當前正在執行的副本任務：";
+
+    const questNames = { cold: '❄️ 凜冬陣地', hot: '🔥 灼熱地城', snack: '🍡 小惡魔城' };
+    const auras = { cold: '極寒靈氣', hot: '灼熱靈氣', snack: '迅捷靈氣' };
+
+    container.innerHTML = `
+      <div class="p-3.5 rounded-xl border-2 border-amber-500 bg-amber-50/70 dark:bg-amber-950/40">
+        <div class="flex justify-between items-center mb-1">
+          <div class="text-xs font-black text-amber-900 dark:text-amber-200">${questNames[guildQuest.type]}</div>
+          <span class="text-xs font-bold text-amber-600">進度: ${guildQuest.progress} / 3</span>
+        </div>
+        <div class="text-[10px] text-amber-700 dark:text-amber-400">完成可解鎖：${auras[guildQuest.type]}</div>
+      </div>
+    `;
+  } else if (remainingQuests.length === 0) {
+    // 4. 所有任務皆已完成時
+    abandonBtn.classList.add('hidden');
+    subtext.innerText = "";
+
+    container.innerHTML = `
+      <div class="p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-slate-500 dark:text-slate-400 my-2">
+        <div class="text-3xl mb-2">☕</div>
+        <div class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">暫時沒有新的任務</div>
+        <div class="text-xs text-slate-400">過段時間再來看看吧</div>
+      </div>
+    `;
+  } else {
+    // 正常列出未完成任務
+    abandonBtn.classList.add('hidden');
+    subtext.innerText = "選擇一項副本任務進行挑戰：";
+
+    const questConfigs = [
+      { type: 'cold', title: '❄️ 凜冬陣地', reward: '極寒靈氣', bgClass: 'border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100 text-blue-900 dark:text-blue-200 text-blue-600' },
+      { type: 'hot', title: '🔥 灼熱地城', reward: '灼熱靈氣', bgClass: 'border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-900 dark:text-rose-200 text-rose-600' },
+      { type: 'snack', title: '🍡 小惡魔城', reward: '迅捷靈氣', bgClass: 'border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-900 dark:text-amber-200 text-amber-600' }
+    ];
+
+    questConfigs.filter(q => !unlockedAuras.includes(q.type)).forEach(q => {
+      container.innerHTML += `
+        <div onclick="openAcceptQuestModal('${q.type}')" class="p-3 rounded-xl border ${q.bgClass} cursor-pointer transition flex justify-between items-center">
+          <div>
+            <div class="text-xs font-bold">${q.title}</div>
+            <div class="text-[10px] opacity-80">任務獎勵：${q.reward}</div>
+          </div>
+          <span class="text-xs font-bold">接取 ▶</span>
+        </div>
+      `;
+    });
+  }
+
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-guild-list').classList.remove('hidden');
   document.getElementById('modal-guild-accept').classList.add('hidden');
   document.getElementById('modal-guild-complete').classList.add('hidden');
+};
+
+// 3. 放棄任務
+window.abandonQuest = function() {
+  if (confirm('確定要放棄當前的副本任務嗎？進度將會歸零。')) {
+    guildQuest = null;
+    localStorage.removeItem('guild_quest');
+    updateGuildBannerUI();
+    filterAndDraw(true);
+    openGuildModal();
+    showAuraToast("已放棄任務");
+  }
 };
 
 window.openAcceptQuestModal = function(type) {
@@ -368,14 +438,21 @@ window.openAcceptQuestModal = function(type) {
   document.getElementById('modal-guild-accept').classList.remove('hidden');
 };
 
+// 1, 2. 接取任務時：自動關閉原本開啟的靈氣
 window.confirmAcceptQuest = function() {
   if (!tempSelectedQuestType) return;
   guildQuest = { type: tempSelectedQuestType, progress: 0 };
   localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
+
+  // 自動關閉靈氣
+  activeAura = null;
+  localStorage.setItem('active_aura', '');
+  updateAuraButtonsUI();
+
   closeModal();
   updateGuildBannerUI();
   filterAndDraw(true);
-  showAuraToast("成功接取任務！任務目標已出現於公會區");
+  showAuraToast("成功接取任務！任務期間已自動關閉靈氣");
 };
 
 function openCompleteQuestModal() {
@@ -385,6 +462,7 @@ function openCompleteQuestModal() {
   document.getElementById('modal-guild-complete').classList.remove('hidden');
 }
 
+// 2. 領取獎勵時自動關閉靈氣
 window.claimQuestReward = function() {
   if (!guildQuest) return;
   const type = guildQuest.type;
@@ -392,8 +470,10 @@ window.claimQuestReward = function() {
     unlockedAuras.push(type);
     localStorage.setItem('unlocked_auras', JSON.stringify(unlockedAuras));
   }
-  activeAura = type;
-  localStorage.setItem('active_aura', type);
+  
+  // 領取獎勵時自動關閉靈氣
+  activeAura = null;
+  localStorage.setItem('active_aura', '');
 
   guildQuest = null;
   localStorage.removeItem('guild_quest');
@@ -402,12 +482,18 @@ window.claimQuestReward = function() {
   updateGuildBannerUI();
   applyFeatureUnlocks();
   filterAndDraw(true);
-  triggerAuraTextToast(type);
+  showAuraToast(`🎉 成功領取獎勵：解鎖了新靈氣！`);
 };
 
-// 切換靈氣時：重新進行隨機抽選，確保抽樣池只包含對應靈氣的食物，數量固定
+// 1, 2. 切換靈氣邏輯：接取任務時禁用靈氣
 window.toggleAura = function(auraType) {
   if (!unlockedAuras.includes(auraType)) return;
+
+  // 1, 2. 接取任務時不可開啟靈氣
+  if (guildQuest) {
+    showAuraToast("⚔️ 任務進行中無法開啟靈氣");
+    return;
+  }
 
   if (activeAura === auraType) {
     activeAura = null;
@@ -418,7 +504,7 @@ window.toggleAura = function(auraType) {
   }
   localStorage.setItem('active_aura', activeAura || '');
   updateAuraButtonsUI();
-  filterAndDraw(true); // 開關靈氣時重新隨機抽選符合條件的固定數量盲盒
+  filterAndDraw(true);
 };
 
 function triggerAuraTextToast(type) {
@@ -832,7 +918,7 @@ window.buyVIP = function() {
 };
 
 window.clearLocalStorage = function() {
-  if (confirm('確定要清空所有 LocalStorage 資料並重置 App 嗎？')) {
+  if (confirm('確定要清空所有 LocalStorage 資料並重置 App 吧？')) {
     localStorage.clear();
     location.reload();
   }
@@ -879,7 +965,6 @@ function setupEventListeners() {
   if (confirmMap) confirmMap.onclick = () => handleConfirm(true);
 }
 
-// 修正靈氣邏輯：在隨機抽選的候選池階段即過濾符合靈氣條件的食物，確保盲盒數量固定
 function filterAndDraw(isDrawn = false) {
   if (allFoods.length === 0) return;
 
@@ -899,7 +984,6 @@ function filterAndDraw(isDrawn = false) {
       pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
     }
 
-    // 將啟動的靈氣條件直接套用到抽樣候選池中
     if (activeAura) {
       pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
     }
@@ -959,7 +1043,7 @@ function renderMainUI(foods) {
   container.innerHTML = '';
 
   if (foods.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 text-center py-6">沒有符合目前靈氣條件的食物！<br><span class="text-xs text-slate-500">（請嘗試關閉靈氣或切換其他靈氣）</span></p>';
+    container.innerHTML = '<p class="text-slate-400 text-center py-6">沒有符合條件的食物！</p>';
     return;
   }
 
