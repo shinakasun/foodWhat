@@ -45,7 +45,6 @@ const ELEMENT_MAP = {
   elementEarth: { name: '土', icon: '⛰️', class: 'text-yellow-700 bg-yellow-50 border-yellow-200 dark:bg-yellow-950/40 dark:border-yellow-800' }
 };
 
-// 1. 日本九星氣學資料庫與判定機制
 const KYUSEI_DATA = {
   1: { star: '一白水星', elementKey: 'elementWater', name: '水', traits: '柔軟、流動、沉靜、適應力強' },
   2: { star: '二黑土星', elementKey: 'elementEarth', name: '土', traits: '包容、大地、穩重、滋養' },
@@ -58,21 +57,17 @@ const KYUSEI_DATA = {
   9: { star: '九紫火星', elementKey: 'elementFire',  name: '火', traits: '熱情、光明、智慧、華麗' }
 };
 
-// 九星氣學判定演算法（考量立春 2/4）
 function calculateKyusei(year, month, day) {
   let calcYear = year;
-  // 立春前屬前一年
   if (month < 2 || (month === 2 && day < 4)) {
     calcYear = year - 1;
   }
 
-  // 年份數字總和折算為個位數
   let sum = String(calcYear).split('').reduce((acc, num) => acc + parseInt(num), 0);
   while (sum >= 10) {
     sum = String(sum).split('').reduce((acc, num) => acc + parseInt(num), 0);
   }
 
-  // 1999(含)前用 11 扣減，2000(含)後用 10 扣減
   let starNum = (calcYear <= 1999) ? (11 - sum) : (10 - sum);
   while (starNum <= 0) starNum += 9;
   while (starNum > 9) starNum -= 9;
@@ -80,38 +75,62 @@ function calculateKyusei(year, month, day) {
   return KYUSEI_DATA[starNum] || KYUSEI_DATA[3];
 }
 
-// 日辰五行轉化演算法（本命五行 + 當日日期 -> 今日推薦食補屬性）
+// 2. 核心大升級：25 套專屬五行生剋玄學文案庫
+const FORTUNE_SPELLS = {
+  elementMetal: { // 本命屬金
+    0: { relation: '生我 (相生)', text: '「土能生金，今日坤土滋養乾金，積厚成勢，食【土屬性 ⛰️】食物如土培珍寶，財源滾滾！」', target: 'elementEarth' },
+    1: { relation: '同我 (旺本)', text: '「今日乾金氣場剛健，同氣相求，食【金屬性 🪙】食物強化本命，無堅不摧、威震八方！」', target: 'elementMetal' },
+    2: { relation: '我生 (洩秀)', text: '「金能生水，今日金溫水軟、靈感泉湧，食【水屬性 💧】食物抒發英銳，智謀大顯！」', target: 'elementWater' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日烈火熔金、逢官鬼鍛造，食【土屬性 ⛰️】食物化火生金、轉危為安！」', target: 'elementEarth' },
+    4: { relation: '我克 (財星)', text: '「金能克木，今日金銳伐木、斬獲頗豐，食【木屬性 🪵】食物如斧斤入林，收穫滿載！」', target: 'elementWood' }
+  },
+  elementWood: { // 本命屬木
+    0: { relation: '生我 (相生)', text: '「水能生木，今日甘霖潤澤本命，順勢而為，食【水屬性 💧】食物助生木氣，運勢水到渠成！」', target: 'elementWater' },
+    1: { relation: '同我 (旺本)', text: '「今日木氣大旺，同氣相求，食【木屬性 🪵】食物強化本命，參天立地、木秀於林！」', target: 'elementWood' },
+    2: { relation: '我生 (洩秀)', text: '「木能生火，今日適逢木火通明之局，才華外露，食【火屬性 🔥】食物抒發才智，大展鴻圖！」', target: 'elementFire' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日金氣剋木，需以土培根、穩固陣腳，食【土屬性 ⛰️】食物厚德載物以禦外敵！」', target: 'elementEarth' },
+    4: { relation: '我克 (財星)', text: '「今日逢木克土之財星局，利於開闢新局，食【金屬性 🪙】食物收斂成果、聚財納福！」', target: 'elementMetal' }
+  },
+  elementWater: { // 本命屬水
+    0: { relation: '生我 (相生)', text: '「金能生水，今日金天思真、源頭活水，食【金屬性 🪙】食物源源不絕，運勢源遠流長！」', target: 'elementMetal' },
+    1: { relation: '同我 (旺本)', text: '「今日百川匯海、水勢滔滔，食【水屬性 💧】食物融合本命，上善若水、無往不利！」', target: 'elementWater' },
+    2: { relation: '我生 (洩秀)', text: '「水能生木，今日水潤木榮、萬物萌發，食【木屬性 🪵】食物條達氣機，生機勃勃！」', target: 'elementWood' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日厚土禦水、逢貴人管束，食【火屬性 🔥】食物溫暖寒凍、驅散陰霾、逢凶化吉！」', target: 'elementFire' },
+    4: { relation: '我克 (財星)', text: '「水能克火，今日水火相濟、財星入命，食【火屬性 🔥】食物招財進寶、紅紅火火！」', target: 'elementFire' }
+  },
+  elementFire: { // 本命屬火
+    0: { relation: '生我 (相生)', text: '「木能生火，今日薪火相傳、勢不可擋，食【木屬性 🪵】食物添磚加柴，事業扶搖直上！」', target: 'elementWood' },
+    1: { relation: '同我 (旺本)', text: '「今日烈火燎原、赫赫炎炎，食【火屬性 🔥】食物激發熱情，光明磊落、氣貫長虹！」', target: 'elementFire' },
+    2: { relation: '我生 (洩秀)', text: '「火能生土，今日火結成土、化為萬物，食【土屬性 ⛰️】食物沉澱智慧，成果結實纍纍！」', target: 'elementEarth' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日水來克火、需木來通關，食【木屬性 🪵】食物化水為木、轉禍為福！」', target: 'elementWood' },
+    4: { relation: '我克 (財星)', text: '「火能克金，今日烈火煉金、熔鑄萬物，食【金屬性 🪙】食物精煉財源，金玉滿堂！」', target: 'elementMetal' }
+  },
+  elementEarth: { // 本命屬土
+    0: { relation: '生我 (相生)', text: '「火能生土，今日丹鳳朝陽、溫養大地，食【火屬性 🔥】食物注入能量，厚積薄發！」', target: 'elementFire' },
+    1: { relation: '同我 (旺本)', text: '「今日重山複嶺、基業堅如磐石，食【土屬性 ⛰️】食物穩固本命，安如泰山！」', target: 'elementEarth' },
+    2: { relation: '我生 (洩秀)', text: '「土能生金，今日淘金於土、奇珍現世，食【金屬性 🪙】食物彰顯價值，卓爾不群！」', target: 'elementMetal' },
+    3: { relation: '克我 (官鬼/挑戰)', text: '「今日木來破土、需火來化解，食【火屬性 🔥】食物焚木生土、轉危為安！」', target: 'elementFire' },
+    4: { relation: '我克 (財星)', text: '「土能克水，今日築堤禦水、聚水為池，食【水屬性 💧】食物守住財庫，大富大貴！」', target: 'elementWater' }
+  }
+};
+
 function getTodayFortuneAnalysis(userElementKey) {
   const today = new Date();
   const y = today.getFullYear();
   const m = today.getMonth() + 1;
   const d = today.getDate();
 
-  // 日辰 Hash 偏移量 (0~4)
   const dayHash = (y * 13 + m * 31 + d) % 5;
-  const elemKeys = ['elementMetal', 'elementWood', 'elementWater', 'elementFire', 'elementEarth'];
-  const userIdx = elemKeys.indexOf(userElementKey);
+  const spellBook = FORTUNE_SPELLS[userElementKey] || FORTUNE_SPELLS['elementWood'];
+  const spell = spellBook[dayHash];
 
-  // 0: 生我(相生), 1: 同我(旺本), 2: 我生(洩秀), 3: 克我(官鬼), 4: 我克(財星)
-  const relationType = (dayHash + 5) % 5; 
-  
-  // 決定今日開運建議的食物屬性
-  const targetIdx = (userIdx + relationType) % 5;
-  const targetElementKey = elemKeys[targetIdx];
-  const targetElemInfo = ELEMENT_MAP[targetElementKey];
-
-  const relationTexts = [
-    `今日氣場源源不絕滋養本命，順勢而為，建議享用【${targetElemInfo.name}屬性】食物，可獲得額外經驗值！`,
-    `今日同氣相求、氣場大旺，同屬強本，建議享用【${targetElemInfo.name}屬性】食物，可獲得額外經驗值！`,
-    `今日適逢通明發越之局，才華外露，建議享用【${targetElemInfo.name}屬性】食物，可獲得額外經驗值！`,
-    `今日局勢頗具挑戰、需穩固陣腳，建議享用【${targetElemInfo.name}屬性】食物以禦外敵，可獲得額外經驗值！`,
-    `今日適逢財星大開局，利於開闢新局，建議享用【${targetElemInfo.name}屬性】食物收斂成果，可獲得額外經驗值！`
-  ];
+  const targetElemInfo = ELEMENT_MAP[spell.target];
 
   return {
-    targetElementKey: targetElementKey,
+    relationLabel: spell.relation,
+    targetElementKey: spell.target,
     targetElementName: targetElemInfo.name,
-    text: relationTexts[relationType]
+    text: spell.text
   };
 }
 
@@ -742,7 +761,7 @@ window.toggleTriviaBox = function(show) {
   else document.getElementById('trivia-wrapper').classList.add('hidden');
 };
 
-// 1. 更新主介面的本命五行標籤與每日運勢分析提示
+// 1. 整合生剋標籤與專屬話術更新主介面
 function updateFortuneText() {
   if (!userBirth) return;
   
@@ -756,7 +775,12 @@ function updateFortuneText() {
 
   const fortuneEl = document.getElementById('fortune-text');
   if (fortuneEl) {
-    fortuneEl.innerText = fortune.text;
+    fortuneEl.innerHTML = `
+      <div class="inline-block px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-[11px] font-bold mb-1">
+        🔮 當前運勢局勢：${fortune.relationLabel}
+      </div>
+      <div class="leading-relaxed text-xs text-indigo-900 dark:text-indigo-200 font-medium">${fortune.text}</div>
+    `;
   }
 }
 
@@ -765,7 +789,6 @@ function showBirthModal() {
   document.getElementById('modal-birth').classList.remove('hidden');
 }
 
-// 1. 輸入生日後的九星診斷流程
 window.saveBirthdate = function() {
   const year = parseInt(document.getElementById('select-birth-year').value);
   const month = parseInt(document.getElementById('select-birth-month').value);
@@ -779,7 +802,6 @@ window.saveBirthdate = function() {
   userBirth = { year, month, day };
   localStorage.setItem('user_birth', JSON.stringify(userBirth));
 
-  // 計算九星氣學結果並顯示彈窗
   const kyusei = calculateKyusei(year, month, day);
   document.getElementById('kyusei-star-name').innerText = `根據九星氣學 您屬於：${kyusei.star}`;
   document.getElementById('kyusei-element-name').innerText = `對應五行：${kyusei.name}`;
@@ -1063,7 +1085,6 @@ function filterAndDraw(isDrawn = false) {
     }
 
     const boxCount = getUnlockBoxCount();
-    // 依據今日開運建議的屬性進行加權抽樣
     currentDisplayedFoods = weightedSample(pool, boxCount, fortune.targetElementKey);
   }
 
@@ -1083,7 +1104,6 @@ function weightedSample(list, k, targetElementKey) {
 
     let totalWeight = tempPool.reduce((acc, item) => {
       let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
-      // 今日開運屬性權重加倍！
       if (item.element === targetElementKey) weight *= 2.0;
       return acc + weight;
     }, 0);
@@ -1396,7 +1416,6 @@ function handleConfirm(needMap) {
     gainedExp += 5;
     expMsg = "✨ 經驗值 +5";
 
-    // 符合今日開運屬性
     if (foodElement === fortune.targetElementKey) {
       gainedExp += 5;
       expMsg += "<br><span class='text-amber-600 dark:text-amber-300 font-extrabold'>🔥 契合今日開運食補 經驗值額外+5！</span>";
