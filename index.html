@@ -102,12 +102,19 @@
       </div>
     </div>
 
-    <!-- 靈氣開關區 (位於第一個盲盒上方) -->
-    <div id="aura-control-panel" class="mb-3 flex items-center gap-1.5 overflow-x-auto pb-1 hidden">
-      <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">靈氣：</span>
-      <button id="aura-btn-cold" onclick="toggleAura('cold')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">❄️ 極寒靈氣 (未解鎖)</button>
-      <button id="aura-btn-hot" onclick="toggleAura('hot')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🔥 灼熱靈氣 (未解鎖)</button>
-      <button id="aura-btn-snack" onclick="toggleAura('snack')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">⚡ 迅捷靈氣 (未解鎖)</button>
+    <!-- 靈氣開關區 (1. 上方新增飄浮提示視窗) -->
+    <div id="aura-container" class="relative mb-3 hidden">
+      <!-- 靈氣飄浮提示 Toast -->
+      <div id="toast-aura-floating" class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900/95 dark:bg-slate-100 dark:text-slate-900 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xl opacity-0 transition-all duration-300 pointer-events-none whitespace-nowrap text-center leading-tight z-20">
+        極寒靈氣開啟<br>接下來只會出現清爽的食物囉！
+      </div>
+
+      <div id="aura-control-panel" class="flex items-center gap-1.5 overflow-x-auto pb-1">
+        <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">靈氣：</span>
+        <button id="aura-btn-cold" onclick="toggleAura('cold')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">❄️ 極寒靈氣 (未解鎖)</button>
+        <button id="aura-btn-hot" onclick="toggleAura('hot')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🔥 灼熱靈氣 (未解鎖)</button>
+        <button id="aura-btn-snack" onclick="toggleAura('snack')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">⚡ 迅捷靈氣 (未解鎖)</button>
+      </div>
     </div>
 
     <!-- 盲盒選項區 -->
@@ -293,7 +300,7 @@
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
     </div>
 
-    <!-- 設定面板 Modal (3. 新增測試冷卻歸零按鈕) -->
+    <!-- 設定面板 Modal -->
     <div id="modal-settings" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">⚙️ 系統設定</h2>
@@ -380,11 +387,6 @@
       </div>
     </div>
 
-  </div>
-
-  <!-- 靈氣功能提示 Toast 視窗 -->
-  <div id="aura-toast" class="fixed top-8 left-1/2 -translate-x-1/2 bg-slate-900/90 dark:bg-slate-100 dark:text-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-2xl opacity-0 transition-all duration-300 pointer-events-none z-50 text-center">
-    ✨ 靈氣提示訊息
   </div>
 
   <script src="app.js"></script>
