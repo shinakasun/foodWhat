@@ -194,37 +194,23 @@
       <button onclick="closeModal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">確認</button>
     </div>
 
-    <!-- 冒險者公會：副本任務列表 Modal -->
+    <!-- 冒險者公會：副本任務列表 Modal (3. 新增放棄任務按鈕) -->
     <div id="modal-guild-list" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
-      <div class="flex justify-between items-center mb-4">
+      <div class="flex justify-between items-center mb-3">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-1.5">🛡️ 冒險者公會佈告欄</h2>
         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">選擇一項副本任務進行挑戰：</p>
-      <div class="space-y-2.5 mb-4">
-        <div onclick="openAcceptQuestModal('cold')" class="p-3 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/30 cursor-pointer hover:bg-blue-100 transition flex justify-between items-center">
-          <div>
-            <div class="text-xs font-bold text-blue-900 dark:text-blue-200">❄️ 凜冬陣地</div>
-            <div class="text-[10px] text-blue-700 dark:text-blue-400">任務獎勵：極寒靈氣</div>
-          </div>
-          <span class="text-xs text-blue-600 font-bold">接取 ▶</span>
-        </div>
-        <div onclick="openAcceptQuestModal('hot')" class="p-3 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/30 cursor-pointer hover:bg-rose-100 transition flex justify-between items-center">
-          <div>
-            <div class="text-xs font-bold text-rose-900 dark:text-rose-200">🔥 灼熱地城</div>
-            <div class="text-[10px] text-rose-700 dark:text-rose-400">任務獎勵：灼熱靈氣</div>
-          </div>
-          <span class="text-xs text-rose-600 font-bold">接取 ▶</span>
-        </div>
-        <div onclick="openAcceptQuestModal('snack')" class="p-3 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/30 cursor-pointer hover:bg-amber-100 transition flex justify-between items-center">
-          <div>
-            <div class="text-xs font-bold text-amber-900 dark:text-amber-200">🍡 小惡魔城</div>
-            <div class="text-[10px] text-amber-700 dark:text-amber-400">任務獎勵：迅捷靈氣</div>
-          </div>
-          <span class="text-xs text-amber-600 font-bold">接取 ▶</span>
-        </div>
+
+      <p id="guild-modal-subtext" class="text-xs text-slate-500 dark:text-slate-400 mb-3">選擇一項副本任務進行挑戰：</p>
+      
+      <div id="guild-quest-list-container" class="space-y-2.5 mb-4"></div>
+
+      <div class="space-y-2">
+        <button id="btn-abandon-quest" onclick="abandonQuest()" class="w-full py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-bold rounded-xl transition text-xs hidden">
+          🗑️ 放棄當前任務
+        </button>
+        <button onclick="closeModal()" class="w-full py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition text-sm">關閉</button>
       </div>
-      <button onclick="closeModal()" class="w-full py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition text-sm">關閉</button>
     </div>
 
     <!-- 冒險者公會：接受任務確認 Modal -->
@@ -235,6 +221,7 @@
       <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-600 dark:text-slate-300 mb-4 text-left space-y-1">
         <div>📌 <strong>任務目標</strong>：選取任務食物 3 次</div>
         <div>⚡ <strong>特殊規則</strong>：需在額外經驗值「未冷卻」時選取才計入進度！</div>
+        <div class="text-amber-600 dark:text-amber-400 font-bold mt-1">⚠️ 接受任務期間將自動關閉並禁用靈氣！</div>
       </div>
       <div class="space-y-2">
         <button onclick="confirmAcceptQuest()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">接受任務</button>
