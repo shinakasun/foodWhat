@@ -293,7 +293,7 @@
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
     </div>
 
-    <!-- 設定面板 Modal -->
+    <!-- 設定面板 Modal (3. 新增測試冷卻歸零按鈕) -->
     <div id="modal-settings" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">⚙️ 系統設定</h2>
@@ -334,6 +334,7 @@
 
         <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
           <button onclick="buyVIP()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition text-xs">⭐ 購買正式版 (解鎖 VIP 專屬完全禁用)</button>
+          <button onclick="resetCooldownForTest()" class="w-full py-2 bg-indigo-100 dark:bg-indigo-950/60 hover:bg-indigo-200 text-indigo-700 dark:text-indigo-300 font-bold rounded-xl transition text-xs">⚡ [測試] 歸零額外經驗值冷卻</button>
           <button onclick="clearLocalStorage()" class="w-full py-2 bg-rose-100 hover:bg-rose-200 text-rose-600 font-bold rounded-xl transition text-xs">🗑️ [測試] 清空 LocalStorage</button>
         </div>
       </div>
@@ -381,7 +382,7 @@
 
   </div>
 
-  <!-- 靈氣功能提示 Toast 視窗 (馬上消失) -->
+  <!-- 靈氣功能提示 Toast 視窗 -->
   <div id="aura-toast" class="fixed top-8 left-1/2 -translate-x-1/2 bg-slate-900/90 dark:bg-slate-100 dark:text-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-2xl opacity-0 transition-all duration-300 pointer-events-none z-50 text-center">
     ✨ 靈氣提示訊息
   </div>
