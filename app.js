@@ -816,14 +816,12 @@ window.saveBirthdate = function() {
   document.getElementById('modal-kyusei-result').classList.remove('hidden');
 };
 
-// 第 2 項修改：確認九星診斷結果後觸發新手引導模式
 window.confirmKyuseiResult = function() {
   document.getElementById('modal-kyusei-result').classList.add('hidden');
   updateMainTitle();
   updateFortuneText();
   filterAndDraw(true);
 
-  // 啟用引導遮罩與彈窗
   startOnboardingGuide();
 };
 
@@ -837,7 +835,6 @@ function startOnboardingGuide() {
     overlay.classList.remove('hidden');
     guideModal.classList.remove('hidden');
 
-    // 提高高亮目標的層級
     if (targetFood) targetFood.className += ' relative z-50 bg-white dark:bg-slate-900 shadow-2xl ring-4 ring-indigo-500/50';
     if (targetBtn) targetBtn.className += ' relative z-50 bg-white dark:bg-slate-900 shadow-2xl ring-4 ring-indigo-500/50';
   }
@@ -854,7 +851,6 @@ window.finishOnboardingGuide = function() {
     guideModal.classList.add('hidden');
     document.getElementById('modal-overlay').classList.add('hidden');
 
-    // 恢復目標原本層級
     if (targetFood) targetFood.className = 'rounded-2xl transition-all duration-300 p-1';
     if (targetBtn) targetBtn.className = 'relative mt-6 rounded-2xl transition-all duration-300 p-1';
   }
@@ -999,7 +995,7 @@ function renderStatsBanned() {
   const badge = document.getElementById('vip-status-badge');
   if (isVIP) {
     badge.innerText = '⭐ VIP 已啟用';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-950 dark:text-amber-300 font-bold';
   } else {
     badge.innerText = '免費版 (未啟用)';
     badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
@@ -1261,7 +1257,7 @@ function createFoodCardHTML(food, isFavoriteSlot) {
 
   const card = document.createElement('div');
   card.id = `food-card-${food.id}`;
-  card.className = 'p-3 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center shadow-sm hover:bg-slate-100 dark:hover:bg-slate-750 transition';
+  card.className = 'p-2.5 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center shadow-sm hover:bg-slate-100 dark:hover:bg-slate-750 transition gap-2';
   
   const likeBtnClass = isLiked 
     ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' 
@@ -1278,25 +1274,54 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   const dislikeDisplay = (userLevel >= 8) ? '👎' : '🔒';
 
   card.innerHTML = `
-    <div class="cursor-pointer flex-grow flex items-center gap-2" onclick="openFoodConfirmModal(${food.id})">
-      <h3 class="font-bold text-slate-800 dark:text-white">${food.name}</h3>
-      <span class="text-[10px] px-1.5 py-0.5 rounded-md border font-medium flex items-center gap-0.5 ${elemInfo.class}">
+    <div class="cursor-pointer flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden" onclick="openFoodConfirmModal(${food.id})">
+      <div class="overflow-hidden whitespace-nowrap flex-1 relative" id="marquee-container-${food.id}">
+        <h3 class="font-bold text-xs text-slate-800 dark:text-white inline-block" id="marquee-text-${food.id}" title="${food.name}">
+          ${food.name}
+        </h3>
+      </div>
+      <span class="text-[9px] px-1.5 py-0.5 rounded border font-medium flex items-center gap-0.5 shrink-0 ${elemInfo.class}">
         <span>${elemInfo.icon}</span>
         <span>${elemInfo.name}</span>
       </span>
     </div>
-    <div class="flex items-center gap-1.5 ml-2">
+    
+    <div class="flex items-center gap-1 shrink-0">
       <button id="like-btn-${food.id}" onclick="${likeAction}" 
-        class="px-2.5 py-1 text-xs rounded-lg border transition ${likeBtnClass}" title="${userLevel < 3 ? 'Lv.3 解鎖喜歡' : ''}">
+        class="px-1.5 py-0.5 text-[10px] rounded-md border transition ${likeBtnClass}" title="${userLevel < 3 ? 'Lv.3 解鎖喜歡' : ''}">
         ${likeDisplay}
       </button>
       <button id="dislike-btn-${food.id}" onclick="${dislikeAction}" 
-        class="px-2.5 py-1 text-xs rounded-lg border transition ${dislikeBtnClass}" title="${userLevel < 8 ? 'Lv.8 解鎖討厭' : ''}">
+        class="px-1.5 py-0.5 text-[10px] rounded-md border transition ${dislikeBtnClass}" title="${userLevel < 8 ? 'Lv.8 解鎖討厭' : ''}">
         ${dislikeDisplay}
       </button>
     </div>
   `;
+
+  setTimeout(() => {
+    initMarqueeForCard(food.id);
+  }, 50);
+
   return card;
+}
+
+function initMarqueeForCard(foodId) {
+  const container = document.getElementById(`marquee-container-${foodId}`);
+  const textEl = document.getElementById(`marquee-text-${foodId}`);
+  if (!container || !textEl) return;
+
+  const containerWidth = container.clientWidth;
+  const textWidth = textEl.scrollWidth;
+
+  if (textWidth > containerWidth) {
+    const distance = containerWidth - textWidth - 10;
+    const scrollDuration = Math.max(3, Math.abs(distance) * 0.05);
+    const totalDuration = scrollDuration + 2;
+
+    textEl.style.setProperty('--marquee-distance', `${distance}px`);
+    textEl.style.setProperty('--marquee-duration', `${totalDuration}s`);
+    textEl.classList.add('animate-marquee');
+  }
 }
 
 window.togglePreference = function(id, type) {
@@ -1336,7 +1361,7 @@ function updateButtonUI(id) {
 
   likeBtns.forEach(btn => {
     if (userLevel >= 3) {
-      btn.className = `px-2.5 py-1 text-xs rounded-lg border transition ${
+      btn.className = `px-1.5 py-0.5 text-[10px] rounded-md border transition ${
         isLiked ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
       }`;
     }
@@ -1344,7 +1369,7 @@ function updateButtonUI(id) {
 
   dislikeBtns.forEach(btn => {
     if (userLevel >= 8) {
-      btn.className = `px-2.5 py-1 text-xs rounded-lg border transition ${
+      btn.className = `px-1.5 py-0.5 text-[10px] rounded-md border transition ${
         isDisliked ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
       }`;
     }
