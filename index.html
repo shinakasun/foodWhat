@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW" id="html-root">
+<html lang="zh-TW" id="html-root" class="theme-default">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,7 @@
     tailwind.config = { darkMode: 'class' };
   </script>
   <style>
+    /* 跑馬燈動畫 */
     @keyframes marquee {
       0%, 20% { transform: translateX(0); }
       80%, 100% { transform: translateX(var(--marquee-distance)); }
@@ -17,15 +18,33 @@
       display: inline-block;
       animation: marquee var(--marquee-duration) linear infinite;
     }
+
+    /* 季節與主題風格設定 (第 3 項修改) */
+    /* 深色模式 */
+    html.theme-dark { color-scheme: dark; }
+    html.theme-dark body { background-color: #020617; color: #f8fafc; }
+    html.theme-dark .app-card { background-color: #0f172a; border-color: #1e293b; color: #f8fafc; }
+    
+    /* 春天風格 (櫻花粉/粉綠) */
+    html.theme-spring body { background-color: #fdf2f8; color: #831843; }
+    html.theme-spring .app-card { background-color: #fff1f2; border-color: #fbcfe8; color: #831843; }
+
+    /* 夏天風格 (清涼清藍/海洋) */
+    html.theme-summer body { background-color: #ecfeff; color: #164e63; }
+    html.theme-summer .app-card { background-color: #f0fdfa; border-color: #a5f3fc; color: #164e63; }
+
+    /* 秋天風格 (溫暖暖橘/楓葉) */
+    html.theme-autumn body { background-color: #fff7ed; color: #7c2d12; }
+    html.theme-autumn .app-card { background-color: #fffbe2; border-color: #fed7aa; color: #7c2d12; }
   </style>
 </head>
-<body id="body-root" class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
-  <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
+<body id="body-root" class="bg-slate-100 text-slate-800 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
+  <div class="app-card w-full max-w-md bg-white rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
     
     <!-- 頂部標題與頭銜區 -->
     <div class="flex justify-between items-start mb-3">
       <div id="title-container" onclick="openTitleModal()" class="cursor-pointer group select-none" title="點擊更換頭銜">
-        <h1 id="app-main-title" class="text-xl font-bold text-slate-800 dark:text-white leading-tight group-hover:text-indigo-600 transition">
+        <h1 id="app-main-title" class="text-xl font-bold leading-tight group-hover:text-indigo-600 transition">
           <span>歡迎您！</span><br>
           <span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人 ▼</span>
         </h1>
@@ -355,18 +374,30 @@
       </div>
       
       <div class="space-y-4 text-sm max-h-[70vh] overflow-y-auto pr-1">
-        <div id="setting-darkmode-wrapper" class="flex justify-between items-center opacity-50">
-          <span class="text-slate-700 dark:text-slate-300 flex items-center gap-1">深色模式 <span id="lock-darkmode" class="text-[10px] text-amber-500">(🔒 Lv.3 解鎖)</span></span>
-          <input type="checkbox" id="setting-darkmode" onchange="toggleDarkMode(this.checked)" class="w-4 h-4 accent-indigo-600" disabled>
+        
+        <!-- 佈景主題下拉選擇選單 (第 3、4 項修改) -->
+        <div id="setting-theme-wrapper" class="opacity-50">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-slate-700 dark:text-slate-300 font-medium">🎨 佈景主題：</span>
+            <span id="lock-theme" class="text-[10px] text-amber-500">(🔒 Lv.3 解鎖)</span>
+          </div>
+          <select id="setting-theme-select" onchange="changeTheme(this.value)" class="w-full p-2 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-bold focus:outline-none" disabled>
+            <option value="default">☀️ 預設風格 (Default)</option>
+            <option value="dark">🌙 深色模式 (Dark Mode)</option>
+            <option value="spring">🌸 春天風格 (Spring Sakura)</option>
+            <option value="summer">🌊 夏天風格 (Summer Ocean)</option>
+            <option value="autumn">🍁 秋天風格 (Autumn Maple)</option>
+          </select>
         </div>
 
+        <!-- 忌食名單設定 (第 2 項修改) -->
         <div>
-          <span class="text-slate-700 dark:text-slate-300 block mb-1 font-medium">🚫 忌食肉品設定：</span>
+          <span class="text-slate-700 dark:text-slate-300 block mb-1 font-medium">🚫 忌食肉品與海鮮設定：</span>
           <div class="grid grid-cols-2 gap-2 text-xs">
             <label class="flex items-center gap-1.5"><input type="checkbox" value="beef" class="meat-taboo accent-indigo-600"> 忌吃牛肉 (beef)</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" value="pork" class="meat-taboo accent-indigo-600"> 忌吃豬肉 (pork)</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" value="mutton" class="meat-taboo accent-indigo-600"> 忌吃羊肉 (mutton)</label>
-            <label class="flex items-center gap-1.5"><input type="checkbox" value="seafood" class="meat-taboo accent-indigo-600"> 忌吃海鮮 (seafood)</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" value="shrimp_crab" class="meat-taboo accent-indigo-600"> 忌吃蝦蟹 (shrimp/crab)</label>
           </div>
         </div>
 
