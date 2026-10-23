@@ -26,7 +26,7 @@ let auraToastTimer = null;
 
 let currentDisplayedFoods = [];
 
-const MAX_DRAW = 20;
+const MAX_DRAW = 20; // 刷新水晶上限為 20
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 if (drawState.count > MAX_DRAW) drawState.count = MAX_DRAW;
 
@@ -1030,7 +1030,6 @@ window.unmarkBanned = function(id) {
   renderStatsBanned();
 };
 
-// 佈景主題切換邏輯 (第 3、4 項修改)
 window.changeTheme = function(themeName) {
   if (userLevel < 3 && themeName !== 'default') {
     alert('🔒 佈景主題切換尚未解鎖！需要達到 Lv.3。');
@@ -1256,7 +1255,6 @@ function renderFavoriteUI(food) {
   container.appendChild(card);
 }
 
-// 食物盲盒卡片（第 1 項修改：字體放大至 text-sm / text-base 級距）
 function createFoodCardHTML(food, isFavoriteSlot) {
   const isLiked = userLikes.includes(food.id);
   const isDisliked = userDislikes.includes(food.id);
@@ -1614,25 +1612,38 @@ function updateCountersAndTimer() {
     const remainingTriviaMs = Math.max(0, triviaIntervalMs - (elapsedTrivia % triviaIntervalMs));
     const hrs = Math.floor(remainingTriviaMs / (1000 * 60 * 60));
     const mins = Math.floor((remainingTriviaMs % (1000 * 60 * 60)) / (1000 * 60));
-    const secs = Math.floor((remainingMs = (remainingTriviaMs % (1000 * 60))) / 1000);
+    const secs = Math.floor((remainingTriviaMs % (1000 * 60)) / 1000);
     const timeStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     triviaCountdownEl.innerText = `${timeStr} 後刷新`;
   }
 
+  // 水晶計數器數字更新
   const coinValEl = document.getElementById('coin-counter-val');
   if (coinValEl) {
     coinValEl.innerText = drawState.count;
   }
 
+  // 水晶顯示區下方提示文字更新 (第 2 項修改)
+  const coinSubtextEl = document.getElementById('coin-timer-subtext');
+  const intervalMs = 10 * 60 * 1000;
+  const elapsed = (now - drawState.timestamp) % intervalMs;
+  const remainingMs = intervalMs - elapsed;
+  const minutes = Math.floor(remainingMs / 60000);
+  const seconds = Math.floor((remainingMs % 60000) / 1000);
+  const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+  if (coinSubtextEl) {
+    if (drawState.count >= MAX_DRAW) {
+      coinSubtextEl.innerText = '✨ 已達上限';
+      coinSubtextEl.className = 'text-[9px] font-bold text-amber-500 dark:text-amber-400 mt-0.5 leading-none whitespace-nowrap';
+    } else {
+      coinSubtextEl.innerText = `⏳ 補充 ${timeStr}`;
+      coinSubtextEl.className = 'text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 leading-none whitespace-nowrap';
+    }
+  }
+
   const nextRefreshEl = document.getElementById('next-refresh-time');
   if (nextRefreshEl) {
-    const intervalMs = 10 * 60 * 1000;
-    const elapsed = (now - drawState.timestamp) % intervalMs;
-    const remainingMs = intervalMs - elapsed;
-    
-    const minutes = Math.floor(remainingMs / 60000);
-    const seconds = Math.floor((remainingMs % 60000) / 1000);
-    const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     nextRefreshEl.innerText = `下一次自動補充：${timeStr}`;
   }
 
