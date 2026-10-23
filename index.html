@@ -57,23 +57,23 @@
       ⏳ 下一次額外的經驗值：<span id="cooldown-countdown">00:00:00</span>
     </div>
 
-    <!-- 本命與今日局勢區（第 3 項修改） -->
+    <!-- 本命與今日局勢區（第 1 項修改：刪除圖示，簡化字樣） -->
     <div class="p-3 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl mb-3">
-      <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-indigo-900 dark:text-indigo-200 mb-1.5">
-        <div class="flex items-center gap-1">
-          <span>☯️ 本命：</span>
-          <span id="user-element-tag" class="px-2 py-0.5 rounded bg-indigo-600 text-white text-[11px]">未設定</span>
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-indigo-900 dark:text-indigo-200 mb-1">
+        <div class="flex items-center gap-1 whitespace-nowrap">
+          <span>本命：</span>
+          <span id="user-element-tag" class="px-1.5 py-0.5 rounded bg-indigo-600 text-white text-[11px]">未設定</span>
         </div>
         <span class="text-indigo-300 dark:text-indigo-700">|</span>
-        <div class="flex items-center gap-1">
-          <span>🔮 局勢：</span>
-          <span id="user-relation-tag" class="px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-[11px]">未設定</span>
+        <div class="flex items-center gap-1 whitespace-nowrap">
+          <span>局勢：</span>
+          <span id="user-relation-tag" class="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-[11px]">未設定</span>
         </div>
       </div>
       <p id="fortune-text" class="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed font-medium">✨ 正在解析今日日辰氣場...</p>
     </div>
     
-    <!-- 美食冷知識區（第 1 項修改） -->
+    <!-- 美食冷知識區 -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (達到指定等級解鎖)
     </div>
@@ -132,9 +132,11 @@
       </div>
     </div>
 
-    <!-- 盲盒選項區 -->
-    <div id="food-container" class="space-y-2 min-h-[160px]">
-      <div class="p-4 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 text-center text-slate-500">載入中...</div>
+    <!-- 盲盒選項區（引導模式高亮目標 1） -->
+    <div id="guide-target-food" class="rounded-2xl transition-all duration-300 p-1">
+      <div id="food-container" class="space-y-2 min-h-[160px]">
+        <div class="p-4 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 text-center text-slate-500">載入中...</div>
+      </div>
     </div>
 
     <!-- 個人最愛精選區 -->
@@ -149,8 +151,8 @@
       </div>
     </div>
 
-    <!-- 隨機抽選按鈕區 -->
-    <div class="relative mt-6">
+    <!-- 隨機抽選按鈕區（引導模式高亮目標 2） -->
+    <div id="guide-target-button" class="relative mt-6 rounded-2xl transition-all duration-300 p-1">
       <button id="draw-btn" class="w-full py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
         <span class="text-lg">🎲 隨機抽選 (-1 💎)</span>
       </button>
@@ -180,6 +182,9 @@
     </div>
   </div>
 
+  <!-- 引導模式：半透明黑色背景遮罩 (第 2 項修改) -->
+  <div id="guide-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs hidden z-40 transition-opacity duration-300"></div>
+
   <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
     
@@ -208,6 +213,20 @@
 
       <button onclick="confirmKyuseiResult()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
         展開今日美食冒險！
+      </button>
+    </div>
+
+    <!-- 引導模式教學彈窗 (第 2 項修改) -->
+    <div id="modal-onboarding-guide" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden z-50">
+      <div class="text-4xl mb-2">🍱</div>
+      <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-3">新手探索指南</h2>
+      
+      <div class="p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-xl mb-4 text-slate-700 dark:text-slate-200 text-xs leading-relaxed font-medium">
+        這裡面有出現你想吃的東西嗎？<br>如果沒有的話，按一下<strong class="text-amber-600 dark:text-amber-400">隨機抽選按鈕</strong>再抽一次喔！
+      </div>
+
+      <button onclick="finishOnboardingGuide()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
+        我知道了，開始抽選！
       </button>
     </div>
 
