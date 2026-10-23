@@ -1050,6 +1050,7 @@ window.unmarkBanned = function(foodName) {
   renderStatsBanned();
 };
 
+// 💡 支援夜櫻風格 (night-sakura) 屬性動態切換
 window.changeTheme = function(themeName) {
   if (userLevel < 3 && themeName !== 'default') {
     alert('🔒 佈景主題切換尚未解鎖！需要達到 Lv.3。');
@@ -1062,7 +1063,7 @@ window.changeTheme = function(themeName) {
   const htmlRoot = document.getElementById('html-root');
   htmlRoot.className = `theme-${themeName}`;
 
-  if (themeName === 'dark') {
+  if (themeName === 'dark' || themeName === 'night-sakura') {
     htmlRoot.classList.add('dark');
   } else {
     htmlRoot.classList.remove('dark');
@@ -1232,7 +1233,6 @@ function renderMainUI(foods) {
   }
 }
 
-// 💡 副本任務卡片：移除右側按鈕，加上右側統一的五行屬性標籤
 function createGuildQuestCardHTML() {
   const now = Date.now();
   const cooldownMs = 4 * 60 * 60 * 1000;
@@ -1556,7 +1556,7 @@ function handleConfirm(needMap) {
 
     userExp += gainedExp;
     lastEatTime = now;
-    hasTriggeredAutoRefreshThisCycle = false; // 重置自動刷新標記
+    hasTriggeredAutoRefreshThisCycle = false;
     localStorage.setItem('user_exp', userExp);
     localStorage.setItem('last_eat_time', lastEatTime);
 
@@ -1653,7 +1653,7 @@ function checkAndUpdateCooldown() {
   }
 }
 
-// 💡 倒數與自動刷新冷知識邏輯修訂
+// 💡 動態切換冷知識刷新按鈕文案（-1水晶 換行 或是 倒數時間後自動刷新）
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
@@ -1667,7 +1667,7 @@ function updateCountersAndTimer() {
     if (lastEatTime === 0 || remainEatMs === 0) {
       triviaCountdownEl.innerHTML = `💎 -1<br>換一個`;
       
-      // 冷卻結束瞬間自動免費刷新一次冷知識
+      // 冷卻結束瞬間免費自動刷新一次
       if (lastEatTime !== 0 && remainEatMs === 0 && !hasTriggeredAutoRefreshThisCycle) {
         hasTriggeredAutoRefreshThisCycle = true;
         renderRandomTrivia();
