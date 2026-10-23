@@ -26,7 +26,6 @@ let auraToastTimer = null;
 
 let currentDisplayedFoods = [];
 
-// 第 2 項修改：水晶上限改回 20
 const MAX_DRAW = 20;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 if (drawState.count > MAX_DRAW) drawState.count = MAX_DRAW;
@@ -78,7 +77,6 @@ function calculateKyusei(year, month, day) {
   return KYUSEI_DATA[starNum] || KYUSEI_DATA[3];
 }
 
-// 第 4 項修改：為文案中的建議屬性帶上獨立的背景框（底色與標籤風格一致）
 function buildElementBadge(elementKey) {
   const elem = ELEMENT_MAP[elementKey] || { name: '屬性', icon: '✨', class: 'bg-indigo-100 text-indigo-800' };
   return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-bold border ${elem.class}">${elem.icon} ${elem.name}屬性</span>`;
@@ -769,7 +767,6 @@ window.toggleTriviaBox = function(show) {
   else document.getElementById('trivia-wrapper').classList.add('hidden');
 };
 
-// 第 3 項修改：更新本命與局勢到同一行
 function updateFortuneText() {
   if (!userBirth) return;
   
@@ -819,11 +816,48 @@ window.saveBirthdate = function() {
   document.getElementById('modal-kyusei-result').classList.remove('hidden');
 };
 
+// 第 2 項修改：確認九星診斷結果後觸發新手引導模式
 window.confirmKyuseiResult = function() {
-  closeModal();
+  document.getElementById('modal-kyusei-result').classList.add('hidden');
   updateMainTitle();
   updateFortuneText();
   filterAndDraw(true);
+
+  // 啟用引導遮罩與彈窗
+  startOnboardingGuide();
+};
+
+function startOnboardingGuide() {
+  const overlay = document.getElementById('guide-overlay');
+  const guideModal = document.getElementById('modal-onboarding-guide');
+  const targetFood = document.getElementById('guide-target-food');
+  const targetBtn = document.getElementById('guide-target-button');
+
+  if (overlay && guideModal) {
+    overlay.classList.remove('hidden');
+    guideModal.classList.remove('hidden');
+
+    // 提高高亮目標的層級
+    if (targetFood) targetFood.className += ' relative z-50 bg-white dark:bg-slate-900 shadow-2xl ring-4 ring-indigo-500/50';
+    if (targetBtn) targetBtn.className += ' relative z-50 bg-white dark:bg-slate-900 shadow-2xl ring-4 ring-indigo-500/50';
+  }
+}
+
+window.finishOnboardingGuide = function() {
+  const overlay = document.getElementById('guide-overlay');
+  const guideModal = document.getElementById('modal-onboarding-guide');
+  const targetFood = document.getElementById('guide-target-food');
+  const targetBtn = document.getElementById('guide-target-button');
+
+  if (overlay && guideModal) {
+    overlay.classList.add('hidden');
+    guideModal.classList.add('hidden');
+    document.getElementById('modal-overlay').classList.add('hidden');
+
+    // 恢復目標原本層級
+    if (targetFood) targetFood.className = 'rounded-2xl transition-all duration-300 p-1';
+    if (targetBtn) targetBtn.className = 'relative mt-6 rounded-2xl transition-all duration-300 p-1';
+  }
 };
 
 window.openSettingsModal = function() {
@@ -1341,6 +1375,7 @@ window.openFoodConfirmModal = function(id) {
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-birth').classList.add('hidden');
   document.getElementById('modal-kyusei-result').classList.add('hidden');
+  document.getElementById('modal-onboarding-guide').classList.add('hidden');
   document.getElementById('modal-settings').classList.add('hidden');
   document.getElementById('modal-stats').classList.add('hidden');
   document.getElementById('modal-levelup').classList.add('hidden');
@@ -1499,6 +1534,7 @@ window.closeModal = function() {
   document.getElementById('modal-overlay').classList.add('hidden');
   document.getElementById('modal-birth').classList.add('hidden');
   document.getElementById('modal-kyusei-result').classList.add('hidden');
+  document.getElementById('modal-onboarding-guide').classList.add('hidden');
   document.getElementById('modal-confirm-step1').classList.add('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-settings').classList.add('hidden');
@@ -1526,7 +1562,6 @@ function checkAndUpdateCooldown() {
   }
 }
 
-// 第 1 項修改：新增 4小時冷知識動態倒數顯示
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
@@ -1541,7 +1576,6 @@ function updateCountersAndTimer() {
     localStorage.setItem('last_trivia_auto_time', lastTriviaAutoTime);
   }
 
-  // 冷知識倒數計時顯示
   const triviaCountdownEl = document.getElementById('trivia-countdown-text');
   if (triviaCountdownEl) {
     const remainingTriviaMs = Math.max(0, triviaIntervalMs - (elapsedTrivia % triviaIntervalMs));
