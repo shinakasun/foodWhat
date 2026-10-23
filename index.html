@@ -132,18 +132,15 @@
       </div>
     </div>
 
-    <!-- 冒險者公會區 (Lv.3 起才預告顯示) -->
+    <!-- 冒險者公會區 (Lv.3 起才預告顯示，已移除最左側多餘盾牌) -->
     <div id="guild-locked-box" onclick="checkFeatureLock('guild')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition hidden">
       🔒 <strong>[已鎖定] 冒險者公會</strong> (Lv.4 解鎖)
     </div>
     <div id="guild-wrapper" class="mb-3 hidden">
       <div id="guild-banner" onclick="handleGuildClick()" class="p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-bold shadow-md cursor-pointer hover:opacity-95 transition flex justify-between items-center">
-        <div class="flex items-center gap-2">
-          <span class="text-base">🛡️</span>
-          <div>
-            <div id="guild-banner-title" class="text-sm font-extrabold">冒險者公會</div>
-            <div id="guild-banner-sub" class="text-[10px] text-indigo-200 font-normal">點擊接取副本任務，贏取稀有靈氣！</div>
-          </div>
+        <div>
+          <div id="guild-banner-title" class="text-sm font-extrabold">冒險者公會</div>
+          <div id="guild-banner-sub" class="text-[10px] text-indigo-200 font-normal">點擊接取副本任務，贏取稀有靈氣！</div>
         </div>
         <span class="text-sm">▶</span>
       </div>
