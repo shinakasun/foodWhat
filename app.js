@@ -31,7 +31,6 @@ const MAX_DRAW = 20;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 if (drawState.count > MAX_DRAW) drawState.count = MAX_DRAW;
 
-let lastTriviaAutoTime = parseInt(localStorage.getItem('last_trivia_auto_time') || Date.now());
 let currentTriviaIndex = -1;
 
 let selectedFoodForConfirm = null;
@@ -644,7 +643,7 @@ window.resetCooldownForTest = function() {
   closeModal();
   updateCountersAndTimer();
   filterAndDraw(false);
-  alert('⚡ [測試功能] 經驗值冷卻已成功歸零！現在選擇食物可獲得經驗值與推進任務進度。');
+  alert('⚡ [測試功能] 經驗值冷卻與冷知識倒數已成功歸零！');
 };
 
 window.checkFeatureLock = function(featureKey) {
@@ -722,28 +721,34 @@ function renderRandomTrivia() {
   const selectedTrivia = availableTrivias[randomIndex];
   currentTriviaIndex = allTrivias.indexOf(selectedTrivia);
 
-  document.getElementById('trivia-content').innerText = selectedTrivia.content;
+  const contentEl = document.getElementById('trivia-content');
+  if (contentEl) contentEl.innerText = selectedTrivia.content;
   triviaWrapper.classList.remove('hidden');
 }
 
 window.refreshTriviaWithCoin = function() {
-  if (drawState.count <= 0) {
-    alert('刷新水晶不足！請觀看廣告補充。');
-    return;
+  const now = Date.now();
+  const cooldownMs = 4 * 60 * 60 * 1000;
+  const elapsedEat = now - lastEatTime;
+  const isCoolingDown = (elapsedEat < cooldownMs);
+
+  // 如果冷卻中（不能免費刷新），則需消耗 1 顆水晶
+  if (isCoolingDown) {
+    if (drawState.count <= 0) {
+      alert('刷新水晶不足！觀看廣告或等待冷卻結束即可免費刷新。');
+      return;
+    }
+    drawState.count--;
+    saveState();
+    showExpToast('toast-exp-floating');
+  } else {
+    // 如果冷卻已結束，則順便重置 lastEatTime 啟動新一輪 4 小時共用計時
+    lastEatTime = now;
+    localStorage.setItem('last_eat_time', lastEatTime);
   }
-  drawState.count--;
-  saveState();
 
-  userExp += 1;
-  localStorage.setItem('user_exp', userExp);
-  updateLevelAndUI(true);
-
-  lastTriviaAutoTime = Date.now();
-  localStorage.setItem('last_trivia_auto_time', lastTriviaAutoTime);
-
-  updateCountersAndTimer();
   renderRandomTrivia();
-  showExpToast('toast-exp-floating');
+  updateCountersAndTimer();
 };
 
 function showExpToast(elementId) {
@@ -1599,24 +1604,22 @@ function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
   const now = Date.now();
+  const cooldownMs = 4 * 60 * 60 * 1000;
+  const elapsedEat = now - lastEatTime;
+  const remainEatMs = Math.max(0, cooldownMs - elapsedEat);
 
-  const triviaIntervalMs = 4 * 60 * 60 * 1000;
-  const elapsedTrivia = now - lastTriviaAutoTime;
-
-  if (userLevel >= 6 && settingsPushTrivia && elapsedTrivia >= triviaIntervalMs) {
-    renderRandomTrivia();
-    lastTriviaAutoTime = now;
-    localStorage.setItem('last_trivia_auto_time', lastTriviaAutoTime);
-  }
-
+  // 💡 冷知識計時器與額外經驗值冷卻時間完美同步共用！
   const triviaCountdownEl = document.getElementById('trivia-countdown-text');
   if (triviaCountdownEl) {
-    const remainingTriviaMs = Math.max(0, triviaIntervalMs - (elapsedTrivia % triviaIntervalMs));
-    const hrs = Math.floor(remainingTriviaMs / (1000 * 60 * 60));
-    const mins = Math.floor((remainingTriviaMs % (1000 * 60 * 60)) / (1000 * 60));
-    const secs = Math.floor((remainingTriviaMs % (1000 * 60)) / 1000);
-    const timeStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    triviaCountdownEl.innerText = `${timeStr} 後刷新`;
+    if (remainEatMs === 0) {
+      triviaCountdownEl.innerText = `✨ 可免費刷新`;
+    } else {
+      const hrs = Math.floor(remainEatMs / (1000 * 60 * 60));
+      const mins = Math.floor((remainEatMs % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((remainEatMs % (1000 * 60)) / 1000);
+      const timeStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      triviaCountdownEl.innerText = `${timeStr} 後刷新`;
+    }
   }
 
   const coinValEl = document.getElementById('coin-counter-val');
@@ -1650,11 +1653,7 @@ function updateCountersAndTimer() {
   const timerBar = document.getElementById('cooldown-timer-bar');
   const countdownEl = document.getElementById('cooldown-countdown');
   if (timerBar && countdownEl) {
-    const cooldownMs = 4 * 60 * 60 * 1000;
-    const elapsedEat = now - lastEatTime;
-
     if (elapsedEat < cooldownMs) {
-      const remainEatMs = cooldownMs - elapsedEat;
       const hrs = Math.floor(remainEatMs / (1000 * 60 * 60));
       const mins = Math.floor((remainEatMs % (1000 * 60 * 60)) / (1000 * 60));
       const secs = Math.floor((remainEatMs % (1000 * 60)) / 1000);
