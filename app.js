@@ -24,7 +24,6 @@ let activeAura = localStorage.getItem('active_aura') || null;
 let tempSelectedQuestType = null;
 let auraToastTimer = null;
 
-// 🔒 優先從 localStorage 載入關閉 APP 前的盲盒品項，避免重新整理或重啟被刷新
 let currentDisplayedFoods = JSON.parse(localStorage.getItem('current_displayed_foods') || '[]');
 
 const MAX_DRAW = 20;
@@ -156,15 +155,15 @@ const LEVEL_UNLOCKS = [
   { level: 13, name: "解鎖高等冒險", expNeeded: 200, unlockDesc: "🥗 冒險者精通" }
 ];
 
-// 計算下一個即將解鎖盲盒選項所需的等級與數量
+// 💡 重構：僅在達到解鎖前一級時才顯示「上鎖預告卡片」
 function getNextOptionUnlockRequirement() {
-  if (userLevel < 2) return { nextCount: 4, reqLevel: 2 };
-  if (userLevel < 7) return { nextCount: 5, reqLevel: 7 };
-  if (userLevel < 9) return { nextCount: 6, reqLevel: 9 };
-  if (userLevel < 10) return { nextCount: 7, reqLevel: 10 };
-  if (userLevel < 11) return { nextCount: 8, reqLevel: 11 };
-  if (userLevel < 12) return { nextCount: 9, reqLevel: 12 };
-  return null; // 達到最高等級 (Lv.12 / 9個盲盒) 時不再顯示預告
+  if (userLevel === 1) return { nextCount: 4, reqLevel: 2 };
+  if (userLevel === 6) return { nextCount: 5, reqLevel: 7 };
+  if (userLevel === 8) return { nextCount: 6, reqLevel: 9 };
+  if (userLevel === 9) return { nextCount: 7, reqLevel: 10 };
+  if (userLevel === 10) return { nextCount: 8, reqLevel: 11 };
+  if (userLevel === 11) return { nextCount: 9, reqLevel: 12 };
+  return null;
 }
 
 async function initApp() {
@@ -357,7 +356,7 @@ window.closeLevelUpModal = function() {
 };
 
 function applyFeatureUnlocks() {
-  // 💡 1. 美食冷知識區：Lv.6 解鎖，Lv.5 才顯示預告鎖定卡片
+  // 1. 美食冷知識區
   const triviaLocked = document.getElementById('trivia-locked-box');
   const triviaWrapper = document.getElementById('trivia-wrapper');
   if (userLevel >= 6 && settingsPushTrivia) {
@@ -374,7 +373,7 @@ function applyFeatureUnlocks() {
     triviaWrapper.classList.add('hidden');
   }
 
-  // 💡 2. 冒險者公會：Lv.4 解鎖，Lv.3 才顯示預告鎖定卡片
+  // 2. 冒險者公會
   const guildLocked = document.getElementById('guild-locked-box');
   const guildWrapper = document.getElementById('guild-wrapper');
   if (userLevel >= 4) {
@@ -389,7 +388,7 @@ function applyFeatureUnlocks() {
     guildWrapper.classList.add('hidden');
   }
 
-  // 💡 3. 靈氣開關區
+  // 3. 靈氣開關區
   const auraContainer = document.getElementById('aura-container');
   if (unlockedAuras.length > 0) {
     auraContainer.classList.remove('hidden');
@@ -398,7 +397,7 @@ function applyFeatureUnlocks() {
     auraContainer.classList.add('hidden');
   }
 
-  // 💡 4. 統計中心按鈕：Lv.5 解鎖，Lv.4 才顯示預告鎖定按鈕
+  // 4. 統計中心按鈕
   const statBtn = document.getElementById('btn-stats-action');
   if (userLevel >= 5) {
     statBtn.classList.remove('hidden');
@@ -412,7 +411,7 @@ function applyFeatureUnlocks() {
     statBtn.classList.add('hidden');
   }
 
-  // 💡 5. 佈景主題設定
+  // 5. 佈景主題設定
   const themeWrapper = document.getElementById('setting-theme-wrapper');
   const themeSelect = document.getElementById('setting-theme-select');
   const themeLocker = document.getElementById('lock-theme');
@@ -422,7 +421,7 @@ function applyFeatureUnlocks() {
     themeLocker.innerText = '';
   }
 
-  // 💡 6. 個人最愛精選區：Lv.3 解鎖，Lv.2 才顯示預告鎖定卡片
+  // 6. 個人最愛精選區
   const favWrapper = document.getElementById('favorite-section-wrapper');
   const favLabel = document.getElementById('favorite-label');
   const favLocked = document.getElementById('favorite-locked-box');
@@ -442,6 +441,7 @@ function applyFeatureUnlocks() {
   }
 }
 
+// 💡 移除左側 🛡️ 盾牌後的 Banner UI 渲染
 function updateGuildBannerUI() {
   const banner = document.getElementById('guild-banner');
   const titleEl = document.getElementById('guild-banner-title');
@@ -449,7 +449,7 @@ function updateGuildBannerUI() {
 
   if (!guildQuest) {
     banner.className = "p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-bold shadow-md cursor-pointer hover:opacity-95 transition flex justify-between items-center";
-    titleEl.innerText = "🛡️ 冒險者公會";
+    titleEl.innerText = "冒險者公會";
     subEl.innerText = "點擊接取副本任務，贏取稀有靈氣！";
   } else {
     const questNames = { cold: '❄️ 凜冬陣地', hot: '🔥 灼熱地城', snack: '🍡 小惡魔城' };
@@ -701,9 +701,9 @@ window.checkFeatureLock = function(featureKey) {
 
 function getUnlockBoxCount() {
   if (userLevel >= 12) return 9;
-  if (userLevel === 11) return 8;
-  if (userLevel === 10) return 7;
-  if (userLevel === 9) return 6;
+  if (userLevel >= 11) return 8;
+  if (userLevel >= 10) return 7;
+  if (userLevel >= 9) return 6;
   if (userLevel >= 7) return 5;
   if (userLevel >= 2) return 4;
   return 3;
@@ -1224,7 +1224,7 @@ function renderMainUI(foods) {
     container.appendChild(createFoodCardHTML(food, false));
   });
 
-  // 💡 盲盒動態上鎖預告卡片：顯示下一個可解鎖的美食盲盒預告
+  // 盲盒動態上鎖預告卡片
   const nextReq = getNextOptionUnlockRequirement();
   if (nextReq) {
     const lockedCard = document.createElement('div');
@@ -1241,6 +1241,7 @@ function renderMainUI(foods) {
   }
 }
 
+// 💡 冒險者公會副本任務卡片：目標食物名稱換行 + 超出寬度跑馬燈 + 按鈕改為「吃！」
 function createGuildQuestCardHTML() {
   const now = Date.now();
   const cooldownMs = 4 * 60 * 60 * 1000;
@@ -1261,16 +1262,32 @@ function createGuildQuestCardHTML() {
     const targetTag = guildQuest.type;
     const eligibleFoods = allFoods.filter(f => f.tags && f.tags.includes(targetTag));
     const targetFood = eligibleFoods.length > 0 ? eligibleFoods[Math.floor(Math.random() * eligibleFoods.length)] : { id: '神祕任務料理', element: 'elementMetal' };
+    const foodName = targetFood.id;
+    const safeId = btoa(encodeURIComponent("guild_" + foodName)).replace(/=/g, '');
 
-    card.className = 'p-3.5 border-2 border-indigo-500 dark:border-indigo-600 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 flex justify-between items-center shadow-sm cursor-pointer hover:bg-indigo-100 transition';
-    card.onclick = () => openFoodConfirmModal(targetFood.id);
+    card.className = 'p-3.5 border-2 border-indigo-500 dark:border-indigo-600 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 flex justify-between items-center shadow-sm cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition gap-2';
+    card.onclick = () => openFoodConfirmModal(foodName);
+    
     card.innerHTML = `
-      <div class="flex items-center gap-2">
-        <span class="text-xl">🎯</span>
-        <div class="font-black text-sm text-indigo-900 dark:text-indigo-200">任務目標：${targetFood.id}</div>
+      <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <span class="text-xl shrink-0">🎯</span>
+        <div class="min-w-0 flex-1 overflow-hidden">
+          <div class="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 leading-none mb-1">任務目標：</div>
+          <div class="overflow-hidden whitespace-nowrap w-full relative" id="marquee-container-${safeId}">
+            <div class="font-black text-sm text-indigo-900 dark:text-indigo-100 inline-block" id="marquee-text-${safeId}" title="${foodName}">
+              ${foodName}
+            </div>
+          </div>
+        </div>
       </div>
-      <span class="text-xs font-bold text-white bg-indigo-600 px-3 py-1 rounded-lg shadow-sm whitespace-nowrap">前往挑戰</span>
+      <button class="text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap shrink-0">
+        吃！
+      </button>
     `;
+
+    setTimeout(() => {
+      initMarqueeForCard(safeId);
+    }, 50);
   }
   return card;
 }
