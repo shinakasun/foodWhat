@@ -16,7 +16,7 @@ let userTaboos = JSON.parse(localStorage.getItem('user_taboos') || '[]');
 let isVIP = localStorage.getItem('is_vip') === 'true';
 let userBirth = JSON.parse(localStorage.getItem('user_birth') || 'null');
 let settingsPushTrivia = localStorage.getItem('push_trivia') !== 'false';
-let isDarkMode = localStorage.getItem('dark_mode') === 'true';
+let currentTheme = localStorage.getItem('app_theme') || 'default';
 
 let guildQuest = JSON.parse(localStorage.getItem('guild_quest') || 'null'); 
 let unlockedAuras = JSON.parse(localStorage.getItem('unlocked_auras') || '[]'); 
@@ -143,7 +143,7 @@ function getTodayFortuneAnalysis(userElementKey) {
 const LEVEL_UNLOCKS = [
   { level: 1, name: "初始狀態 (3選項)", expNeeded: 0, unlockDesc: "初始開局" },
   { level: 2, name: "解鎖第四選項", expNeeded: 5, unlockDesc: "第四個盲盒選項" },
-  { level: 3, name: "解鎖喜歡按鈕與個人最愛", expNeeded: 12, unlockDesc: "👍 喜歡按鈕、⭐ 個人最愛區與深色模式" },
+  { level: 3, name: "解鎖主題與個人最愛", expNeeded: 12, unlockDesc: "👍 喜歡按鈕、⭐ 個人最愛區與主題風格切換" },
   { level: 4, name: "解鎖冒險者公會", expNeeded: 20, unlockDesc: "🛡️ 冒險者公會副本挑戰系統" },
   { level: 5, name: "解鎖統計按鈕", expNeeded: 30, unlockDesc: "📊 數據統計中心" },
   { level: 6, name: "解鎖美食冷知識", expNeeded: 42, unlockDesc: "💡 每日美食冷知識區" },
@@ -157,7 +157,7 @@ const LEVEL_UNLOCKS = [
 ];
 
 async function initApp() {
-  toggleDarkMode(isDarkMode);
+  changeTheme(currentTheme);
   setupEventListeners();
   initDateSelectors('select-birth');
   initDateSelectors('select-setting');
@@ -390,13 +390,13 @@ function applyFeatureUnlocks() {
     statBtn.innerHTML = '<span class="text-sm">🔒</span><span class="text-[10px] mt-0.5 leading-none">統計</span>';
   }
 
-  const dmWrapper = document.getElementById('setting-darkmode-wrapper');
-  const dmCheckbox = document.getElementById('setting-darkmode');
-  const dmLocker = document.getElementById('lock-darkmode');
+  const themeWrapper = document.getElementById('setting-theme-wrapper');
+  const themeSelect = document.getElementById('setting-theme-select');
+  const themeLocker = document.getElementById('lock-theme');
   if (userLevel >= 3) {
-    dmWrapper.classList.remove('opacity-50');
-    dmCheckbox.disabled = false;
-    dmLocker.innerText = '';
+    themeWrapper.classList.remove('opacity-50');
+    themeSelect.disabled = false;
+    themeLocker.innerText = '';
   }
 
   const favLabel = document.getElementById('favorite-label');
@@ -864,7 +864,7 @@ window.openSettingsModal = function() {
     document.getElementById('select-setting-day').value = userBirth.day;
   }
   document.getElementById('setting-push-trivia').checked = settingsPushTrivia;
-  document.getElementById('setting-darkmode').checked = isDarkMode;
+  document.getElementById('setting-theme-select').value = currentTheme;
 
   document.querySelectorAll('.meat-taboo').forEach(checkbox => {
     checkbox.checked = userTaboos.includes(checkbox.value);
@@ -995,7 +995,7 @@ function renderStatsBanned() {
   const badge = document.getElementById('vip-status-badge');
   if (isVIP) {
     badge.innerText = '⭐ VIP 已啟用';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-950 dark:text-amber-300 font-bold';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold';
   } else {
     badge.innerText = '免費版 (未啟用)';
     badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
@@ -1030,17 +1030,24 @@ window.unmarkBanned = function(id) {
   renderStatsBanned();
 };
 
-window.toggleDarkMode = function(isDark) {
-  if (userLevel < 3) {
-    alert('🔒 深色模式尚未解鎖！');
-    document.getElementById('setting-darkmode').checked = false;
+// 佈景主題切換邏輯 (第 3、4 項修改)
+window.changeTheme = function(themeName) {
+  if (userLevel < 3 && themeName !== 'default') {
+    alert('🔒 佈景主題切換尚未解鎖！需要達到 Lv.3。');
+    document.getElementById('setting-theme-select').value = 'default';
     return;
   }
-  isDarkMode = isDark;
-  localStorage.setItem('dark_mode', isDark);
+  currentTheme = themeName;
+  localStorage.setItem('app_theme', themeName);
+
   const htmlRoot = document.getElementById('html-root');
-  if (isDark) htmlRoot.classList.add('dark');
-  else htmlRoot.classList.remove('dark');
+  htmlRoot.className = `theme-${themeName}`;
+
+  if (themeName === 'dark') {
+    htmlRoot.classList.add('dark');
+  } else {
+    htmlRoot.classList.remove('dark');
+  }
 };
 
 window.buyVIP = function() {
@@ -1249,6 +1256,7 @@ function renderFavoriteUI(food) {
   container.appendChild(card);
 }
 
+// 食物盲盒卡片（第 1 項修改：字體放大至 text-sm / text-base 級距）
 function createFoodCardHTML(food, isFavoriteSlot) {
   const isLiked = userLikes.includes(food.id);
   const isDisliked = userDislikes.includes(food.id);
@@ -1257,7 +1265,7 @@ function createFoodCardHTML(food, isFavoriteSlot) {
 
   const card = document.createElement('div');
   card.id = `food-card-${food.id}`;
-  card.className = 'p-2.5 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center shadow-sm hover:bg-slate-100 dark:hover:bg-slate-750 transition gap-2';
+  card.className = 'p-3 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center shadow-sm hover:bg-slate-100 dark:hover:bg-slate-750 transition gap-2';
   
   const likeBtnClass = isLiked 
     ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' 
@@ -1276,11 +1284,11 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   card.innerHTML = `
     <div class="cursor-pointer flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden" onclick="openFoodConfirmModal(${food.id})">
       <div class="overflow-hidden whitespace-nowrap flex-1 relative" id="marquee-container-${food.id}">
-        <h3 class="font-bold text-xs text-slate-800 dark:text-white inline-block" id="marquee-text-${food.id}" title="${food.name}">
+        <h3 class="font-bold text-sm text-slate-800 dark:text-white inline-block" id="marquee-text-${food.id}" title="${food.name}">
           ${food.name}
         </h3>
       </div>
-      <span class="text-[9px] px-1.5 py-0.5 rounded border font-medium flex items-center gap-0.5 shrink-0 ${elemInfo.class}">
+      <span class="text-[10px] px-1.5 py-0.5 rounded border font-medium flex items-center gap-0.5 shrink-0 ${elemInfo.class}">
         <span>${elemInfo.icon}</span>
         <span>${elemInfo.name}</span>
       </span>
@@ -1288,11 +1296,11 @@ function createFoodCardHTML(food, isFavoriteSlot) {
     
     <div class="flex items-center gap-1 shrink-0">
       <button id="like-btn-${food.id}" onclick="${likeAction}" 
-        class="px-1.5 py-0.5 text-[10px] rounded-md border transition ${likeBtnClass}" title="${userLevel < 3 ? 'Lv.3 解鎖喜歡' : ''}">
+        class="px-2 py-1 text-xs rounded-lg border transition ${likeBtnClass}" title="${userLevel < 3 ? 'Lv.3 解鎖喜歡' : ''}">
         ${likeDisplay}
       </button>
       <button id="dislike-btn-${food.id}" onclick="${dislikeAction}" 
-        class="px-1.5 py-0.5 text-[10px] rounded-md border transition ${dislikeBtnClass}" title="${userLevel < 8 ? 'Lv.8 解鎖討厭' : ''}">
+        class="px-2 py-1 text-xs rounded-lg border transition ${dislikeBtnClass}" title="${userLevel < 8 ? 'Lv.8 解鎖討厭' : ''}">
         ${dislikeDisplay}
       </button>
     </div>
@@ -1361,7 +1369,7 @@ function updateButtonUI(id) {
 
   likeBtns.forEach(btn => {
     if (userLevel >= 3) {
-      btn.className = `px-1.5 py-0.5 text-[10px] rounded-md border transition ${
+      btn.className = `px-2 py-1 text-xs rounded-lg border transition ${
         isLiked ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
       }`;
     }
@@ -1369,7 +1377,7 @@ function updateButtonUI(id) {
 
   dislikeBtns.forEach(btn => {
     if (userLevel >= 8) {
-      btn.className = `px-1.5 py-0.5 text-[10px] rounded-md border transition ${
+      btn.className = `px-2 py-1 text-xs rounded-lg border transition ${
         isDisliked ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
       }`;
     }
