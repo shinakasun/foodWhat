@@ -26,7 +26,7 @@ let auraToastTimer = null;
 
 let currentDisplayedFoods = [];
 
-const MAX_DRAW = 20; // 刷新水晶上限為 20
+const MAX_DRAW = 20;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 if (drawState.count > MAX_DRAW) drawState.count = MAX_DRAW;
 
@@ -927,7 +927,7 @@ function renderStatsRecent() {
 function renderStatsRanking() {
   const container = document.getElementById('stats-ranking-list');
   const sorted = Object.entries(foodCounts)
-    .map(([id, count]) => ({ id: parseInt(id), count }))
+    .map(([foodName, count]) => ({ foodName, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
@@ -937,11 +937,9 @@ function renderStatsRanking() {
   }
 
   container.innerHTML = sorted.map((item, index) => {
-    const food = allFoods.find(f => f.id === item.id);
-    const name = food ? food.name : `食物 #${item.id}`;
     return `
       <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-        <span class="font-medium text-slate-700 dark:text-slate-200">No.${index + 1} ${name}</span>
+        <span class="font-medium text-slate-700 dark:text-slate-200">No.${index + 1} ${item.foodName}</span>
         <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">${item.count} 次</span>
       </div>
     `;
@@ -958,13 +956,11 @@ function renderStatsDislikes() {
     return;
   }
 
-  container.innerHTML = userDislikes.map(id => {
-    const food = allFoods.find(f => f.id === id);
-    const name = food ? food.name : `食物 #${id}`;
+  container.innerHTML = userDislikes.map(foodName => {
     return `
       <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-        <span class="text-slate-700 dark:text-slate-200">${name}</span>
-        <button onclick="unmarkDislike(${id})" class="text-[11px] text-rose-500 hover:text-rose-700 border border-rose-200 dark:border-rose-800 px-2 py-0.5 rounded">解封</button>
+        <span class="text-slate-700 dark:text-slate-200">${foodName}</span>
+        <button onclick="unmarkDislike('${foodName}')" class="text-[11px] text-rose-500 hover:text-rose-700 border border-rose-200 dark:border-rose-800 px-2 py-0.5 rounded">解封</button>
       </div>
     `;
   }).join('');
@@ -983,11 +979,11 @@ window.toggleDislikeSection = function() {
   }
 };
 
-window.unmarkDislike = function(id) {
-  userDislikes = userDislikes.filter(i => i !== id);
+window.unmarkDislike = function(foodName) {
+  userDislikes = userDislikes.filter(i => i !== foodName);
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
   renderStatsDislikes();
-  updateButtonUI(id);
+  updateButtonUI(foodName);
 };
 
 function renderStatsBanned() {
@@ -995,7 +991,7 @@ function renderStatsBanned() {
   const badge = document.getElementById('vip-status-badge');
   if (isVIP) {
     badge.innerText = '⭐ VIP 已啟用';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-950 dark:text-amber-300 font-bold';
   } else {
     badge.innerText = '免費版 (未啟用)';
     badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
@@ -1012,20 +1008,18 @@ function renderStatsBanned() {
     container.innerHTML = '<p class="text-slate-400 italic py-2">目前沒有被完全禁用的食物</p>';
     return;
   }
-  container.innerHTML = userBanned.map(id => {
-    const food = allFoods.find(f => f.id === id);
-    const name = food ? food.name : `食物 #${id}`;
+  container.innerHTML = userBanned.map(foodName => {
     return `
       <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-        <span class="text-slate-700 dark:text-slate-200">${name}</span>
-        <button onclick="unmarkBanned(${id})" class="text-[11px] text-indigo-500 hover:text-indigo-700 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded">解除禁用</button>
+        <span class="text-slate-700 dark:text-slate-200">${foodName}</span>
+        <button onclick="unmarkBanned('${foodName}')" class="text-[11px] text-indigo-500 hover:text-indigo-700 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded">解除禁用</button>
       </div>
     `;
   }).join('');
 }
 
-window.unmarkBanned = function(id) {
-  userBanned = userBanned.filter(i => i !== id);
+window.unmarkBanned = function(foodName) {
+  userBanned = userBanned.filter(i => i !== foodName);
   localStorage.setItem('user_banned', JSON.stringify(userBanned));
   renderStatsBanned();
 };
@@ -1214,14 +1208,14 @@ function createGuildQuestCardHTML() {
   } else {
     const targetTag = guildQuest.type;
     const eligibleFoods = allFoods.filter(f => f.tags && f.tags.includes(targetTag));
-    const targetFood = eligibleFoods.length > 0 ? eligibleFoods[Math.floor(Math.random() * eligibleFoods.length)] : { id: 999, name: '神祕任務料理', element: 'elementMetal' };
+    const targetFood = eligibleFoods.length > 0 ? eligibleFoods[Math.floor(Math.random() * eligibleFoods.length)] : { id: '神祕任務料理', element: 'elementMetal' };
 
     card.className = 'p-3.5 border-2 border-indigo-500 dark:border-indigo-600 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 flex justify-between items-center shadow-sm cursor-pointer hover:bg-indigo-100 transition';
     card.onclick = () => openFoodConfirmModal(targetFood.id);
     card.innerHTML = `
       <div class="flex items-center gap-2">
         <span class="text-xl">🎯</span>
-        <div class="font-black text-sm text-indigo-900 dark:text-indigo-200">任務目標：${targetFood.name}</div>
+        <div class="font-black text-sm text-indigo-900 dark:text-indigo-200">任務目標：${targetFood.id}</div>
       </div>
       <span class="text-xs font-bold text-white bg-indigo-600 px-3 py-1 rounded-lg shadow-sm whitespace-nowrap">前往挑戰</span>
     `;
@@ -1256,13 +1250,16 @@ function renderFavoriteUI(food) {
 }
 
 function createFoodCardHTML(food, isFavoriteSlot) {
-  const isLiked = userLikes.includes(food.id);
-  const isDisliked = userDislikes.includes(food.id);
+  const foodName = food.id;
+  const safeId = btoa(encodeURIComponent(foodName)).replace(/=/g, '');
+  
+  const isLiked = userLikes.includes(foodName);
+  const isDisliked = userDislikes.includes(foodName);
 
   const elemInfo = ELEMENT_MAP[food.element] || { name: '未知', icon: '❓', class: 'text-slate-500 bg-slate-100 border-slate-200' };
 
   const card = document.createElement('div');
-  card.id = `food-card-${food.id}`;
+  card.id = `food-card-${safeId}`;
   card.className = 'p-3 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center shadow-sm hover:bg-slate-100 dark:hover:bg-slate-750 transition gap-2';
   
   const likeBtnClass = isLiked 
@@ -1273,17 +1270,17 @@ function createFoodCardHTML(food, isFavoriteSlot) {
     ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
     : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200';
 
-  const likeAction = (userLevel >= 3) ? `togglePreference(${food.id}, 'like')` : `checkFeatureLock('like')`;
-  const dislikeAction = (userLevel >= 8) ? `togglePreference(${food.id}, 'dislike')` : `checkFeatureLock('dislike')`;
+  const likeAction = (userLevel >= 3) ? `togglePreference('${foodName.replace(/'/g, "\\'")}', 'like')` : `checkFeatureLock('like')`;
+  const dislikeAction = (userLevel >= 8) ? `togglePreference('${foodName.replace(/'/g, "\\'")}', 'dislike')` : `checkFeatureLock('dislike')`;
 
   const likeDisplay = (userLevel >= 3) ? '👍' : '🔒';
   const dislikeDisplay = (userLevel >= 8) ? '👎' : '🔒';
 
   card.innerHTML = `
-    <div class="cursor-pointer flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden" onclick="openFoodConfirmModal(${food.id})">
-      <div class="overflow-hidden whitespace-nowrap flex-1 relative" id="marquee-container-${food.id}">
-        <h3 class="font-bold text-sm text-slate-800 dark:text-white inline-block" id="marquee-text-${food.id}" title="${food.name}">
-          ${food.name}
+    <div class="cursor-pointer flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden" onclick="openFoodConfirmModal('${foodName.replace(/'/g, "\\'")}')">
+      <div class="overflow-hidden whitespace-nowrap flex-1 relative" id="marquee-container-${safeId}">
+        <h3 class="font-bold text-sm text-slate-800 dark:text-white inline-block" id="marquee-text-${safeId}" title="${foodName}">
+          ${foodName}
         </h3>
       </div>
       <span class="text-[10px] px-1.5 py-0.5 rounded border font-medium flex items-center gap-0.5 shrink-0 ${elemInfo.class}">
@@ -1293,11 +1290,11 @@ function createFoodCardHTML(food, isFavoriteSlot) {
     </div>
     
     <div class="flex items-center gap-1 shrink-0">
-      <button id="like-btn-${food.id}" onclick="${likeAction}" 
+      <button id="like-btn-${safeId}" onclick="${likeAction}" 
         class="px-2 py-1 text-xs rounded-lg border transition ${likeBtnClass}" title="${userLevel < 3 ? 'Lv.3 解鎖喜歡' : ''}">
         ${likeDisplay}
       </button>
-      <button id="dislike-btn-${food.id}" onclick="${dislikeAction}" 
+      <button id="dislike-btn-${safeId}" onclick="${dislikeAction}" 
         class="px-2 py-1 text-xs rounded-lg border transition ${dislikeBtnClass}" title="${userLevel < 8 ? 'Lv.8 解鎖討厭' : ''}">
         ${dislikeDisplay}
       </button>
@@ -1305,15 +1302,15 @@ function createFoodCardHTML(food, isFavoriteSlot) {
   `;
 
   setTimeout(() => {
-    initMarqueeForCard(food.id);
+    initMarqueeForCard(safeId);
   }, 50);
 
   return card;
 }
 
-function initMarqueeForCard(foodId) {
-  const container = document.getElementById(`marquee-container-${foodId}`);
-  const textEl = document.getElementById(`marquee-text-${foodId}`);
+function initMarqueeForCard(safeId) {
+  const container = document.getElementById(`marquee-container-${safeId}`);
+  const textEl = document.getElementById(`marquee-text-${safeId}`);
   if (!container || !textEl) return;
 
   const containerWidth = container.clientWidth;
@@ -1330,24 +1327,24 @@ function initMarqueeForCard(foodId) {
   }
 }
 
-window.togglePreference = function(id, type) {
+window.togglePreference = function(foodName, type) {
   if (type === 'like') {
     if (userLevel < 3) { alert('🔒 喜歡按鈕需達到 Lv.3 才能使用！'); return; }
-    if (userLikes.includes(id)) {
-      userLikes = userLikes.filter(i => i !== id);
+    if (userLikes.includes(foodName)) {
+      userLikes = userLikes.filter(i => i !== foodName);
     } else {
-      userLikes.push(id);
-      userDislikes = userDislikes.filter(i => i !== id);
+      userLikes.push(foodName);
+      userDislikes = userDislikes.filter(i => i !== foodName);
     }
   } else if (type === 'dislike') {
     if (userLevel < 8) { alert('🔒 討厭按鈕需達到 Lv.8 才能使用！'); return; }
-    if (userDislikes.includes(id)) {
-      userDislikes = userDislikes.filter(i => i !== id);
+    if (userDislikes.includes(foodName)) {
+      userDislikes = userDislikes.filter(i => i !== foodName);
     } else {
-      userDislikes.push(id);
-      userLikes = userLikes.filter(i => i !== id);
-      if (isVIP && !userBanned.includes(id)) {
-        userBanned.push(id);
+      userDislikes.push(foodName);
+      userLikes = userLikes.filter(i => i !== foodName);
+      if (isVIP && !userBanned.includes(foodName)) {
+        userBanned.push(foodName);
         localStorage.setItem('user_banned', JSON.stringify(userBanned));
       }
     }
@@ -1355,42 +1352,43 @@ window.togglePreference = function(id, type) {
 
   localStorage.setItem('user_likes', JSON.stringify(userLikes));
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
-  updateButtonUI(id);
+  updateButtonUI(foodName);
 };
 
-function updateButtonUI(id) {
-  const isLiked = userLikes.includes(id);
-  const isDisliked = userDislikes.includes(id);
+function updateButtonUI(foodName) {
+  const isLiked = userLikes.includes(foodName);
+  const isDisliked = userDislikes.includes(foodName);
 
-  const likeBtns = document.querySelectorAll(`#like-btn-${id}`);
-  const dislikeBtns = document.querySelectorAll(`#dislike-btn-${id}`);
+  // 遍歷所有卡片，利用 title 比對來更新 UI
+  allFoods.forEach(food => {
+    if (food.id === foodName) {
+      const safeId = btoa(encodeURIComponent(food.id)).replace(/=/g, '');
+      const likeBtn = document.getElementById(`like-btn-${safeId}`);
+      const dislikeBtn = document.getElementById(`dislike-btn-${safeId}`);
 
-  likeBtns.forEach(btn => {
-    if (userLevel >= 3) {
-      btn.className = `px-2 py-1 text-xs rounded-lg border transition ${
-        isLiked ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
-      }`;
-    }
-  });
-
-  dislikeBtns.forEach(btn => {
-    if (userLevel >= 8) {
-      btn.className = `px-2 py-1 text-xs rounded-lg border transition ${
-        isDisliked ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
-      }`;
+      if (likeBtn && userLevel >= 3) {
+        likeBtn.className = `px-2 py-1 text-xs rounded-lg border transition ${
+          isLiked ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
+        }`;
+      }
+      if (dislikeBtn && userLevel >= 8) {
+        dislikeBtn.className = `px-2 py-1 text-xs rounded-lg border transition ${
+          isDisliked ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
+        }`;
+      }
     }
   });
 }
 
-window.openFoodConfirmModal = function(id) {
-  selectedFoodForConfirm = allFoods.find(f => f.id === id);
+window.openFoodConfirmModal = function(foodName) {
+  selectedFoodForConfirm = allFoods.find(f => f.id === foodName);
   if (!selectedFoodForConfirm) return;
 
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
   const isMatchedElement = selectedFoodForConfirm.element === fortune.targetElementKey;
 
-  document.getElementById('confirm-title').innerText = `確定要吃 ${selectedFoodForConfirm.name} 嗎？`;
+  document.getElementById('confirm-title').innerText = `確定要吃 ${selectedFoodForConfirm.id} 嗎？`;
   
   const hintBox = document.getElementById('confirm-element-bonus-hint');
   if (isMatchedElement) {
@@ -1457,8 +1455,7 @@ function updateConfirmModalExpText() {
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
 
-  const foodId = selectedFoodForConfirm.id;
-  const foodName = selectedFoodForConfirm.name;
+  const foodName = selectedFoodForConfirm.id;
   const foodElement = selectedFoodForConfirm.element;
   
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
@@ -1466,18 +1463,18 @@ function handleConfirm(needMap) {
 
   const timeStr = new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  foodHistory.push({ id: foodId, name: foodName, time: timeStr });
-  foodCounts[foodId] = (foodCounts[foodId] || 0) + 1;
+  foodHistory.push({ name: foodName, time: timeStr });
+  foodCounts[foodName] = (foodCounts[foodName] || 0) + 1;
 
   localStorage.setItem('food_history', JSON.stringify(foodHistory));
   localStorage.setItem('food_counts', JSON.stringify(foodCounts));
 
-  if (userLevel >= 3 && !userLikes.includes(foodId)) {
-    userLikes.push(foodId);
-    userDislikes = userDislikes.filter(i => i !== foodId);
+  if (userLevel >= 3 && !userLikes.includes(foodName)) {
+    userLikes.push(foodName);
+    userDislikes = userDislikes.filter(i => i !== foodName);
     localStorage.setItem('user_likes', JSON.stringify(userLikes));
     localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
-    updateButtonUI(foodId);
+    updateButtonUI(foodName);
   }
 
   const now = Date.now();
@@ -1617,13 +1614,11 @@ function updateCountersAndTimer() {
     triviaCountdownEl.innerText = `${timeStr} 後刷新`;
   }
 
-  // 水晶計數器數字更新
   const coinValEl = document.getElementById('coin-counter-val');
   if (coinValEl) {
     coinValEl.innerText = drawState.count;
   }
 
-  // 水晶顯示區下方提示文字更新 (第 2 項修改)
   const coinSubtextEl = document.getElementById('coin-timer-subtext');
   const intervalMs = 10 * 60 * 1000;
   const elapsed = (now - drawState.timestamp) % intervalMs;
