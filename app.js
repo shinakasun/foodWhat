@@ -24,6 +24,8 @@ let activeAura = localStorage.getItem('active_aura') || null;
 let tempSelectedQuestType = null;
 let auraToastTimer = null;
 
+let hasTriggeredAutoRefreshThisCycle = false; 
+
 let currentDisplayedFoods = JSON.parse(localStorage.getItem('current_displayed_foods') || '[]');
 
 const MAX_DRAW = 20;
@@ -155,7 +157,6 @@ const LEVEL_UNLOCKS = [
   { level: 13, name: "解鎖高等冒險", expNeeded: 200, unlockDesc: "🥗 冒險者精通" }
 ];
 
-// 💡 重構：僅在達到解鎖前一級時才顯示「上鎖預告卡片」
 function getNextOptionUnlockRequirement() {
   if (userLevel === 1) return { nextCount: 4, reqLevel: 2 };
   if (userLevel === 6) return { nextCount: 5, reqLevel: 7 };
@@ -441,7 +442,6 @@ function applyFeatureUnlocks() {
   }
 }
 
-// 💡 移除左側 🛡️ 盾牌後的 Banner UI 渲染
 function updateGuildBannerUI() {
   const banner = document.getElementById('guild-banner');
   const titleEl = document.getElementById('guild-banner-title');
@@ -755,24 +755,16 @@ function renderRandomTrivia() {
   triviaWrapper.classList.remove('hidden');
 }
 
+// 💡 點擊 🔄 換一個：一律扣除 1 水晶 (💎 -1)
 window.refreshTriviaWithCoin = function() {
-  const now = Date.now();
-  const cooldownMs = 4 * 60 * 60 * 1000;
-  const elapsedEat = now - lastEatTime;
-  const isCoolingDown = (elapsedEat < cooldownMs);
-
-  if (isCoolingDown) {
-    if (drawState.count <= 0) {
-      alert('刷新水晶不足！觀看廣告或等待冷卻結束即可免費刷新。');
-      return;
-    }
-    drawState.count--;
-    saveState();
-    showExpToast('toast-exp-floating');
-  } else {
-    lastEatTime = now;
-    localStorage.setItem('last_eat_time', lastEatTime);
+  if (drawState.count <= 0) {
+    alert('刷新水晶不足！觀看廣告即可補充水晶。');
+    return;
   }
+
+  drawState.count--;
+  saveState();
+  showExpToast('toast-exp-floating');
 
   renderRandomTrivia();
   updateCountersAndTimer();
@@ -1224,7 +1216,6 @@ function renderMainUI(foods) {
     container.appendChild(createFoodCardHTML(food, false));
   });
 
-  // 盲盒動態上鎖預告卡片
   const nextReq = getNextOptionUnlockRequirement();
   if (nextReq) {
     const lockedCard = document.createElement('div');
@@ -1241,7 +1232,7 @@ function renderMainUI(foods) {
   }
 }
 
-// 💡 冒險者公會副本任務卡片：目標食物名稱換行 + 超出寬度跑馬燈 + 按鈕改為「吃！」
+// 💡 副本任務卡片：移除右側按鈕，加上右側統一的五行屬性標籤
 function createGuildQuestCardHTML() {
   const now = Date.now();
   const cooldownMs = 4 * 60 * 60 * 1000;
@@ -1264,6 +1255,7 @@ function createGuildQuestCardHTML() {
     const targetFood = eligibleFoods.length > 0 ? eligibleFoods[Math.floor(Math.random() * eligibleFoods.length)] : { id: '神祕任務料理', element: 'elementMetal' };
     const foodName = targetFood.id;
     const safeId = btoa(encodeURIComponent("guild_" + foodName)).replace(/=/g, '');
+    const elemInfo = ELEMENT_MAP[targetFood.element] || { name: '未知', icon: '❓', class: 'text-slate-500 bg-slate-100 border-slate-200' };
 
     card.className = 'p-3.5 border-2 border-indigo-500 dark:border-indigo-600 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 flex justify-between items-center shadow-sm cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition gap-2';
     card.onclick = () => openFoodConfirmModal(foodName);
@@ -1280,9 +1272,11 @@ function createGuildQuestCardHTML() {
           </div>
         </div>
       </div>
-      <button class="text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 px-3.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap shrink-0">
-        吃！
-      </button>
+
+      <span class="text-[10px] px-1.5 py-0.5 rounded border font-medium flex items-center gap-0.5 shrink-0 ${elemInfo.class}">
+        <span>${elemInfo.icon}</span>
+        <span>${elemInfo.name}</span>
+      </span>
     `;
 
     setTimeout(() => {
@@ -1562,6 +1556,7 @@ function handleConfirm(needMap) {
 
     userExp += gainedExp;
     lastEatTime = now;
+    hasTriggeredAutoRefreshThisCycle = false; // 重置自動刷新標記
     localStorage.setItem('user_exp', userExp);
     localStorage.setItem('last_eat_time', lastEatTime);
 
@@ -1658,6 +1653,7 @@ function checkAndUpdateCooldown() {
   }
 }
 
+// 💡 倒數與自動刷新冷知識邏輯修訂
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   
@@ -1668,14 +1664,20 @@ function updateCountersAndTimer() {
 
   const triviaCountdownEl = document.getElementById('trivia-countdown-text');
   if (triviaCountdownEl) {
-    if (remainEatMs === 0) {
-      triviaCountdownEl.innerText = `✨ 可免費刷新`;
+    if (lastEatTime === 0 || remainEatMs === 0) {
+      triviaCountdownEl.innerHTML = `💎 -1<br>換一個`;
+      
+      // 冷卻結束瞬間自動免費刷新一次冷知識
+      if (lastEatTime !== 0 && remainEatMs === 0 && !hasTriggeredAutoRefreshThisCycle) {
+        hasTriggeredAutoRefreshThisCycle = true;
+        renderRandomTrivia();
+      }
     } else {
       const hrs = Math.floor(remainEatMs / (1000 * 60 * 60));
       const mins = Math.floor((remainEatMs % (1000 * 60 * 60)) / (1000 * 60));
       const secs = Math.floor((remainEatMs % (1000 * 60)) / 1000);
       const timeStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-      triviaCountdownEl.innerText = `${timeStr} 後刷新`;
+      triviaCountdownEl.innerHTML = `${timeStr}<br>後自動刷新`;
     }
   }
 
@@ -1710,7 +1712,7 @@ function updateCountersAndTimer() {
   const timerBar = document.getElementById('cooldown-timer-bar');
   const countdownEl = document.getElementById('cooldown-countdown');
   if (timerBar && countdownEl) {
-    if (elapsedEat < cooldownMs) {
+    if (elapsedEat < cooldownMs && lastEatTime !== 0) {
       const hrs = Math.floor(remainEatMs / (1000 * 60 * 60));
       const mins = Math.floor((remainEatMs % (1000 * 60 * 60)) / (1000 * 60));
       const secs = Math.floor((remainEatMs % (1000 * 60)) / 1000);
