@@ -32,6 +32,11 @@
 
     html.theme-autumn body { background-color: #fff7ed; color: #7c2d12; }
     html.theme-autumn .app-card { background-color: #fffbe2; border-color: #fed7aa; color: #7c2d12; }
+
+    /* 新增：夜櫻風格 (Night Sakura) */
+    html.theme-night-sakura { color-scheme: dark; }
+    html.theme-night-sakura body { background-color: #0d0914; color: #fce7f3; }
+    html.theme-night-sakura .app-card { background-color: #181024; border-color: #3b1d45; color: #fce7f3; }
   </style>
 </head>
 <body id="body-root" class="bg-slate-100 text-slate-800 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
@@ -104,30 +109,36 @@
       <p id="fortune-text" class="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed font-medium">✨ 正在解析今日日辰氣場...</p>
     </div>
     
-    <!-- 美食冷知識區 (Lv.6 解鎖) -->
+    <!-- 美食冷知識區 (Lv.6 解鎖) - 已包覆刷新按鈕 -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition hidden">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (Lv.6 解鎖)
     </div>
-    <div id="trivia-wrapper" class="mb-3 flex items-center gap-2 hidden relative">
-      <div id="trivia-box" class="flex-grow p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 h-[90px] flex flex-col">
-        <div class="font-bold text-amber-800 dark:text-amber-300 text-xs mb-1 flex items-center gap-1">
-          💡 美食冷知識
+    <div id="trivia-wrapper" class="mb-3 hidden relative">
+      <div id="trivia-box" class="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-3">
+        
+        <!-- 左側內容區 -->
+        <div class="flex-grow min-w-0 flex flex-col h-[76px]">
+          <div class="font-bold text-amber-800 dark:text-amber-300 text-xs mb-1 flex items-center gap-1 shrink-0">
+            💡 美食冷知識
+          </div>
+          <div class="overflow-y-auto pr-1 flex-grow scrollbar-none">
+            <p id="trivia-content" class="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]"></p>
+          </div>
         </div>
-        <div class="overflow-y-auto pr-1 flex-grow scrollbar-none">
-          <p id="trivia-content" class="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]"></p>
+
+        <!-- 右側刷新按鈕與動態計時文案（收納於卡片內） -->
+        <div class="flex flex-col items-center justify-center shrink-0 min-w-[68px] border-l border-amber-200/60 dark:border-amber-900/40 pl-3">
+          <button onclick="refreshTriviaWithCoin()" class="w-10 h-10 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center justify-center shadow-sm active:scale-95" title="換一個冷知識">
+            <span class="text-lg">🔄</span>
+          </button>
+          <span id="trivia-countdown-text" class="text-[9px] text-amber-800 dark:text-amber-300 font-bold text-center mt-1 leading-tight whitespace-nowrap">
+            💎 -1<br>換一個
+          </span>
         </div>
-      </div>
-      
-      <div class="flex flex-col items-center justify-center min-w-[72px]">
-        <button onclick="refreshTriviaWithCoin()" class="w-12 h-12 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center justify-center shadow-sm" title="換一個冷知識">
-          <span class="text-xl">🔄</span>
-        </button>
-        <span id="trivia-countdown-text" class="text-[9px] text-slate-500 dark:text-slate-400 font-bold text-center mt-1 leading-tight whitespace-nowrap">
-          💎 -1<br>換一個
-        </span>
+
       </div>
 
-      <div id="toast-exp-floating" class="absolute -top-6 right-12 bg-amber-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none">
+      <div id="toast-exp-floating" class="absolute -top-6 right-8 bg-amber-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none">
         💎 -1
       </div>
     </div>
@@ -374,7 +385,7 @@
       
       <div class="space-y-4 text-sm max-h-[70vh] overflow-y-auto pr-1">
         
-        <!-- 佈景主題下拉選擇選單 -->
+        <!-- 佈景主題下拉選擇選單 (新增夜櫻風格) -->
         <div id="setting-theme-wrapper" class="opacity-50">
           <div class="flex justify-between items-center mb-1">
             <span class="text-slate-700 dark:text-slate-300 font-medium">🎨 佈景主題：</span>
@@ -383,6 +394,7 @@
           <select id="setting-theme-select" onchange="changeTheme(this.value)" class="w-full p-2 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white text-xs font-bold focus:outline-none" disabled>
             <option value="default">☀️ 預設風格 (Default)</option>
             <option value="dark">🌙 深色模式 (Dark Mode)</option>
+            <option value="night-sakura">🌸 夜櫻風格 (Night Sakura)</option>
             <option value="spring">🌸 春天風格 (Spring Sakura)</option>
             <option value="summer">🌊 夏天風格 (Summer Ocean)</option>
             <option value="autumn">🍁 秋天風格 (Autumn Maple)</option>
