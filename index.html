@@ -46,7 +46,7 @@
         </h1>
       </div>
       <div class="flex items-center gap-1.5">
-        <button id="btn-stats-action" onclick="openStatsModal()" class="flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 min-w-[42px]" title="統計中心 (Lv.5 解鎖)">
+        <button id="btn-stats-action" onclick="openStatsModal()" class="flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 min-w-[42px] hidden" title="統計中心 (Lv.5 解鎖)">
           <span class="text-sm">🔒</span>
           <span class="text-[10px] mt-0.5 leading-none">統計</span>
         </button>
@@ -104,9 +104,9 @@
       <p id="fortune-text" class="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed font-medium">✨ 正在解析今日日辰氣場...</p>
     </div>
     
-    <!-- 美食冷知識區 -->
-    <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
-      ❓ <strong>[已鎖定] 美食冷知識區</strong> (達到指定等級解鎖)
+    <!-- 美食冷知識區 (Lv.5 起才預告顯示) -->
+    <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition hidden">
+      ❓ <strong>[已鎖定] 美食冷知識區</strong> (Lv.6 解鎖)
     </div>
     <div id="trivia-wrapper" class="mb-3 flex items-center gap-2 hidden relative">
       <div id="trivia-box" class="flex-grow p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 h-[90px] flex flex-col">
@@ -132,9 +132,9 @@
       </div>
     </div>
 
-    <!-- 冒險者公會區 -->
-    <div id="guild-locked-box" onclick="checkFeatureLock('guild')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
-      🔒 <strong>[已鎖定] 冒險者公會</strong> (達到 Lv.4 解鎖)
+    <!-- 冒險者公會區 (Lv.3 起才預告顯示) -->
+    <div id="guild-locked-box" onclick="checkFeatureLock('guild')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition hidden">
+      🔒 <strong>[已鎖定] 冒險者公會</strong> (Lv.4 解鎖)
     </div>
     <div id="guild-wrapper" class="mb-3 hidden">
       <div id="guild-banner" onclick="handleGuildClick()" class="p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-bold shadow-md cursor-pointer hover:opacity-95 transition flex justify-between items-center">
@@ -170,8 +170,8 @@
       </div>
     </div>
 
-    <!-- 個人最愛精選區 -->
-    <div class="mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-slate-800">
+    <!-- 個人最愛精選區 (Lv.2 起才預告顯示) -->
+    <div id="favorite-section-wrapper" class="mt-4 pt-4 border-t border-dashed border-slate-200 dark:border-slate-800 hidden">
       <div class="flex items-center justify-between mb-2">
         <span id="favorite-label" class="text-xs font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1">❓ 個人最愛精選 (未解鎖)</span>
       </div>
