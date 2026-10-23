@@ -156,6 +156,17 @@ const LEVEL_UNLOCKS = [
   { level: 13, name: "解鎖高等冒險", expNeeded: 200, unlockDesc: "🥗 冒險者精通" }
 ];
 
+// 計算下一個即將解鎖盲盒選項所需的等級與數量
+function getNextOptionUnlockRequirement() {
+  if (userLevel < 2) return { nextCount: 4, reqLevel: 2 };
+  if (userLevel < 7) return { nextCount: 5, reqLevel: 7 };
+  if (userLevel < 9) return { nextCount: 6, reqLevel: 9 };
+  if (userLevel < 10) return { nextCount: 7, reqLevel: 10 };
+  if (userLevel < 11) return { nextCount: 8, reqLevel: 11 };
+  if (userLevel < 12) return { nextCount: 9, reqLevel: 12 };
+  return null; // 達到最高等級 (Lv.12 / 9個盲盒) 時不再顯示預告
+}
+
 async function initApp() {
   changeTheme(currentTheme);
   setupEventListeners();
@@ -171,7 +182,6 @@ async function initApp() {
     showBirthModal();
   } else {
     updateFortuneText();
-    // 🔒 帶入 false：優先顯示上一輪儲存的盲盒品項，避免重新整理或重啟被刷新
     filterAndDraw(false);
   }
   
@@ -347,6 +357,7 @@ window.closeLevelUpModal = function() {
 };
 
 function applyFeatureUnlocks() {
+  // 💡 1. 美食冷知識區：Lv.6 解鎖，Lv.5 才顯示預告鎖定卡片
   const triviaLocked = document.getElementById('trivia-locked-box');
   const triviaWrapper = document.getElementById('trivia-wrapper');
   if (userLevel >= 6 && settingsPushTrivia) {
@@ -355,25 +366,30 @@ function applyFeatureUnlocks() {
     if (document.getElementById('trivia-content').innerText === '') {
       renderRandomTrivia();
     }
-  } else if (userLevel >= 6) {
-    triviaLocked.classList.add('hidden');
+  } else if (userLevel === 5) {
+    triviaLocked.classList.remove('hidden');
     triviaWrapper.classList.add('hidden');
   } else {
-    triviaLocked.classList.remove('hidden');
+    triviaLocked.classList.add('hidden');
     triviaWrapper.classList.add('hidden');
   }
 
+  // 💡 2. 冒險者公會：Lv.4 解鎖，Lv.3 才顯示預告鎖定卡片
   const guildLocked = document.getElementById('guild-locked-box');
   const guildWrapper = document.getElementById('guild-wrapper');
   if (userLevel >= 4) {
     guildLocked.classList.add('hidden');
     guildWrapper.classList.remove('hidden');
     updateGuildBannerUI();
-  } else {
+  } else if (userLevel === 3) {
     guildLocked.classList.remove('hidden');
+    guildWrapper.classList.add('hidden');
+  } else {
+    guildLocked.classList.add('hidden');
     guildWrapper.classList.add('hidden');
   }
 
+  // 💡 3. 靈氣開關區
   const auraContainer = document.getElementById('aura-container');
   if (unlockedAuras.length > 0) {
     auraContainer.classList.remove('hidden');
@@ -382,15 +398,21 @@ function applyFeatureUnlocks() {
     auraContainer.classList.add('hidden');
   }
 
+  // 💡 4. 統計中心按鈕：Lv.5 解鎖，Lv.4 才顯示預告鎖定按鈕
   const statBtn = document.getElementById('btn-stats-action');
   if (userLevel >= 5) {
+    statBtn.classList.remove('hidden');
     statBtn.className = "flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-indigo-500 min-w-[42px]";
     statBtn.innerHTML = '<span class="text-sm">📊</span><span class="text-[10px] mt-0.5 leading-none">統計</span>';
-  } else {
+  } else if (userLevel === 4) {
+    statBtn.classList.remove('hidden');
     statBtn.className = "flex flex-col items-center justify-center px-2 py-1 text-xs rounded-xl border transition bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 min-w-[42px]";
     statBtn.innerHTML = '<span class="text-sm">🔒</span><span class="text-[10px] mt-0.5 leading-none">統計</span>';
+  } else {
+    statBtn.classList.add('hidden');
   }
 
+  // 💡 5. 佈景主題設定
   const themeWrapper = document.getElementById('setting-theme-wrapper');
   const themeSelect = document.getElementById('setting-theme-select');
   const themeLocker = document.getElementById('lock-theme');
@@ -400,16 +422,23 @@ function applyFeatureUnlocks() {
     themeLocker.innerText = '';
   }
 
+  // 💡 6. 個人最愛精選區：Lv.3 解鎖，Lv.2 才顯示預告鎖定卡片
+  const favWrapper = document.getElementById('favorite-section-wrapper');
   const favLabel = document.getElementById('favorite-label');
   const favLocked = document.getElementById('favorite-locked-box');
+
   if (userLevel >= 3) {
+    favWrapper.classList.remove('hidden');
     favLabel.innerText = '⭐ 個人最愛精選';
     favLabel.className = 'text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1';
     if (favLocked) favLocked.classList.add('hidden');
-  } else {
+  } else if (userLevel === 2) {
+    favWrapper.classList.remove('hidden');
     favLabel.innerText = '❓ 個人最愛精選 (Lv.3 解鎖)';
     favLabel.className = 'text-xs font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1';
     if (favLocked) favLocked.classList.remove('hidden');
+  } else {
+    favWrapper.classList.add('hidden');
   }
 }
 
@@ -732,7 +761,6 @@ window.refreshTriviaWithCoin = function() {
   const elapsedEat = now - lastEatTime;
   const isCoolingDown = (elapsedEat < cooldownMs);
 
-  // 如果冷卻中（不能免費刷新），則需消耗 1 顆水晶
   if (isCoolingDown) {
     if (drawState.count <= 0) {
       alert('刷新水晶不足！觀看廣告或等待冷卻結束即可免費刷新。');
@@ -742,7 +770,6 @@ window.refreshTriviaWithCoin = function() {
     saveState();
     showExpToast('toast-exp-floating');
   } else {
-    // 如果冷卻已結束，則順便重置 lastEatTime 啟動新一輪 4 小時共用計時
     lastEatTime = now;
     localStorage.setItem('last_eat_time', lastEatTime);
   }
@@ -1111,7 +1138,6 @@ function filterAndDraw(isDrawn = false) {
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
 
-  // 只有當「使用者主動按下抽選 (isDrawn === true)」或是「目前完全沒有儲存品項」時，才重新隨機抽選
   if (isDrawn || currentDisplayedFoods.length === 0) {
     let pool = [...allFoods];
 
@@ -1133,7 +1159,6 @@ function filterAndDraw(isDrawn = false) {
     const boxCount = getUnlockBoxCount();
     currentDisplayedFoods = weightedSample(pool, boxCount, fortune.targetElementKey);
 
-    // 🔒 將新抽選出的盲盒品項寫入 localStorage 鎖定，防止重新整理或重啟重置
     localStorage.setItem('current_displayed_foods', JSON.stringify(currentDisplayedFoods));
   }
 
@@ -1198,6 +1223,22 @@ function renderMainUI(foods) {
     }
     container.appendChild(createFoodCardHTML(food, false));
   });
+
+  // 💡 盲盒動態上鎖預告卡片：顯示下一個可解鎖的美食盲盒預告
+  const nextReq = getNextOptionUnlockRequirement();
+  if (nextReq) {
+    const lockedCard = document.createElement('div');
+    lockedCard.className = 'p-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 flex justify-between items-center text-xs font-bold cursor-pointer hover:bg-slate-200/50 transition';
+    lockedCard.onclick = () => alert(`🔒 達到 Lv.${nextReq.reqLevel} 即可解鎖第 ${nextReq.nextCount} 個盲盒選項！`);
+    lockedCard.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="text-base">🔒</span>
+        <span>第 ${nextReq.nextCount} 個盲盒選項 (升至 Lv.${nextReq.reqLevel} 解鎖)</span>
+      </div>
+      <span class="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400">鎖定中</span>
+    `;
+    container.appendChild(lockedCard);
+  }
 }
 
 function createGuildQuestCardHTML() {
@@ -1608,7 +1649,6 @@ function updateCountersAndTimer() {
   const elapsedEat = now - lastEatTime;
   const remainEatMs = Math.max(0, cooldownMs - elapsedEat);
 
-  // 💡 冷知識計時器與額外經驗值冷卻時間完美同步共用！
   const triviaCountdownEl = document.getElementById('trivia-countdown-text');
   if (triviaCountdownEl) {
     if (remainEatMs === 0) {
