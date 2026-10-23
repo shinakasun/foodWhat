@@ -8,6 +8,16 @@
   <script>
     tailwind.config = { darkMode: 'class' };
   </script>
+  <style>
+    @keyframes marquee {
+      0%, 20% { transform: translateX(0); }
+      80%, 100% { transform: translateX(var(--marquee-distance)); }
+    }
+    .animate-marquee {
+      display: inline-block;
+      animation: marquee var(--marquee-duration) linear infinite;
+    }
+  </style>
 </head>
 <body id="body-root" class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
   <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 mt-6 relative transition-colors duration-200">
@@ -57,7 +67,7 @@
       ⏳ 下一次額外的經驗值：<span id="cooldown-countdown">00:00:00</span>
     </div>
 
-    <!-- 本命與今日局勢區（第 1 項修改：刪除圖示，簡化字樣） -->
+    <!-- 本命與今日局勢區 -->
     <div class="p-3 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl mb-3">
       <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-indigo-900 dark:text-indigo-200 mb-1">
         <div class="flex items-center gap-1 whitespace-nowrap">
@@ -132,7 +142,7 @@
       </div>
     </div>
 
-    <!-- 盲盒選項區（引導模式高亮目標 1） -->
+    <!-- 盲盒選項區 -->
     <div id="guide-target-food" class="rounded-2xl transition-all duration-300 p-1">
       <div id="food-container" class="space-y-2 min-h-[160px]">
         <div class="p-4 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 text-center text-slate-500">載入中...</div>
@@ -151,7 +161,7 @@
       </div>
     </div>
 
-    <!-- 隨機抽選按鈕區（引導模式高亮目標 2） -->
+    <!-- 隨機抽選按鈕區 -->
     <div id="guide-target-button" class="relative mt-6 rounded-2xl transition-all duration-300 p-1">
       <button id="draw-btn" class="w-full py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
         <span class="text-lg">🎲 隨機抽選 (-1 💎)</span>
@@ -182,7 +192,7 @@
     </div>
   </div>
 
-  <!-- 引導模式：半透明黑色背景遮罩 (第 2 項修改) -->
+  <!-- 引導模式：半透明黑色背景遮罩 -->
   <div id="guide-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs hidden z-40 transition-opacity duration-300"></div>
 
   <!-- 彈窗 Modal 區塊 -->
@@ -216,7 +226,7 @@
       </button>
     </div>
 
-    <!-- 引導模式教學彈窗 (第 2 項修改) -->
+    <!-- 引導模式教學彈窗 -->
     <div id="modal-onboarding-guide" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden z-50">
       <div class="text-4xl mb-2">🍱</div>
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-3">新手探索指南</h2>
