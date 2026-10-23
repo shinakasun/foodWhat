@@ -24,7 +24,8 @@ let activeAura = localStorage.getItem('active_aura') || null;
 let tempSelectedQuestType = null;
 let auraToastTimer = null;
 
-let currentDisplayedFoods = [];
+// 🔒 優先從 localStorage 載入關閉 APP 前的盲盒品項，避免重新整理或重啟被刷新
+let currentDisplayedFoods = JSON.parse(localStorage.getItem('current_displayed_foods') || '[]');
 
 const MAX_DRAW = 20;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
@@ -171,7 +172,8 @@ async function initApp() {
     showBirthModal();
   } else {
     updateFortuneText();
-    filterAndDraw(true);
+    // 🔒 帶入 false：優先顯示上一輪儲存的盲盒品項，避免重新整理或重啟被刷新
+    filterAndDraw(false);
   }
   
   setInterval(updateCountersAndTimer, 1000);
@@ -1104,6 +1106,7 @@ function filterAndDraw(isDrawn = false) {
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
 
+  // 只有當「使用者主動按下抽選 (isDrawn === true)」或是「目前完全沒有儲存品項」時，才重新隨機抽選
   if (isDrawn || currentDisplayedFoods.length === 0) {
     let pool = [...allFoods];
 
@@ -1124,6 +1127,9 @@ function filterAndDraw(isDrawn = false) {
 
     const boxCount = getUnlockBoxCount();
     currentDisplayedFoods = weightedSample(pool, boxCount, fortune.targetElementKey);
+
+    // 🔒 將新抽選出的盲盒品項寫入 localStorage 鎖定，防止重新整理或重啟重置
+    localStorage.setItem('current_displayed_foods', JSON.stringify(currentDisplayedFoods));
   }
 
   const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
@@ -1359,7 +1365,6 @@ function updateButtonUI(foodName) {
   const isLiked = userLikes.includes(foodName);
   const isDisliked = userDislikes.includes(foodName);
 
-  // 遍歷所有卡片，利用 title 比對來更新 UI
   allFoods.forEach(food => {
     if (food.id === foodName) {
       const safeId = btoa(encodeURIComponent(food.id)).replace(/=/g, '');
