@@ -24,28 +24,23 @@
     html.theme-dark body { background-color: #020617; color: #f8fafc; }
     html.theme-dark .app-card { background-color: #0f172a; border-color: #1e293b; color: #f8fafc; }
     
-    /* 夜櫻風格：背景黑灰色，按鈕櫻花粉色，文字黑色 */
     html.theme-night-sakura { color-scheme: dark; }
     html.theme-night-sakura body { background-color: #121214; color: #fce7f3; }
     html.theme-night-sakura .app-card { background-color: #1a1a1e; border-color: #3b1d45; color: #fce7f3; }
     html.theme-night-sakura button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { background-color: #f472b6 !important; color: #000000 !important; }
 
-    /* 春天風格：青草綠色背景，按鈕白色 */
     html.theme-spring body { background-color: #d1fae5; color: #065f46; }
     html.theme-spring .app-card { background-color: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
     html.theme-spring button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { background-color: #ffffff !important; color: #065f46 !important; border-color: #a7f3d0 !important; }
 
-    /* 夏天風格：水藍色背景，按鈕沙灘色 */
     html.theme-summer body { background-color: #e0f2fe; color: #0369a1; }
     html.theme-summer .app-card { background-color: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
     html.theme-summer button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { background-color: #fef3c7 !important; color: #78350f !important; border-color: #fde68a !important; }
 
-    /* 秋天風格：橘黃色背景，按鈕沙灘色 */
     html.theme-autumn body { background-color: #ffedd5; color: #9a3412; }
     html.theme-autumn .app-card { background-color: #fff7ed; border-color: #fed7aa; color: #9a3412; }
     html.theme-autumn button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { background-color: #fef3c7 !important; color: #78350f !important; border-color: #fde68a !important; }
 
-    /* 冬天風格：冰塊水藍色背景，按鈕冰晶白 */
     html.theme-winter body { background-color: #e0f4ff; color: #0f4c81; }
     html.theme-winter .app-card { background-color: #f2f9ff; border-color: #b9e2ff; color: #0f4c81; }
     html.theme-winter button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { background-color: #ffffff !important; color: #0f4c81 !important; border-color: #bae6fd !important; }
@@ -94,7 +89,6 @@
         </div>
       </div>
 
-      <!-- 右側水晶卡片與下方提示狀態 -->
       <div class="flex flex-col items-center min-w-[76px]">
         <div id="coin-counter-badge" class="w-full px-2.5 py-1.5 rounded-lg bg-blue-500 text-white font-extrabold text-sm shadow-sm flex items-center justify-center gap-1 whitespace-nowrap">
           <span class="text-base">💎</span> <span id="coin-counter-val">20</span>
@@ -105,12 +99,10 @@
       </div>
     </div>
 
-    <!-- 冷卻提示文案 -->
     <div id="cooldown-timer-bar" class="text-[11px] text-amber-600 dark:text-amber-400 font-medium mb-2 hidden">
       ⏳ 下一次額外的經驗值：<span id="cooldown-countdown">00:00:00</span>
     </div>
 
-    <!-- 本命與今日局勢區 -->
     <div class="p-3 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl mb-3">
       <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-indigo-900 dark:text-indigo-200 mb-1">
         <div class="flex items-center gap-1 whitespace-nowrap">
@@ -126,7 +118,6 @@
       <p id="fortune-text" class="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed font-medium">✨ 正在解析今日日辰氣場...</p>
     </div>
     
-    <!-- 美食冷知識區 (Lv.6 解鎖) -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition hidden">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (Lv.6 解鎖)
     </div>
@@ -154,7 +145,6 @@
       </div>
     </div>
 
-    <!-- 冒險者公會區 -->
     <div id="guild-locked-box" onclick="checkFeatureLock('guild')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition hidden">
       🔒 <strong>[已鎖定] 冒險者公會</strong> (Lv.4 解鎖)
     </div>
@@ -168,7 +158,6 @@
       </div>
     </div>
 
-    <!-- 靈氣開關區 -->
     <div id="aura-container" class="relative mb-3 hidden">
       <div id="toast-aura-floating" class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900/95 dark:bg-slate-100 dark:text-slate-900 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xl opacity-0 transition-all duration-300 pointer-events-none whitespace-nowrap text-center leading-tight z-20">
         靈氣已切換
@@ -210,7 +199,6 @@
       </div>
     </div>
     
-    <!-- 底部輔助經驗條 -->
     <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
       <div class="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-1">
         <span id="footer-exp-text">目前進度: 0 / 5</span>
@@ -221,7 +209,6 @@
       </div>
     </div>
 
-    <!-- 廣告按鈕列（正式版將自動隱藏） -->
     <div id="ad-section-wrapper" class="flex items-center justify-between mt-2 px-1">
       <span id="next-refresh-time" class="text-xs text-slate-500 dark:text-slate-400">下一次自動補充：10:00</span>
       <button id="btn-watch-ad" onclick="simulateWatchAd()" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-lg text-xs shadow transition flex items-center gap-1">
@@ -230,13 +217,10 @@
     </div>
   </div>
 
-  <!-- 引導模式遮罩 -->
   <div id="guide-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs hidden z-40 transition-opacity duration-300"></div>
 
   <!-- 彈窗 Modal 區塊 -->
   <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    
-    <!-- 初次進入：生日彈窗 -->
     <div id="modal-birth" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">歡迎來到吃什麼 2</h2>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">請選擇您的西元出生年月日，將為您解析九星氣學本命星：</p>
@@ -248,7 +232,6 @@
       <button onclick="saveBirthdate()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">開始解析命盤</button>
     </div>
 
-    <!-- 九星氣學診斷結果彈窗 -->
     <div id="modal-kyusei-result" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">🔮</div>
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-3">九星氣學本命診斷</h2>
@@ -262,7 +245,6 @@
       </button>
     </div>
 
-    <!-- 引導模式教學彈窗 -->
     <div id="modal-onboarding-guide" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden z-50">
       <div class="text-4xl mb-2">🍱</div>
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-3">新手探索指南</h2>
@@ -274,7 +256,6 @@
       </button>
     </div>
 
-    <!-- 升級慶祝彈窗 -->
     <div id="modal-levelup" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">⭐</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2" id="levelup-title">升至 Lv.2！</h2>
@@ -288,7 +269,6 @@
       </button>
     </div>
 
-    <!-- 頭銜更換 Modal -->
     <div id="modal-title" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">🏷️ 選擇您的旅人頭銜</h2>
@@ -299,7 +279,6 @@
       <button onclick="closeModal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">確認</button>
     </div>
 
-    <!-- 冒險者公會 Modal -->
     <div id="modal-guild-list" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-1.5">🛡️ 冒險者公會佈告欄</h2>
@@ -315,7 +294,6 @@
       </div>
     </div>
 
-    <!-- 冒險者公會：接受任務 Modal -->
     <div id="modal-guild-accept" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-3xl mb-2" id="accept-quest-icon">❄️</div>
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-1" id="accept-quest-title">是否接受：凜冬陣地？</h2>
@@ -331,7 +309,6 @@
       </div>
     </div>
 
-    <!-- 冒險者公會：任務完成 Modal -->
     <div id="modal-guild-complete" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">🎉</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2">副本任務大成功！</h2>
@@ -342,7 +319,6 @@
       <button onclick="claimQuestReward()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-lg transition">領取靈氣獎勵</button>
     </div>
 
-    <!-- 食物確認 Modal -->
     <div id="modal-confirm-step1" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2" id="confirm-title">確定要吃 XXX 嗎？</h2>
       <div id="confirm-element-bonus-hint" class="mb-3 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-bold leading-relaxed hidden">
@@ -361,7 +337,6 @@
       </div>
     </div>
 
-    <!-- 成功祝賀 Modal -->
     <div id="modal-confirm-step2" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">🎉</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2">可喜可賀！</h2>
@@ -372,7 +347,6 @@
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
     </div>
 
-    <!-- 提示未成為正式版的彈窗 -->
     <div id="modal-vip-required" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">🔒</div>
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">需要解鎖正式版</h2>
@@ -389,7 +363,6 @@
       </div>
     </div>
 
-    <!-- 正式版 (VIP) 功能說明與購買確認 Modal -->
     <div id="modal-vip-store" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-lg font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
@@ -424,7 +397,6 @@
       </div>
     </div>
 
-    <!-- 統計數據與禁用/討厭清單管理 Modal -->
     <div id="modal-stats" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">📊 數據統計中心</h2>
@@ -440,13 +412,11 @@
           <div id="stats-ranking-list" class="space-y-1 text-slate-600 dark:text-slate-400"></div>
         </div>
 
-        <!-- 討厭的食物清單管理 -->
         <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
           <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">👎 討厭的食物清單管理</h3>
           <div id="dislike-manager-section"></div>
         </div>
 
-        <!-- 完全禁用清單管理 -->
         <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
           <div class="flex justify-between items-center mb-1">
             <h3 class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">⛔ 完全禁用的食物 (正式版)</h3>
@@ -457,7 +427,6 @@
       </div>
     </div>
 
-    <!-- 設定面板 Modal -->
     <div id="modal-settings" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">⚙️ 系統設定</h2>
