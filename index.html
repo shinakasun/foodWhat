@@ -19,56 +19,36 @@
       animation: marquee var(--marquee-duration) linear infinite;
     }
 
-    /* 隱藏預設滾動條但保持滾動 */
-    .scrollbar-none::-webkit-scrollbar { display: none; }
-    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
-
-    /* Custom Scrollbar for list modals */
-    .custom-scroll::-webkit-scrollbar { width: 4px; }
-    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
-
-    /* 🎨 主題風格定義 */
-    /* 1. 深色風格 */
+    /* 季節與主題風格設定 */
     html.theme-dark { color-scheme: dark; }
     html.theme-dark body { background-color: #020617; color: #f8fafc; }
     html.theme-dark .app-card { background-color: #0f172a; border-color: #1e293b; color: #f8fafc; }
-
-    /* 2. 夜櫻風格 (背景黑灰、按鈕櫻花粉、按鈕文字純黑) */
-    html.theme-night-sakura { color-scheme: dark; }
-    html.theme-night-sakura body { background-color: #121216; color: #fce7f3; }
-    html.theme-night-sakura .app-card { background-color: #1a1820; border-color: #3b2737; color: #fce7f3; }
-    html.theme-night-sakura button,
-    html.theme-night-sakura select { background-color: #fbcfe8 !important; color: #000000 !important; border-color: #f472b6 !important; font-weight: 700 !important; }
-    html.theme-night-sakura button:hover { background-color: #f472b6 !important; }
     
-    /* 3. 春天風格 (背景青草綠、按鈕偏向白色、春天質感) */
-    html.theme-spring body { background-color: #15803d; color: #14532d; }
-    html.theme-spring .app-card { background-color: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
-    html.theme-spring button,
-    html.theme-spring select { background-color: #ffffff !important; color: #166534 !important; border-color: #86efac !important; font-weight: 700 !important; }
-    html.theme-spring button:hover { background-color: #dc2626; color: #ffffff !important; }
+    /* 夜櫻風格：背景黑灰色，按鈕櫻花粉色，文字黑色 */
+    html.theme-night-sakura { color-scheme: dark; }
+    html.theme-night-sakura body { background-color: #121214; color: #fce7f3; }
+    html.theme-night-sakura .app-card { background-color: #1a1a1e; border-color: #3b1d45; color: #fce7f3; }
+    html.theme-night-sakura button:not(.taboo-btn):not(#draw-btn) { background-color: #f472b6 !important; color: #000000 !important; }
 
-    /* 4. 夏天風格 (背景水藍色、按鈕沙灘色、夏日海洋感) */
-    html.theme-summer body { background-color: #0284c7; color: #0c4a6e; }
-    html.theme-summer .app-card { background-color: #f0f9ff; border-color: #bae6fd; color: #0c4a6e; }
-    html.theme-summer button,
-    html.theme-summer select { background-color: #fef08a !important; color: #713f12 !important; border-color: #fde047 !important; font-weight: 700 !important; }
-    html.theme-summer button:hover { background-color: #facc15 !important; }
+    /* 春天風格：青草綠色背景，按鈕白色 */
+    html.theme-spring body { background-color: #d1fae5; color: #065f46; }
+    html.theme-spring .app-card { background-color: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    html.theme-spring button:not(.taboo-btn):not(#draw-btn) { background-color: #ffffff !important; color: #065f46 !important; border-color: #a7f3d0 !important; }
 
-    /* 5. 秋天風格 (背景橘黃色、按鈕沙灘色、濃郁秋意感) */
-    html.theme-autumn body { background-color: #ea580c; color: #431407; }
-    html.theme-autumn .app-card { background-color: #fff7ed; border-color: #ffedd5; color: #431407; }
-    html.theme-autumn button,
-    html.theme-autumn select { background-color: #fef08a !important; color: #713f12 !important; border-color: #fde047 !important; font-weight: 700 !important; }
-    html.theme-autumn button:hover { background-color: #facc15 !important; }
+    /* 夏天風格：水藍色背景，按鈕沙灘色 */
+    html.theme-summer body { background-color: #e0f2fe; color: #0369a1; }
+    html.theme-summer .app-card { background-color: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
+    html.theme-summer button:not(.taboo-btn):not(#draw-btn) { background-color: #fef3c7 !important; color: #78350f !important; border-color: #fde68a !important; }
 
-    /* 6. 新增：冬天風格 (背景冰塊水藍色、冰晶雪亮 UI) */
-    html.theme-winter body { background-color: #38bdf8; color: #0f172a; }
-    html.theme-winter .app-card { background-color: #f0f9ff; border-color: #e0f2fe; color: #0369a1; }
-    html.theme-winter button,
-    html.theme-winter select { background-color: #ffffff !important; color: #0284c7 !important; border-color: #bae6fd !important; font-weight: 700 !important; }
-    html.theme-winter button:hover { background-color: #e0f2fe !important; }
+    /* 秋天風格：橘黃色背景，按鈕沙灘色 */
+    html.theme-autumn body { background-color: #ffedd5; color: #9a3412; }
+    html.theme-autumn .app-card { background-color: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+    html.theme-autumn button:not(.taboo-btn):not(#draw-btn) { background-color: #fef3c7 !important; color: #78350f !important; border-color: #fde68a !important; }
+
+    /* 冬天風格：冰塊水藍色背景，按鈕冰晶白與藍色調 */
+    html.theme-winter body { background-color: #e0f4ff; color: #0f4c81; }
+    html.theme-winter .app-card { background-color: #f2f9ff; border-color: #b9e2ff; color: #0f4c81; }
+    html.theme-winter button:not(.taboo-btn):not(#draw-btn) { background-color: #ffffff !important; color: #0f4c81 !important; border-color: #bae6fd !important; }
   </style>
 </head>
 <body id="body-root" class="bg-slate-100 text-slate-800 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
@@ -94,7 +74,7 @@
       </div>
     </div>
 
-    <!-- 頂部：等級 + 經驗條 + 水晶與狀態提示 -->
+    <!-- 頂部：等級 + 經驗條 + 水晶與下方狀態提示 -->
     <div class="flex items-center gap-2 mb-2">
       <div id="user-level-badge" class="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-sm shadow-sm flex items-center justify-center min-w-[48px]">
         Lv.1
@@ -109,7 +89,7 @@
         </div>
       </div>
 
-      <!-- 右側水晶卡片 -->
+      <!-- 右側水晶卡片與下方提示狀態 -->
       <div class="flex flex-col items-center min-w-[76px]">
         <div id="coin-counter-badge" class="w-full px-2.5 py-1.5 rounded-lg bg-blue-500 text-white font-extrabold text-sm shadow-sm flex items-center justify-center gap-1 whitespace-nowrap">
           <span class="text-base">💎</span> <span id="coin-counter-val">20</span>
@@ -236,8 +216,8 @@
       </div>
     </div>
 
-    <!-- 看廣告按鈕列（正式版解鎖時直接隱藏） -->
-    <div id="ad-banner-row" class="flex items-center justify-between mt-2 px-1">
+    <!-- 廣告按鈕列（正式版將自動隱藏） -->
+    <div id="ad-section-wrapper" class="flex items-center justify-between mt-2 px-1">
       <span id="next-refresh-time" class="text-xs text-slate-500 dark:text-slate-400">下一次自動補充：10:00</span>
       <button id="btn-watch-ad" onclick="simulateWatchAd()" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-lg text-xs shadow transition flex items-center gap-1">
         🎬 看廣告 +10 💎
@@ -387,7 +367,7 @@
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
     </div>
 
-    <!-- 提示未成為正式版的彈窗 (禁用按鈕點擊用) -->
+    <!-- 提示未成為正式版的彈窗 -->
     <div id="modal-vip-required" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">🔒</div>
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">需要解鎖正式版</h2>
@@ -439,6 +419,39 @@
       </div>
     </div>
 
+    <!-- 統計數據與禁用/討厭清單管理 Modal -->
+    <div id="modal-stats" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md shadow-2xl hidden text-left">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-bold text-slate-800 dark:text-white">📊 數據統計中心</h2>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <div class="space-y-4 max-h-[75vh] overflow-y-auto pr-1 text-xs">
+        <div>
+          <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🕒 近期選擇過的食物 (近 5 筆)</h3>
+          <div id="stats-recent-list" class="space-y-1 text-slate-600 dark:text-slate-400"></div>
+        </div>
+        <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
+          <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🏆 美食選擇排行榜 (前 10 名)</h3>
+          <div id="stats-ranking-list" class="space-y-1 text-slate-600 dark:text-slate-400"></div>
+        </div>
+
+        <!-- 討厭的食物清單管理 (支援 >5 筆搜尋與卷軸) -->
+        <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
+          <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">👎 討厭的食物清單管理</h3>
+          <div id="dislike-manager-section"></div>
+        </div>
+
+        <!-- 完全禁用清單管理 (支援 >5 筆搜尋與卷軸) -->
+        <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
+          <div class="flex justify-between items-center mb-1">
+            <h3 class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">⛔ 完全禁用的食物 (正式版)</h3>
+            <span id="vip-status-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 font-medium">免費版</span>
+          </div>
+          <div id="banned-manager-section"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 設定面板 Modal -->
     <div id="modal-settings" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-4">
@@ -446,7 +459,7 @@
         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
       <div class="space-y-4 text-sm max-h-[70vh] overflow-y-auto pr-1">
-        <!-- 佈景主題選單 (新增冬天風格) -->
+        <!-- 佈景主題下拉選擇選單 (新增冬天風格) -->
         <div id="setting-theme-wrapper" class="opacity-50">
           <div class="flex justify-between items-center mb-1">
             <span class="text-slate-700 dark:text-slate-300 font-medium">🎨 佈景主題：</span>
@@ -456,7 +469,7 @@
             <option value="default">☀️ 預設風格 (Default)</option>
             <option value="dark">🌙 深色模式 (Dark Mode)</option>
             <option value="night-sakura">🌸 夜櫻風格 (Night Sakura)</option>
-            <option value="spring">🌿 春天風格 (Spring Meadow)</option>
+            <option value="spring">🌱 春天風格 (Spring Grass)</option>
             <option value="summer">🌊 夏天風格 (Summer Ocean)</option>
             <option value="autumn">🍁 秋天風格 (Autumn Maple)</option>
             <option value="winter">❄️ 冬天風格 (Winter Ice)</option>
@@ -498,56 +511,6 @@
         </div>
       </div>
       <button onclick="saveSettings()" class="w-full mt-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">儲存設定</button>
-    </div>
-
-    <!-- 統計數據 Modal（討厭與禁用名單皆包含搜尋框與滾動視窗） -->
-    <div id="modal-stats" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-lg font-bold text-slate-800 dark:text-white">📊 數據統計中心</h2>
-        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
-      </div>
-
-      <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-1 text-xs custom-scroll">
-        <div>
-          <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🕒 近期選擇過的食物 (近 5 筆)</h3>
-          <div id="stats-recent-list" class="space-y-1 text-slate-600 dark:text-slate-400"></div>
-        </div>
-
-        <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
-          <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🏆 美食選擇排行榜 (前 10 名)</h3>
-          <div id="stats-ranking-list" class="space-y-1 text-slate-600 dark:text-slate-400"></div>
-        </div>
-
-        <!-- 👎 討厭的食物名單（含即時搜尋與卷軸視窗） -->
-        <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
-          <button onclick="toggleDislikeSection()" class="w-full py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition flex justify-between items-center text-xs">
-            <span id="dislike-toggle-label">👎 討厭的食物名單</span>
-            <span id="dislike-toggle-arrow">▼</span>
-          </button>
-          
-          <div id="stats-dislike-container" class="mt-2 space-y-2 hidden">
-            <!-- 搜尋框 -->
-            <input type="text" id="search-dislike-input" oninput="renderStatsDislikes()" placeholder="🔍 搜尋討厭的食物..." class="w-full p-2 text-xs rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
-            <!-- 可拖拉卷軸視窗 -->
-            <div id="stats-dislike-list" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scroll"></div>
-          </div>
-        </div>
-
-        <!-- ⛔ 完全禁用的食物 (正式版 - 含即時搜尋與卷軸視窗) -->
-        <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
-          <div class="flex justify-between items-center mb-1">
-            <h3 class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">⛔ 完全禁用的食物 (正式版)</h3>
-            <span id="vip-status-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium">免費版</span>
-          </div>
-          
-          <div id="stats-banned-wrapper" class="space-y-2 mt-2">
-            <!-- 搜尋框 -->
-            <input type="text" id="search-banned-input" oninput="renderStatsBanned()" placeholder="🔍 搜尋禁用的食物..." class="w-full p-2 text-xs rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 hidden">
-            <!-- 可拖拉卷軸視窗 -->
-            <div id="stats-banned-list" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scroll"></div>
-          </div>
-        </div>
-      </div>
     </div>
 
   </div>
