@@ -25,7 +25,6 @@ let tempSelectedQuestType = null;
 let auraToastTimer = null;
 
 let hasTriggeredAutoRefreshThisCycle = false; 
-
 let currentDisplayedFoods = JSON.parse(localStorage.getItem('current_displayed_foods') || '[]');
 
 const MAX_DRAW = 20;
@@ -33,7 +32,6 @@ let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify(
 if (drawState.count > MAX_DRAW) drawState.count = MAX_DRAW;
 
 let currentTriviaIndex = -1;
-
 let selectedFoodForConfirm = null;
 let pendingCongratModalData = null;
 
@@ -62,19 +60,12 @@ const KYUSEI_DATA = {
 
 function calculateKyusei(year, month, day) {
   let calcYear = year;
-  if (month < 2 || (month === 2 && day < 4)) {
-    calcYear = year - 1;
-  }
-
+  if (month < 2 || (month === 2 && day < 4)) calcYear = year - 1;
   let sum = String(calcYear).split('').reduce((acc, num) => acc + parseInt(num), 0);
-  while (sum >= 10) {
-    sum = String(sum).split('').reduce((acc, num) => acc + parseInt(num), 0);
-  }
-
+  while (sum >= 10) sum = String(sum).split('').reduce((acc, num) => acc + parseInt(num), 0);
   let starNum = (calcYear <= 1999) ? (11 - sum) : (10 - sum);
   while (starNum <= 0) starNum += 9;
   while (starNum > 9) starNum -= 9;
-
   return KYUSEI_DATA[starNum] || KYUSEI_DATA[3];
 }
 
@@ -123,21 +114,12 @@ const FORTUNE_SPELLS = {
 
 function getTodayFortuneAnalysis(userElementKey) {
   const today = new Date();
-  const y = today.getFullYear();
-  const m = today.getMonth() + 1;
-  const d = today.getDate();
-
-  const dayHash = (y * 13 + m * 31 + d) % 5;
-  const spellBook = FORTUNE_SPELLS[userElementKey] || FORTUNE_SPELLS['elementWood'];
-  const spell = spellBook[dayHash];
-
-  const badgeHtml = buildElementBadge(spell.target);
-  const finalText = spell.text.replace('TARGET_BADGE', badgeHtml);
-
+  const dayHash = (today.getFullYear() * 13 + (today.getMonth() + 1) * 31 + today.getDate()) % 5;
+  const spell = (FORTUNE_SPELLS[userElementKey] || FORTUNE_SPELLS['elementWood'])[dayHash];
   return {
     relationLabel: spell.relation,
     targetElementKey: spell.target,
-    text: finalText
+    text: spell.text.replace('TARGET_BADGE', buildElementBadge(spell.target))
   };
 }
 
@@ -184,7 +166,6 @@ async function initApp() {
     updateFortuneText();
     filterAndDraw(false);
   }
-  
   setInterval(updateCountersAndTimer, 1000);
 }
 
@@ -199,34 +180,28 @@ function getMealFullPrefix() {
 function updateMainTitle() {
   const titleEl = document.getElementById('app-main-title');
   if (!titleEl) return;
-
   if (!userBirth) {
     titleEl.innerHTML = `<span>歡迎您！</span><br><span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人 ▼</span>`;
   } else {
-    const mealFull = getMealFullPrefix();
-    titleEl.innerHTML = `<span>歡迎回來</span><br><span class="text-indigo-600 dark:text-indigo-400">${mealFull}${userSelectedTitle} ▼</span>`;
+    titleEl.innerHTML = `<span>歡迎回來</span><br><span class="text-indigo-600 dark:text-indigo-400">${getMealFullPrefix()}${userSelectedTitle} ▼</span>`;
   }
 }
 
 window.openTitleModal = function() {
   const listEl = document.getElementById('title-options-list');
   const mealFull = getMealFullPrefix();
-
   const baseTitles = ["迷途旅人", "愛好者", "尋覓者"];
-
   listEl.innerHTML = baseTitles.map(t => {
     const isSelected = userSelectedTitle === t;
-    const displayName = `${mealFull}${t}`;
     return `
       <div onclick="selectTitle('${t}')" class="p-2.5 rounded-xl border cursor-pointer flex justify-between items-center transition ${
         isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
       }">
-        <span>${displayName}</span>
+        <span>${mealFull}${t}</span>
         ${isSelected ? '<span class="text-indigo-600">✓</span>' : ''}
       </div>
     `;
   }).join('');
-
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-title').classList.remove('hidden');
 };
@@ -246,15 +221,11 @@ function initDateSelectors(prefix) {
 
   const currentYear = new Date().getFullYear();
   yearSel.innerHTML = '';
-  for (let y = currentYear; y >= 1920; y--) {
-    yearSel.add(new Option(`${y} 年`, y));
-  }
+  for (let y = currentYear; y >= 1920; y--) yearSel.add(new Option(`${y} 年`, y));
   yearSel.value = 1990;
 
   monthSel.innerHTML = '';
-  for (let m = 1; m <= 12; m++) {
-    monthSel.add(new Option(`${m} 月`, m));
-  }
+  for (let m = 1; m <= 12; m++) monthSel.add(new Option(`${m} 月`, m));
   monthSel.value = 1;
 
   adjustBirthDays(prefix);
@@ -269,12 +240,9 @@ window.adjustBirthDays = function(prefix) {
   const y = parseInt(yearSel.value) || 1990;
   const m = parseInt(monthSel.value) || 1;
   const savedDay = parseInt(daySel.value) || 1;
-
   const daysInMonth = new Date(y, m, 0).getDate();
   daySel.innerHTML = '';
-  for (let d = 1; d <= daysInMonth; d++) {
-    daySel.add(new Option(`${d} 日`, d));
-  }
+  for (let d = 1; d <= daysInMonth; d++) daySel.add(new Option(`${d} 日`, d));
   daySel.value = Math.min(savedDay, daysInMonth);
 };
 
@@ -298,9 +266,7 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
   const currentTier = LEVEL_UNLOCKS.find(l => l.level === userLevel) || LEVEL_UNLOCKS[0];
   const nextTier = LEVEL_UNLOCKS.find(l => l.level === userLevel + 1);
   
-  const badge = document.getElementById('user-level-badge');
-  badge.innerText = `Lv.${userLevel}`;
-
+  document.getElementById('user-level-badge').innerText = `Lv.${userLevel}`;
   const expText = document.getElementById('exp-text');
   const expBar = document.getElementById('exp-bar');
   const footerExpText = document.getElementById('footer-exp-text');
@@ -311,36 +277,25 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
     const spanExp = nextTier.expNeeded - currentTier.expNeeded;
     const currentProgress = userExp - currentTier.expNeeded;
     const pct = Math.min(100, Math.max(0, (currentProgress / spanExp) * 100));
-    
     expText.innerText = `經驗值: ${userExp} / ${nextTier.expNeeded}`;
     expBar.style.width = `${pct}%`;
-
     if (footerExpText) footerExpText.innerText = `目前進度: ${userExp} / ${nextTier.expNeeded}`;
     if (footerNextUnlock) footerNextUnlock.innerText = `下一解鎖: ${nextTier.name}`;
     if (footerExpBar) footerExpBar.style.width = `${pct}%`;
   } else {
     expText.innerText = `經驗值: ${userExp} (已滿級)`;
     expBar.style.width = `100%`;
-
     if (footerExpText) footerExpText.innerText = `經驗值: ${userExp} (已滿級)`;
     if (footerNextUnlock) footerNextUnlock.innerText = `已解鎖全部功能`;
     if (footerExpBar) footerExpBar.style.width = `100%`;
   }
-
   applyFeatureUnlocks();
 }
 
 function showLevelUpModal(lv, desc) {
   document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
   document.getElementById('levelup-desc').innerText = `🎉 恭喜解鎖了：${desc}！`;
-  
-  const dislikeTip = document.getElementById('levelup-dislike-tip');
-  if (lv === 8) {
-    dislikeTip.classList.remove('hidden');
-  } else {
-    dislikeTip.classList.add('hidden');
-  }
-
+  document.getElementById('levelup-dislike-tip').classList.toggle('hidden', lv !== 8);
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-levelup').classList.remove('hidden');
@@ -357,15 +312,12 @@ window.closeLevelUpModal = function() {
 };
 
 function applyFeatureUnlocks() {
-  // 1. 美食冷知識區
   const triviaLocked = document.getElementById('trivia-locked-box');
   const triviaWrapper = document.getElementById('trivia-wrapper');
   if (userLevel >= 6 && settingsPushTrivia) {
     triviaLocked.classList.add('hidden');
     triviaWrapper.classList.remove('hidden');
-    if (document.getElementById('trivia-content').innerText === '') {
-      renderRandomTrivia();
-    }
+    if (document.getElementById('trivia-content').innerText === '') renderRandomTrivia();
   } else if (userLevel === 5) {
     triviaLocked.classList.remove('hidden');
     triviaWrapper.classList.add('hidden');
@@ -374,7 +326,6 @@ function applyFeatureUnlocks() {
     triviaWrapper.classList.add('hidden');
   }
 
-  // 2. 冒險者公會
   const guildLocked = document.getElementById('guild-locked-box');
   const guildWrapper = document.getElementById('guild-wrapper');
   if (userLevel >= 4) {
@@ -389,7 +340,6 @@ function applyFeatureUnlocks() {
     guildWrapper.classList.add('hidden');
   }
 
-  // 3. 靈氣開關區
   const auraContainer = document.getElementById('aura-container');
   if (unlockedAuras.length > 0) {
     auraContainer.classList.remove('hidden');
@@ -398,7 +348,6 @@ function applyFeatureUnlocks() {
     auraContainer.classList.add('hidden');
   }
 
-  // 4. 統計中心按鈕
   const statBtn = document.getElementById('btn-stats-action');
   if (userLevel >= 5) {
     statBtn.classList.remove('hidden');
@@ -412,7 +361,6 @@ function applyFeatureUnlocks() {
     statBtn.classList.add('hidden');
   }
 
-  // 5. 佈景主題設定
   const themeWrapper = document.getElementById('setting-theme-wrapper');
   const themeSelect = document.getElementById('setting-theme-select');
   const themeLocker = document.getElementById('lock-theme');
@@ -422,11 +370,9 @@ function applyFeatureUnlocks() {
     themeLocker.innerText = '';
   }
 
-  // 6. 個人最愛精選區
   const favWrapper = document.getElementById('favorite-section-wrapper');
   const favLabel = document.getElementById('favorite-label');
   const favLocked = document.getElementById('favorite-locked-box');
-
   if (userLevel >= 3) {
     favWrapper.classList.remove('hidden');
     favLabel.innerText = '⭐ 個人最愛精選';
@@ -446,7 +392,6 @@ function updateGuildBannerUI() {
   const banner = document.getElementById('guild-banner');
   const titleEl = document.getElementById('guild-banner-title');
   const subEl = document.getElementById('guild-banner-sub');
-
   if (!guildQuest) {
     banner.className = "p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-bold shadow-md cursor-pointer hover:opacity-95 transition flex justify-between items-center";
     titleEl.innerText = "冒險者公會";
@@ -460,61 +405,41 @@ function updateGuildBannerUI() {
 }
 
 window.handleGuildClick = function() {
-  if (guildQuest && guildQuest.progress >= 3) {
-    openCompleteQuestModal();
-  } else {
-    openGuildModal();
-  }
+  if (guildQuest && guildQuest.progress >= 3) openCompleteQuestModal();
+  else openGuildModal();
 };
 
 window.openGuildModal = function() {
   const container = document.getElementById('guild-quest-list-container');
   const subtext = document.getElementById('guild-modal-subtext');
   const abandonBtn = document.getElementById('btn-abandon-quest');
-
   container.innerHTML = '';
-
-  const ALL_QUEST_TYPES = ['cold', 'hot', 'snack'];
-  const remainingQuests = ALL_QUEST_TYPES.filter(t => !unlockedAuras.includes(t));
+  const remainingQuests = ['cold', 'hot', 'snack'].filter(t => !unlockedAuras.includes(t));
 
   if (guildQuest) {
     abandonBtn.classList.remove('hidden');
     subtext.innerText = "當前正在執行的副本任務：";
-
     const questNames = { cold: '❄️ 凜冬陣地', hot: '🔥 灼熱地城', snack: '🍡 小惡魔城' };
-    const auras = { cold: '極寒靈氣', hot: '灼熱靈氣', snack: '迅捷靈氣' };
-
     container.innerHTML = `
       <div class="p-3.5 rounded-xl border-2 border-amber-500 bg-amber-50/70 dark:bg-amber-950/40">
         <div class="flex justify-between items-center mb-1">
           <div class="text-xs font-black text-amber-900 dark:text-amber-200">${questNames[guildQuest.type]}</div>
           <span class="text-xs font-bold text-amber-600">進度: ${guildQuest.progress} / 3</span>
         </div>
-        <div class="text-[10px] text-amber-700 dark:text-amber-400">完成可解鎖：${auras[guildQuest.type]}</div>
       </div>
     `;
   } else if (remainingQuests.length === 0) {
     abandonBtn.classList.add('hidden');
     subtext.innerText = "";
-
-    container.innerHTML = `
-      <div class="p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-slate-500 dark:text-slate-400 my-2">
-        <div class="text-3xl mb-2">☕</div>
-        <div class="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">暫時沒有新的任務</div>
-        <div class="text-xs text-slate-400">過段時間再來看看吧</div>
-      </div>
-    `;
+    container.innerHTML = `<div class="p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-slate-500 my-2">暫時沒有新的任務</div>`;
   } else {
     abandonBtn.classList.add('hidden');
     subtext.innerText = "選擇一項副本任務進行挑戰：";
-
-    const questConfigs = [
-      { type: 'cold', title: '❄️ 凜冬陣地', reward: '極寒靈氣', bgClass: 'border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100 text-blue-900 dark:text-blue-200 text-blue-600' },
-      { type: 'hot', title: '🔥 灼熱地城', reward: '灼熱靈氣', bgClass: 'border-rose-200 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-900 dark:text-rose-200 text-rose-600' },
-      { type: 'snack', title: '🍡 小惡魔城', reward: '迅捷靈氣', bgClass: 'border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-900 dark:text-amber-200 text-amber-600' }
-    ];
-
-    questConfigs.filter(q => !unlockedAuras.includes(q.type)).forEach(q => {
+    [
+      { type: 'cold', title: '❄️ 凜冬陣地', reward: '極寒靈氣', bgClass: 'border-blue-200 bg-blue-50/50 text-blue-900' },
+      { type: 'hot', title: '🔥 灼熱地城', reward: '灼熱靈氣', bgClass: 'border-rose-200 bg-rose-50/50 text-rose-900' },
+      { type: 'snack', title: '🍡 小惡魔城', reward: '迅捷靈氣', bgClass: 'border-amber-200 bg-amber-50/50 text-amber-900' }
+    ].filter(q => !unlockedAuras.includes(q.type)).forEach(q => {
       container.innerHTML += `
         <div onclick="openAcceptQuestModal('${q.type}')" class="p-3 rounded-xl border ${q.bgClass} cursor-pointer transition flex justify-between items-center">
           <div>
@@ -526,7 +451,6 @@ window.openGuildModal = function() {
       `;
     });
   }
-
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-guild-list').classList.remove('hidden');
   document.getElementById('modal-guild-accept').classList.add('hidden');
@@ -549,11 +473,9 @@ window.openAcceptQuestModal = function(type) {
   const icons = { cold: '❄️', hot: '🔥', snack: '🍡' };
   const names = { cold: '凜冬陣地', hot: '灼熱地城', snack: '小惡魔城' };
   const auras = { cold: '極寒靈氣', hot: '灼熱靈氣', snack: '迅捷靈氣' };
-
   document.getElementById('accept-quest-icon').innerText = icons[type];
   document.getElementById('accept-quest-title').innerText = `是否接受：${names[type]}？`;
   document.getElementById('accept-quest-desc').innerText = `完成後將獲取${auras[type]}！`;
-
   document.getElementById('modal-guild-list').classList.add('hidden');
   document.getElementById('modal-guild-accept').classList.remove('hidden');
 };
@@ -562,11 +484,9 @@ window.confirmAcceptQuest = function() {
   if (!tempSelectedQuestType) return;
   guildQuest = { type: tempSelectedQuestType, progress: 0 };
   localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
-
   activeAura = null;
   localStorage.setItem('active_aura', '');
   updateAuraButtonsUI();
-
   closeModal();
   updateGuildBannerUI();
   filterAndDraw(false);
@@ -582,18 +502,14 @@ function openCompleteQuestModal() {
 
 window.claimQuestReward = function() {
   if (!guildQuest) return;
-  const type = guildQuest.type;
-  if (!unlockedAuras.includes(type)) {
-    unlockedAuras.push(type);
+  if (!unlockedAuras.includes(guildQuest.type)) {
+    unlockedAuras.push(guildQuest.type);
     localStorage.setItem('unlocked_auras', JSON.stringify(unlockedAuras));
   }
-  
   activeAura = null;
   localStorage.setItem('active_aura', '');
-
   guildQuest = null;
   localStorage.removeItem('guild_quest');
-
   closeModal();
   updateGuildBannerUI();
   applyFeatureUnlocks();
@@ -603,21 +519,12 @@ window.claimQuestReward = function() {
 
 window.toggleAura = function(auraType) {
   if (!unlockedAuras.includes(auraType)) return;
-
-  if (guildQuest) {
-    showAuraToast("⚔️ 任務進行中無法開啟靈氣");
-    return;
-  }
-
-  if (activeAura === auraType) {
-    activeAura = null;
-    showAuraToast("靈氣已關閉");
-  } else {
-    activeAura = auraType;
-    triggerAuraTextToast(auraType);
-  }
+  if (guildQuest) { showAuraToast("⚔️ 任務進行中無法開啟靈氣"); return; }
+  activeAura = (activeAura === auraType) ? null : auraType;
   localStorage.setItem('active_aura', activeAura || '');
   updateAuraButtonsUI();
+  if (activeAura) triggerAuraTextToast(auraType);
+  else showAuraToast("靈氣已關閉");
 };
 
 function triggerAuraTextToast(type) {
@@ -626,25 +533,22 @@ function triggerAuraTextToast(type) {
     hot: '灼熱靈氣開啟<br>下一次隨機抽選只會出現熱呼呼的食物囉！',
     snack: '迅捷靈氣開啟<br>下一次隨機抽選只會出現點心/輕食囉！'
   };
-  showAuraToast(texts[type] || '靈氣已啟動！');
+  showAuraToast(texts[type]);
 }
 
 function updateAuraButtonsUI() {
-  const types = ['cold', 'hot', 'snack'];
-  const labels = { cold: '❄️ 極寒靈氣', hot: '🔥 灼熱靈氣', snack: '⚡ 迅捷靈氣' };
-
-  types.forEach(t => {
+  ['cold', 'hot', 'snack'].forEach(t => {
     const btn = document.getElementById(`aura-btn-${t}`);
     if (!btn) return;
-
+    const labels = { cold: '❄️ 極寒靈氣', hot: '🔥 灼熱靈氣', snack: '⚡ 迅捷靈氣' };
     if (!unlockedAuras.includes(t)) {
-      btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-60";
+      btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 opacity-60";
       btn.innerText = `${labels[t]} (未解鎖)`;
     } else if (activeAura === t) {
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-indigo-600 text-white border-indigo-600 shadow-sm";
-      btn.innerText = labels[t]; 
+      btn.innerText = labels[t];
     } else {
-      btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50";
+      btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-white dark:bg-slate-900 text-indigo-600 border-indigo-200 hover:bg-indigo-50";
       btn.innerText = labels[t];
     }
   });
@@ -653,13 +557,10 @@ function updateAuraButtonsUI() {
 function showAuraToast(htmlContent) {
   const toast = document.getElementById('toast-aura-floating');
   if (!toast) return;
-
   if (auraToastTimer) clearTimeout(auraToastTimer);
-
   toast.innerHTML = htmlContent;
   toast.classList.remove('opacity-0', '-translate-y-2');
   toast.classList.add('opacity-100', '-translate-y-4');
-
   auraToastTimer = setTimeout(() => {
     toast.classList.remove('opacity-100', '-translate-y-4');
     toast.classList.add('opacity-0');
@@ -676,25 +577,9 @@ window.resetCooldownForTest = function() {
 };
 
 window.checkFeatureLock = function(featureKey) {
-  const reqLevels = {
-    stats: 5,
-    trivia: 6,
-    guild: 4,
-    favorite: 3,
-    like: 3,
-    dislike: 8
-  };
-  const reqNames = {
-    stats: "📊 數據統計中心 (Lv.5)",
-    trivia: "💡 美食冷知識 (Lv.6)",
-    guild: "🛡️ 冒險者公會 (Lv.4)",
-    favorite: "⭐ 個人最愛精選 (Lv.3)",
-    like: "👍 喜歡按鈕 (Lv.3)",
-    dislike: "👎 討厭按鈕 (Lv.8)"
-  };
-
-  const needed = reqLevels[featureKey] || 1;
-  if (userLevel < needed) {
+  const reqLevels = { stats: 5, trivia: 6, guild: 4, favorite: 3, like: 3, dislike: 8 };
+  const reqNames = { stats: "📊 數據統計中心 (Lv.5)", trivia: "💡 美食冷知識 (Lv.6)", guild: "🛡️ 冒險者公會 (Lv.4)", favorite: "⭐ 個人最愛精選 (Lv.3)", like: "👍 喜歡按鈕 (Lv.3)", dislike: "👎 討厭按鈕 (Lv.8)" };
+  if (userLevel < (reqLevels[featureKey] || 1)) {
     alert(`🔒 此功能尚未解鎖！\n需要達到 【${reqNames[featureKey]}】 才能使用（目前 Lv.${userLevel}）。`);
   }
 };
@@ -715,10 +600,7 @@ async function fetchFoods() {
     if (!res.ok) throw new Error('食物資料載入失敗');
     allFoods = await res.json();
   } catch (err) {
-    console.error(err);
-    document.getElementById('food-container').innerHTML = `
-      <div class="text-center py-6 text-red-500 font-bold">無法連線至食物資料庫</div>
-    `;
+    document.getElementById('food-container').innerHTML = `<div class="text-center py-6 text-red-500 font-bold">無法連線至食物資料庫</div>`;
   }
 }
 
@@ -728,9 +610,7 @@ async function fetchTrivias() {
     if (!res.ok) return;
     allTrivias = await res.json();
     if (userLevel >= 6 && settingsPushTrivia) renderRandomTrivia();
-  } catch (err) {
-    console.warn('遠端冷知識讀取失敗');
-  }
+  } catch (err) {}
 }
 
 function renderRandomTrivia() {
@@ -740,32 +620,26 @@ function renderRandomTrivia() {
     triviaWrapper.classList.add('hidden');
     return;
   }
-
   let availableTrivias = allTrivias;
   if (currentTriviaIndex >= 0 && allTrivias.length > 1) {
     availableTrivias = allTrivias.filter((_, idx) => idx !== currentTriviaIndex);
   }
-
-  const randomIndex = Math.floor(Math.random() * availableTrivias.length);
-  const selectedTrivia = availableTrivias[randomIndex];
+  const selectedTrivia = availableTrivias[Math.floor(Math.random() * availableTrivias.length)];
   currentTriviaIndex = allTrivias.indexOf(selectedTrivia);
-
-  const contentEl = document.getElementById('trivia-content');
-  if (contentEl) contentEl.innerText = selectedTrivia.content;
+  document.getElementById('trivia-content').innerText = selectedTrivia.content;
   triviaWrapper.classList.remove('hidden');
 }
 
-// 💡 點擊 🔄 換一個：一律扣除 1 水晶 (💎 -1)
 window.refreshTriviaWithCoin = function() {
-  if (drawState.count <= 0) {
-    alert('刷新水晶不足！觀看廣告即可補充水晶。');
+  if (!isVIP && drawState.count <= 0) {
+    alert('刷新水晶不足！可購買正式版享有無限水晶，或看廣告補充。');
     return;
   }
-
-  drawState.count--;
-  saveState();
-  showExpToast('toast-exp-floating');
-
+  if (!isVIP) {
+    drawState.count--;
+    saveState();
+    showExpToast('toast-exp-floating');
+  }
   renderRandomTrivia();
   updateCountersAndTimer();
 };
@@ -775,7 +649,6 @@ function showExpToast(elementId) {
   if (!toast) return;
   toast.classList.remove('opacity-0');
   toast.classList.add('-translate-y-3', 'opacity-100');
-  
   setTimeout(() => {
     toast.classList.remove('-translate-y-3', 'opacity-100');
     toast.classList.add('opacity-0');
@@ -783,10 +656,7 @@ function showExpToast(elementId) {
 }
 
 window.toggleTriviaBox = function(show) {
-  if (userLevel < 6) {
-    alert('🔒 美食冷知識區尚未解鎖！');
-    return;
-  }
+  if (userLevel < 6) { alert('🔒 美食冷知識區尚未解鎖！'); return; }
   settingsPushTrivia = show;
   localStorage.setItem('push_trivia', show);
   if (show) renderRandomTrivia();
@@ -795,24 +665,11 @@ window.toggleTriviaBox = function(show) {
 
 function updateFortuneText() {
   if (!userBirth) return;
-  
   const kyusei = calculateKyusei(userBirth.year, userBirth.month, userBirth.day);
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
-
-  const tagEl = document.getElementById('user-element-tag');
-  if (tagEl) {
-    tagEl.innerText = `${kyusei.star} [${kyusei.name}]`;
-  }
-
-  const relationEl = document.getElementById('user-relation-tag');
-  if (relationEl) {
-    relationEl.innerText = fortune.relationLabel;
-  }
-
-  const fortuneEl = document.getElementById('fortune-text');
-  if (fortuneEl) {
-    fortuneEl.innerHTML = fortune.text;
-  }
+  document.getElementById('user-element-tag').innerText = `${kyusei.star} [${kyusei.name}]`;
+  document.getElementById('user-relation-tag').innerText = fortune.relationLabel;
+  document.getElementById('fortune-text').innerHTML = fortune.text;
 }
 
 function showBirthModal() {
@@ -824,15 +681,10 @@ window.saveBirthdate = function() {
   const year = parseInt(document.getElementById('select-birth-year').value);
   const month = parseInt(document.getElementById('select-birth-month').value);
   const day = parseInt(document.getElementById('select-birth-day').value);
-
-  if (!year || !month || !day) {
-    alert('請完整選擇您的出生年月日！');
-    return;
-  }
+  if (!year || !month || !day) { alert('請完整選擇您的出生年月日！'); return; }
 
   userBirth = { year, month, day };
   localStorage.setItem('user_birth', JSON.stringify(userBirth));
-
   const kyusei = calculateKyusei(year, month, day);
   document.getElementById('kyusei-star-name').innerText = `根據九星氣學 您屬於：${kyusei.star}`;
   document.getElementById('kyusei-element-name').innerText = `對應五行：${kyusei.name}`;
@@ -847,39 +699,22 @@ window.confirmKyuseiResult = function() {
   updateMainTitle();
   updateFortuneText();
   filterAndDraw(true);
-
   startOnboardingGuide();
 };
 
 function startOnboardingGuide() {
-  const overlay = document.getElementById('guide-overlay');
-  const guideModal = document.getElementById('modal-onboarding-guide');
-  const targetFood = document.getElementById('guide-target-food');
-  const targetBtn = document.getElementById('guide-target-button');
-
-  if (overlay && guideModal) {
-    overlay.classList.remove('hidden');
-    guideModal.classList.remove('hidden');
-
-    if (targetFood) targetFood.className += ' relative z-50 bg-white dark:bg-slate-900 shadow-2xl ring-4 ring-indigo-500/50';
-    if (targetBtn) targetBtn.className += ' relative z-50 bg-white dark:bg-slate-900 shadow-2xl ring-4 ring-indigo-500/50';
-  }
+  document.getElementById('guide-overlay').classList.remove('hidden');
+  document.getElementById('modal-onboarding-guide').classList.remove('hidden');
+  document.getElementById('guide-target-food').className += ' relative z-50 bg-white dark:bg-slate-900 shadow-2xl ring-4 ring-indigo-500/50';
+  document.getElementById('guide-target-button').className += ' relative z-50 bg-white dark:bg-slate-900 shadow-2xl ring-4 ring-indigo-500/50';
 }
 
 window.finishOnboardingGuide = function() {
-  const overlay = document.getElementById('guide-overlay');
-  const guideModal = document.getElementById('modal-onboarding-guide');
-  const targetFood = document.getElementById('guide-target-food');
-  const targetBtn = document.getElementById('guide-target-button');
-
-  if (overlay && guideModal) {
-    overlay.classList.add('hidden');
-    guideModal.classList.add('hidden');
-    document.getElementById('modal-overlay').classList.add('hidden');
-
-    if (targetFood) targetFood.className = 'rounded-2xl transition-all duration-300 p-1';
-    if (targetBtn) targetBtn.className = 'relative mt-6 rounded-2xl transition-all duration-300 p-1';
-  }
+  document.getElementById('guide-overlay').classList.add('hidden');
+  document.getElementById('modal-onboarding-guide').classList.add('hidden');
+  document.getElementById('modal-overlay').classList.add('hidden');
+  document.getElementById('guide-target-food').className = 'rounded-2xl transition-all duration-300 p-1';
+  document.getElementById('guide-target-button').className = 'relative mt-6 rounded-2xl transition-all duration-300 p-1';
 };
 
 window.openSettingsModal = function() {
@@ -891,11 +726,9 @@ window.openSettingsModal = function() {
   }
   document.getElementById('setting-push-trivia').checked = settingsPushTrivia;
   document.getElementById('setting-theme-select').value = currentTheme;
-
   document.querySelectorAll('.meat-taboo').forEach(checkbox => {
     checkbox.checked = userTaboos.includes(checkbox.value);
   });
-
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-settings').classList.remove('hidden');
 };
@@ -904,45 +737,32 @@ window.saveSettings = function() {
   const year = parseInt(document.getElementById('select-setting-year').value);
   const month = parseInt(document.getElementById('select-setting-month').value);
   const day = parseInt(document.getElementById('select-setting-day').value);
-
   if (year && month && day) {
     userBirth = { year, month, day };
     localStorage.setItem('user_birth', JSON.stringify(userBirth));
   }
-
   userTaboos = [];
-  document.querySelectorAll('.meat-taboo:checked').forEach(checkbox => {
-    userTaboos.push(checkbox.value);
-  });
+  document.querySelectorAll('.meat-taboo:checked').forEach(checkbox => userTaboos.push(checkbox.value));
   localStorage.setItem('user_taboos', JSON.stringify(userTaboos));
-
   closeModal();
   updateMainTitle();
   updateFortuneText();
 };
 
 window.openStatsModal = function() {
-  if (userLevel < 5) {
-    alert('🔒 統計中心尚未解鎖！需要達到 Lv.5。');
-    return;
-  }
+  if (userLevel < 5) { alert('🔒 統計中心尚未解鎖！需要達到 Lv.5。'); return; }
   renderStatsRecent();
   renderStatsRanking();
   renderStatsDislikes();
   renderStatsBanned();
-
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-stats').classList.remove('hidden');
 };
 
 function renderStatsRecent() {
   const container = document.getElementById('stats-recent-list');
-  if (foodHistory.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 italic py-2">尚未有選擇紀錄</p>';
-    return;
-  }
-  const recent5 = foodHistory.slice(-5).reverse();
-  container.innerHTML = recent5.map(item => `
+  if (foodHistory.length === 0) { container.innerHTML = '<p class="text-slate-400 italic py-2">尚未有選擇紀錄</p>'; return; }
+  container.innerHTML = foodHistory.slice(-5).reverse().map(item => `
     <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
       <span class="font-medium text-slate-700 dark:text-slate-200">${item.name}</span>
       <span class="text-[10px] text-slate-400">${item.time}</span>
@@ -952,96 +772,62 @@ function renderStatsRecent() {
 
 function renderStatsRanking() {
   const container = document.getElementById('stats-ranking-list');
-  const sorted = Object.entries(foodCounts)
-    .map(([foodName, count]) => ({ foodName, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  if (sorted.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 italic py-2">尚未產生排名數據</p>';
-    return;
-  }
-
-  container.innerHTML = sorted.map((item, index) => {
-    return `
-      <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-        <span class="font-medium text-slate-700 dark:text-slate-200">No.${index + 1} ${item.foodName}</span>
-        <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400">${item.count} 次</span>
-      </div>
-    `;
-  }).join('');
+  const sorted = Object.entries(foodCounts).map(([foodName, count]) => ({ foodName, count })).sort((a, b) => b.count - a.count).slice(0, 10);
+  if (sorted.length === 0) { container.innerHTML = '<p class="text-slate-400 italic py-2">尚未產生排名數據</p>'; return; }
+  container.innerHTML = sorted.map((item, index) => `
+    <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+      <span class="font-medium text-slate-700 dark:text-slate-200">No.${index + 1} ${item.foodName}</span>
+      <span class="text-[11px] font-bold text-amber-600">${item.count} 次</span>
+    </div>
+  `).join('');
 }
 
 function renderStatsDislikes() {
-  const label = document.getElementById('dislike-toggle-label');
-  label.innerText = `👎 不喜歡的食物名單 (${userDislikes.length} 項)`;
-
+  document.getElementById('dislike-toggle-label').innerText = `👎 不喜歡的食物名單 (${userDislikes.length} 項)`;
   const container = document.getElementById('stats-dislike-list');
-  if (userDislikes.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 italic py-2">目前沒有被標記為 👎 不喜歡的食物</p>';
-    return;
-  }
-
-  container.innerHTML = userDislikes.map(foodName => {
-    return `
-      <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-        <span class="text-slate-700 dark:text-slate-200">${foodName}</span>
-        <button onclick="unmarkDislike('${foodName}')" class="text-[11px] text-rose-500 hover:text-rose-700 border border-rose-200 dark:border-rose-800 px-2 py-0.5 rounded">解封</button>
-      </div>
-    `;
-  }).join('');
+  if (userDislikes.length === 0) { container.innerHTML = '<p class="text-slate-400 italic py-2">目前沒有被標記為 👎 不喜歡的食物</p>'; return; }
+  container.innerHTML = userDislikes.map(foodName => `
+    <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+      <span class="text-slate-700 dark:text-slate-200">${foodName}</span>
+      <button onclick="unmarkDislike('${foodName}')" class="text-[11px] text-rose-500 border border-rose-200 px-2 py-0.5 rounded">解封</button>
+    </div>
+  `).join('');
 }
 
 window.toggleDislikeSection = function() {
   const container = document.getElementById('stats-dislike-container');
   const arrow = document.getElementById('dislike-toggle-arrow');
-  const isHidden = container.classList.contains('hidden');
-  if (isHidden) {
-    container.classList.remove('hidden');
-    arrow.innerText = '▲';
-  } else {
-    container.classList.add('hidden');
-    arrow.innerText = '▼';
-  }
+  container.classList.toggle('hidden');
+  arrow.innerText = container.classList.contains('hidden') ? '▼' : '▲';
 };
 
 window.unmarkDislike = function(foodName) {
   userDislikes = userDislikes.filter(i => i !== foodName);
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
   renderStatsDislikes();
-  updateButtonUI(foodName);
 };
 
 function renderStatsBanned() {
   const container = document.getElementById('stats-banned-list');
   const badge = document.getElementById('vip-status-badge');
   if (isVIP) {
-    badge.innerText = '⭐ VIP 已啟用';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-950 dark:text-amber-300 font-bold';
+    badge.innerText = '⭐ 正式版已啟用';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:text-amber-300 font-bold';
   } else {
     badge.innerText = '免費版 (未啟用)';
-    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium';
+    badge.className = 'text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 font-medium';
   }
   if (!isVIP) {
-    container.innerHTML = `
-      <div class="p-2.5 border border-amber-200 dark:border-amber-900 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-[11px] text-center">
-        🔒 升級正式版 (VIP) 即可將不喜歡的食物徹底過濾禁用！
-      </div>
-    `;
+    container.innerHTML = `<div class="p-2.5 border border-amber-200 rounded-xl bg-amber-50 text-amber-800 text-[11px] text-center">🔒 升級正式版即可將食物完全禁用！</div>`;
     return;
   }
-  if (userBanned.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 italic py-2">目前沒有被完全禁用的食物</p>';
-    return;
-  }
-  container.innerHTML = userBanned.map(foodName => {
-    return `
-      <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-        <span class="text-slate-700 dark:text-slate-200">${foodName}</span>
-        <button onclick="unmarkBanned('${foodName}')" class="text-[11px] text-indigo-500 hover:text-indigo-700 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded">解除禁用</button>
-      </div>
-    `;
-  }).join('');
+  if (userBanned.length === 0) { container.innerHTML = '<p class="text-slate-400 italic py-2">目前沒有被完全禁用的食物</p>'; return; }
+  container.innerHTML = userBanned.map(foodName => `
+    <div class="flex justify-between items-center p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
+      <span class="text-slate-700 dark:text-slate-200">${foodName}</span>
+      <button onclick="unmarkBanned('${foodName}')" class="text-[11px] text-indigo-500 border border-indigo-200 px-2 py-0.5 rounded">解除禁用</button>
+    </div>
+  `).join('');
 }
 
 window.unmarkBanned = function(foodName) {
@@ -1050,7 +836,22 @@ window.unmarkBanned = function(foodName) {
   renderStatsBanned();
 };
 
-// 💡 支援夜櫻風格 (night-sakura) 屬性動態切換
+// 點擊「正式版」按鈕後跳出說明視窗
+window.openVipStoreModal = function() {
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-settings').classList.add('hidden');
+  document.getElementById('modal-vip-store').classList.remove('hidden');
+};
+
+// 確認購買正式版（目前先變成直接開通測試）
+window.confirmBuyVIP = function() {
+  isVIP = true;
+  localStorage.setItem('is_vip', 'true');
+  alert('🎉 恭喜您成功開通正式版！已解鎖無須看廣告補充水晶與完全禁用討厭食物功能。');
+  closeModal();
+  filterAndDraw(false);
+};
+
 window.changeTheme = function(themeName) {
   if (userLevel < 3 && themeName !== 'default') {
     alert('🔒 佈景主題切換尚未解鎖！需要達到 Lv.3。');
@@ -1059,22 +860,10 @@ window.changeTheme = function(themeName) {
   }
   currentTheme = themeName;
   localStorage.setItem('app_theme', themeName);
-
   const htmlRoot = document.getElementById('html-root');
   htmlRoot.className = `theme-${themeName}`;
-
-  if (themeName === 'dark' || themeName === 'night-sakura') {
-    htmlRoot.classList.add('dark');
-  } else {
-    htmlRoot.classList.remove('dark');
-  }
-};
-
-window.buyVIP = function() {
-  isVIP = true;
-  localStorage.setItem('is_vip', 'true');
-  alert('🎉 恭喜您升級為 VIP 正式版！已解鎖「完全過濾不喜歡選項」功能。');
-  closeModal();
+  if (themeName === 'dark' || themeName === 'night-sakura') htmlRoot.classList.add('dark');
+  else htmlRoot.classList.remove('dark');
 };
 
 window.clearLocalStorage = function() {
@@ -1085,10 +874,13 @@ window.clearLocalStorage = function() {
 };
 
 window.simulateWatchAd = function() {
+  if (isVIP) {
+    alert('⭐ 您已是正式版會員，享有無限水晶，無需觀看廣告！');
+    return;
+  }
   const btn = document.getElementById('btn-watch-ad');
   btn.disabled = true;
   btn.innerText = '⏳ 廣告播放中...';
-
   setTimeout(() => {
     drawState.count = Math.min(MAX_DRAW, drawState.count + 10);
     saveState();
@@ -1103,60 +895,46 @@ function setupEventListeners() {
   const drawBtn = document.getElementById('draw-btn');
   if (drawBtn) {
     drawBtn.addEventListener('click', () => {
-      if (drawState.count <= 0) {
-        alert('刷新水晶不足！請觀看廣告補充。');
+      if (!isVIP && drawState.count <= 0) {
+        alert('刷新水晶不足！可購買正式版獲得無限水晶，或看廣告補充。');
         return;
       }
-      drawState.count--;
-      saveState();
-
+      if (!isVIP) {
+        drawState.count--;
+        saveState();
+      }
       userExp += 1;
       localStorage.setItem('user_exp', userExp);
       updateLevelAndUI(true);
-
       filterAndDraw(true); 
       showExpToast('toast-draw-exp-floating');
     });
   }
-
-  const confirmOnly = document.getElementById('btn-confirm-only');
-  const confirmMap = document.getElementById('btn-confirm-map');
-  if (confirmOnly) confirmOnly.onclick = () => handleConfirm(false);
-  if (confirmMap) confirmMap.onclick = () => handleConfirm(true);
+  document.getElementById('btn-confirm-only').onclick = () => handleConfirm(false);
+  document.getElementById('btn-confirm-map').onclick = () => handleConfirm(true);
 }
 
 function filterAndDraw(isDrawn = false) {
   if (allFoods.length === 0) return;
-
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
 
   if (isDrawn || currentDisplayedFoods.length === 0) {
     let pool = [...allFoods];
-
     if (userTaboos.length > 0) {
-      pool = pool.filter(f => {
-        if (!f.tags) return true;
-        return !userTaboos.some(taboo => f.tags.includes(taboo));
-      });
+      pool = pool.filter(f => !f.tags || !userTaboos.some(taboo => f.tags.includes(taboo)));
     }
-
-    if (isVIP) {
-      pool = pool.filter(f => !userDislikes.includes(f.id) && !userBanned.includes(f.id));
-    }
+    // 正式版或標記禁用時過濾
+    pool = pool.filter(f => !userBanned.includes(f.id));
 
     if (activeAura) {
       pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
     }
-
-    const boxCount = getUnlockBoxCount();
-    currentDisplayedFoods = weightedSample(pool, boxCount, fortune.targetElementKey);
-
+    currentDisplayedFoods = weightedSample(pool, getUnlockBoxCount(), fortune.targetElementKey);
     localStorage.setItem('current_displayed_foods', JSON.stringify(currentDisplayedFoods));
   }
 
   const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
-
   renderMainUI(currentDisplayedFoods);
   renderFavoriteUI(favoriteOne);
   updateCountersAndTimer();
@@ -1165,25 +943,20 @@ function filterAndDraw(isDrawn = false) {
 function weightedSample(list, k, targetElementKey) {
   let tempPool = [...list];
   let result = [];
-
   for (let i = 0; i < k; i++) {
     if (tempPool.length === 0) break;
-
     let totalWeight = tempPool.reduce((acc, item) => {
       let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
       if (item.element === targetElementKey) weight *= 2.0;
       return acc + weight;
     }, 0);
-
     let randomNum = Math.random() * totalWeight;
     let weightSum = 0;
-
     for (let j = 0; j < tempPool.length; j++) {
       let item = tempPool[j];
       let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
       if (item.element === targetElementKey) weight *= 2.0;
       weightSum += weight;
-
       if (randomNum <= weightSum) {
         result.push(item);
         tempPool.splice(j, 1);
@@ -1204,30 +977,26 @@ function sampleFavorite() {
 function renderMainUI(foods) {
   const container = document.getElementById('food-container');
   container.innerHTML = '';
-
-  if (foods.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 text-center py-6">沒有符合條件的食物！</p>';
-    return;
-  }
+  if (foods.length === 0) { container.innerHTML = '<p class="text-slate-400 text-center py-6">沒有符合條件的食物！</p>'; return; }
 
   foods.forEach((food, index) => {
     if (index === 0 && guildQuest && guildQuest.progress < 3) {
       container.appendChild(createGuildQuestCardHTML());
     }
-    container.appendChild(createFoodCardHTML(food, false));
+    container.appendChild(createFoodCardHTML(food));
   });
 
   const nextReq = getNextOptionUnlockRequirement();
   if (nextReq) {
     const lockedCard = document.createElement('div');
-    lockedCard.className = 'p-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500 flex justify-between items-center text-xs font-bold cursor-pointer hover:bg-slate-200/50 transition';
+    lockedCard.className = 'p-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 text-slate-400 flex justify-between items-center text-xs font-bold cursor-pointer hover:bg-slate-200/50 transition';
     lockedCard.onclick = () => alert(`🔒 達到 Lv.${nextReq.reqLevel} 即可解鎖第 ${nextReq.nextCount} 個盲盒選項！`);
     lockedCard.innerHTML = `
       <div class="flex items-center gap-2">
-        <span class="text-base">🔒</span>
+        <span>🔒</span>
         <span>第 ${nextReq.nextCount} 個盲盒選項 (升至 Lv.${nextReq.reqLevel} 解鎖)</span>
       </div>
-      <span class="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400">鎖定中</span>
+      <span class="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">鎖定中</span>
     `;
     container.appendChild(lockedCard);
   }
@@ -1237,17 +1006,16 @@ function createGuildQuestCardHTML() {
   const now = Date.now();
   const cooldownMs = 4 * 60 * 60 * 1000;
   const isCoolingDown = (now - lastEatTime < cooldownMs);
-
   const card = document.createElement('div');
   
   if (isCoolingDown) {
-    card.className = 'p-3.5 border border-dashed border-amber-300 dark:border-amber-800 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 flex justify-between items-center opacity-75';
+    card.className = 'p-3.5 border border-dashed border-amber-300 rounded-xl bg-amber-50/50 flex justify-between items-center opacity-75';
     card.innerHTML = `
       <div class="flex items-center gap-2">
-        <span class="text-xl">⏳</span>
-        <div class="font-bold text-sm text-amber-800 dark:text-amber-300">任務目標尋找中...</div>
+        <span>⏳</span>
+        <div class="font-bold text-sm text-amber-800">任務目標尋找中...</div>
       </div>
-      <span class="text-[10px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-900 px-2.5 py-1 rounded">冷卻中</span>
+      <span class="text-[10px] font-bold text-amber-600 bg-amber-100 px-2.5 py-1 rounded">冷卻中</span>
     `;
   } else {
     const targetTag = guildQuest.type;
@@ -1255,33 +1023,25 @@ function createGuildQuestCardHTML() {
     const targetFood = eligibleFoods.length > 0 ? eligibleFoods[Math.floor(Math.random() * eligibleFoods.length)] : { id: '神祕任務料理', element: 'elementMetal' };
     const foodName = targetFood.id;
     const safeId = btoa(encodeURIComponent("guild_" + foodName)).replace(/=/g, '');
-    const elemInfo = ELEMENT_MAP[targetFood.element] || { name: '未知', icon: '❓', class: 'text-slate-500 bg-slate-100 border-slate-200' };
+    const elemInfo = ELEMENT_MAP[targetFood.element] || { name: '未知', icon: '❓', class: 'text-slate-500 bg-slate-100' };
 
-    card.className = 'p-3.5 border-2 border-indigo-500 dark:border-indigo-600 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 flex justify-between items-center shadow-sm cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition gap-2';
+    card.className = 'p-3.5 border-2 border-indigo-500 rounded-xl bg-indigo-50/70 flex justify-between items-center shadow-sm cursor-pointer hover:bg-indigo-100 transition gap-2';
     card.onclick = () => openFoodConfirmModal(foodName);
-    
     card.innerHTML = `
       <div class="flex items-center gap-2.5 min-w-0 flex-1">
-        <span class="text-xl shrink-0">🎯</span>
+        <span>🎯</span>
         <div class="min-w-0 flex-1 overflow-hidden">
-          <div class="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 leading-none mb-1">任務目標：</div>
+          <div class="text-[10px] font-bold text-indigo-500 leading-none mb-1">任務目標：</div>
           <div class="overflow-hidden whitespace-nowrap w-full relative" id="marquee-container-${safeId}">
-            <div class="font-black text-sm text-indigo-900 dark:text-indigo-100 inline-block" id="marquee-text-${safeId}" title="${foodName}">
-              ${foodName}
-            </div>
+            <div class="font-black text-sm text-indigo-900 inline-block" id="marquee-text-${safeId}">${foodName}</div>
           </div>
         </div>
       </div>
-
       <span class="text-[10px] px-1.5 py-0.5 rounded border font-medium flex items-center gap-0.5 shrink-0 ${elemInfo.class}">
-        <span>${elemInfo.icon}</span>
-        <span>${elemInfo.name}</span>
+        <span>${elemInfo.icon}</span><span>${elemInfo.name}</span>
       </span>
     `;
-
-    setTimeout(() => {
-      initMarqueeForCard(safeId);
-    }, 50);
+    setTimeout(() => initMarqueeForCard(safeId), 50);
   }
   return card;
 }
@@ -1289,55 +1049,45 @@ function createGuildQuestCardHTML() {
 function renderFavoriteUI(food) {
   const container = document.getElementById('favorite-container');
   if (userLevel < 3) {
-    container.innerHTML = `
-      <div id="favorite-locked-box" onclick="checkFeatureLock('favorite')" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition">
-        🔒 達到 Lv.3 解鎖個人最愛鎖定區
-      </div>
-    `;
+    container.innerHTML = `<div id="favorite-locked-box" onclick="checkFeatureLock('favorite')" class="p-3 rounded-xl bg-slate-100 border border-dashed border-slate-300 text-xs text-slate-400 text-center cursor-pointer hover:bg-slate-200 transition">🔒 達到 Lv.3 解鎖個人最愛鎖定區</div>`;
     return;
   }
-
   container.innerHTML = '';
   if (!food) {
-    container.innerHTML = `
-      <div class="p-3 border border-amber-200 dark:border-amber-900 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs text-center">
-        💡 點擊上方食物旁的 👍 按鈕，按下「隨機抽選」即可為您鎖定喜愛美食！
-      </div>
-    `;
+    container.innerHTML = `<div class="p-3 border border-amber-200 rounded-xl bg-amber-50 text-amber-700 text-xs text-center">💡 點擊上方食物旁的 👍 按鈕，按下「隨機抽選」即可為您鎖定喜愛美食！</div>`;
     return;
   }
-
-  const card = createFoodCardHTML(food, true);
-  card.className += ' border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30';
+  const card = createFoodCardHTML(food);
+  card.className += ' border-amber-300 bg-amber-50/60';
   container.appendChild(card);
 }
 
-function createFoodCardHTML(food, isFavoriteSlot) {
+// 建立食物卡片 HTML（新增「禁用按鈕」與正式版狀態判斷）
+function createFoodCardHTML(food) {
   const foodName = food.id;
   const safeId = btoa(encodeURIComponent(foodName)).replace(/=/g, '');
-  
   const isLiked = userLikes.includes(foodName);
-  const isDisliked = userDislikes.includes(foodName);
-
-  const elemInfo = ELEMENT_MAP[food.element] || { name: '未知', icon: '❓', class: 'text-slate-500 bg-slate-100 border-slate-200' };
+  const isBanned = userBanned.includes(foodName);
+  const elemInfo = ELEMENT_MAP[food.element] || { name: '未知', icon: '❓', class: 'text-slate-500 bg-slate-100' };
 
   const card = document.createElement('div');
   card.id = `food-card-${safeId}`;
-  card.className = 'p-3 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center shadow-sm hover:bg-slate-100 dark:hover:bg-slate-750 transition gap-2';
+  card.className = 'p-3 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center shadow-sm hover:bg-slate-100 transition gap-2';
   
-  const likeBtnClass = isLiked 
-    ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' 
-    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200';
-
-  const dislikeBtnClass = isDisliked 
-    ? 'bg-rose-500 text-white border-rose-500 shadow-sm' 
-    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200';
-
+  const likeBtnClass = isLiked ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
   const likeAction = (userLevel >= 3) ? `togglePreference('${foodName.replace(/'/g, "\\'")}', 'like')` : `checkFeatureLock('like')`;
-  const dislikeAction = (userLevel >= 8) ? `togglePreference('${foodName.replace(/'/g, "\\'")}', 'dislike')` : `checkFeatureLock('dislike')`;
-
   const likeDisplay = (userLevel >= 3) ? '👍' : '🔒';
-  const dislikeDisplay = (userLevel >= 8) ? '👎' : '🔒';
+
+  // 禁用按鈕樣式與行為：如果已解鎖正式版且已禁用，顯示紅色；若未解鎖正式版，持續顯示帶有鎖頭的圖案
+  let banBtnClass = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
+  let banDisplay = '🔒 ⛔';
+  let banAction = `openVipRequiredModal()`;
+
+  if (isVIP) {
+    banDisplay = isBanned ? '🚫 已禁' : '⛔ 禁用';
+    banAction = `toggleBanFood('${foodName.replace(/'/g, "\\'")}')`;
+    if (isBanned) banBtnClass = 'bg-rose-600 text-white border-rose-600 shadow-sm';
+  }
 
   card.innerHTML = `
     <div class="cursor-pointer flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden" onclick="openFoodConfirmModal('${foodName.replace(/'/g, "\\'")}')">
@@ -1347,45 +1097,49 @@ function createFoodCardHTML(food, isFavoriteSlot) {
         </h3>
       </div>
       <span class="text-[10px] px-1.5 py-0.5 rounded border font-medium flex items-center gap-0.5 shrink-0 ${elemInfo.class}">
-        <span>${elemInfo.icon}</span>
-        <span>${elemInfo.name}</span>
+        <span>${elemInfo.icon}</span><span>${elemInfo.name}</span>
       </span>
     </div>
-    
     <div class="flex items-center gap-1 shrink-0">
-      <button id="like-btn-${safeId}" onclick="${likeAction}" 
-        class="px-2 py-1 text-xs rounded-lg border transition ${likeBtnClass}" title="${userLevel < 3 ? 'Lv.3 解鎖喜歡' : ''}">
+      <button onclick="${likeAction}" class="px-2 py-1 text-xs rounded-lg border transition ${likeBtnClass}" title="喜歡">
         ${likeDisplay}
       </button>
-      <button id="dislike-btn-${safeId}" onclick="${dislikeAction}" 
-        class="px-2 py-1 text-xs rounded-lg border transition ${dislikeBtnClass}" title="${userLevel < 8 ? 'Lv.8 解鎖討厭' : ''}">
-        ${dislikeDisplay}
+      <button onclick="${banAction}" class="px-2 py-1 text-xs rounded-lg border transition ${banBtnClass}" title="永久禁用">
+        ${banDisplay}
       </button>
     </div>
   `;
-
-  setTimeout(() => {
-    initMarqueeForCard(safeId);
-  }, 50);
-
+  setTimeout(() => initMarqueeForCard(safeId), 50);
   return card;
 }
+
+// 未解鎖正式版時點擊禁用按鈕跳出的提示視窗
+window.openVipRequiredModal = function() {
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-vip-required').classList.remove('hidden');
+};
+
+// 正式版用戶切換禁用狀態
+window.toggleBanFood = function(foodName) {
+  if (userBanned.includes(foodName)) {
+    userBanned = userBanned.filter(i => i !== foodName);
+  } else {
+    userBanned.push(foodName);
+  }
+  localStorage.setItem('user_banned', JSON.stringify(userBanned));
+  filterAndDraw(false);
+};
 
 function initMarqueeForCard(safeId) {
   const container = document.getElementById(`marquee-container-${safeId}`);
   const textEl = document.getElementById(`marquee-text-${safeId}`);
   if (!container || !textEl) return;
-
   const containerWidth = container.clientWidth;
   const textWidth = textEl.scrollWidth;
-
   if (textWidth > containerWidth) {
     const distance = containerWidth - textWidth - 10;
-    const scrollDuration = Math.max(3, Math.abs(distance) * 0.05);
-    const totalDuration = scrollDuration + 2;
-
     textEl.style.setProperty('--marquee-distance', `${distance}px`);
-    textEl.style.setProperty('--marquee-duration', `${totalDuration}s`);
+    textEl.style.setProperty('--marquee-duration', `${Math.max(3, Math.abs(distance) * 0.05) + 2}s`);
     textEl.classList.add('animate-marquee');
   }
 }
@@ -1393,54 +1147,12 @@ function initMarqueeForCard(safeId) {
 window.togglePreference = function(foodName, type) {
   if (type === 'like') {
     if (userLevel < 3) { alert('🔒 喜歡按鈕需達到 Lv.3 才能使用！'); return; }
-    if (userLikes.includes(foodName)) {
-      userLikes = userLikes.filter(i => i !== foodName);
-    } else {
-      userLikes.push(foodName);
-      userDislikes = userDislikes.filter(i => i !== foodName);
-    }
-  } else if (type === 'dislike') {
-    if (userLevel < 8) { alert('🔒 討厭按鈕需達到 Lv.8 才能使用！'); return; }
-    if (userDislikes.includes(foodName)) {
-      userDislikes = userDislikes.filter(i => i !== foodName);
-    } else {
-      userDislikes.push(foodName);
-      userLikes = userLikes.filter(i => i !== foodName);
-      if (isVIP && !userBanned.includes(foodName)) {
-        userBanned.push(foodName);
-        localStorage.setItem('user_banned', JSON.stringify(userBanned));
-      }
-    }
+    if (userLikes.includes(foodName)) userLikes = userLikes.filter(i => i !== foodName);
+    else { userLikes.push(foodName); userDislikes = userDislikes.filter(i => i !== foodName); }
   }
-
   localStorage.setItem('user_likes', JSON.stringify(userLikes));
-  localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
-  updateButtonUI(foodName);
+  filterAndDraw(false);
 };
-
-function updateButtonUI(foodName) {
-  const isLiked = userLikes.includes(foodName);
-  const isDisliked = userDislikes.includes(foodName);
-
-  allFoods.forEach(food => {
-    if (food.id === foodName) {
-      const safeId = btoa(encodeURIComponent(food.id)).replace(/=/g, '');
-      const likeBtn = document.getElementById(`like-btn-${safeId}`);
-      const dislikeBtn = document.getElementById(`dislike-btn-${safeId}`);
-
-      if (likeBtn && userLevel >= 3) {
-        likeBtn.className = `px-2 py-1 text-xs rounded-lg border transition ${
-          isLiked ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
-        }`;
-      }
-      if (dislikeBtn && userLevel >= 8) {
-        dislikeBtn.className = `px-2 py-1 text-xs rounded-lg border transition ${
-          isDisliked ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-200'
-        }`;
-      }
-    }
-  });
-}
 
 window.openFoodConfirmModal = function(foodName) {
   selectedFoodForConfirm = allFoods.find(f => f.id === foodName);
@@ -1448,19 +1160,10 @@ window.openFoodConfirmModal = function(foodName) {
 
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
-  const isMatchedElement = selectedFoodForConfirm.element === fortune.targetElementKey;
-
   document.getElementById('confirm-title').innerText = `確定要吃 ${selectedFoodForConfirm.id} 嗎？`;
-  
-  const hintBox = document.getElementById('confirm-element-bonus-hint');
-  if (isMatchedElement) {
-    hintBox.classList.remove('hidden');
-  } else {
-    hintBox.classList.add('hidden');
-  }
+  document.getElementById('confirm-element-bonus-hint').classList.toggle('hidden', selectedFoodForConfirm.element !== fortune.targetElementKey);
 
   updateConfirmModalExpText();
-
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-confirm-step1').classList.remove('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
@@ -1474,147 +1177,107 @@ window.openFoodConfirmModal = function(foodName) {
   document.getElementById('modal-guild-list').classList.add('hidden');
   document.getElementById('modal-guild-accept').classList.add('hidden');
   document.getElementById('modal-guild-complete').classList.add('hidden');
+  document.getElementById('modal-vip-required').classList.add('hidden');
+  document.getElementById('modal-vip-store').classList.add('hidden');
 };
 
 function updateConfirmModalExpText() {
   if (!selectedFoodForConfirm) return;
-
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
   const isMatchedElement = selectedFoodForConfirm.element === fortune.targetElementKey;
-
   const now = Date.now();
   const cooldownMs = 4 * 60 * 60 * 1000;
   const elapsedEat = now - lastEatTime;
-  const isCoolingDown = (elapsedEat < cooldownMs);
-
   const hintConfirm = document.getElementById('hint-exp-confirm');
   const hintMap = document.getElementById('hint-exp-map');
 
-  if (isCoolingDown) {
+  if (elapsedEat < cooldownMs) {
     const remainEatMs = cooldownMs - elapsedEat;
-    const hrs = Math.floor(remainEatMs / (1000 * 60 * 60));
-    const mins = Math.floor((remainEatMs % (1000 * 60 * 60)) / (1000 * 60));
-    const secs = Math.floor((remainEatMs % (1000 * 60)) / 1000);
-    const timeStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-
-    const text = `⏳ 經驗值冷卻中（還剩 ${timeStr} 可獲得經驗值）`;
-    hintConfirm.innerText = text;
-    hintMap.innerText = text;
-    hintConfirm.className = 'text-xs font-bold text-amber-600 dark:text-amber-400 mt-1.5';
-    hintMap.className = 'text-xs font-bold text-amber-600 dark:text-amber-400 mt-1.5';
+    const timeStr = `${String(Math.floor(remainEatMs / 3600000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 60000) / 1000)).padStart(2, '0')}`;
+    hintConfirm.innerText = `⏳ 經驗值冷卻中（還剩 ${timeStr} 可獲得經驗值）`;
+    hintMap.innerText = `⏳ 經驗值冷卻中（還剩 ${timeStr} 可獲得經驗值）`;
   } else {
-    let expectedExp = 5;
-    if (isMatchedElement) expectedExp += 5;
-    const text = `✨ 確定選擇可獲得 +${expectedExp} 經驗值`;
-    hintConfirm.innerText = text;
-    hintMap.innerText = text;
-    hintConfirm.className = 'text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1.5';
-    hintMap.className = 'text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1.5';
+    let expectedExp = isMatchedElement ? 10 : 5;
+    hintConfirm.innerText = `✨ 確定選擇可獲得 +${expectedExp} 經驗值`;
+    hintMap.innerText = `✨ 確定選擇可獲得 +${expectedExp} 經驗值`;
   }
 }
 
 function handleConfirm(needMap) {
   if (!selectedFoodForConfirm) return;
-
   const foodName = selectedFoodForConfirm.id;
   const foodElement = selectedFoodForConfirm.element;
-  
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
-
   const timeStr = new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   foodHistory.push({ name: foodName, time: timeStr });
   foodCounts[foodName] = (foodCounts[foodName] || 0) + 1;
-
   localStorage.setItem('food_history', JSON.stringify(foodHistory));
   localStorage.setItem('food_counts', JSON.stringify(foodCounts));
 
   if (userLevel >= 3 && !userLikes.includes(foodName)) {
     userLikes.push(foodName);
-    userDislikes = userDislikes.filter(i => i !== foodName);
     localStorage.setItem('user_likes', JSON.stringify(userLikes));
-    localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
-    updateButtonUI(foodName);
   }
 
   const now = Date.now();
-  const cooldownMs = 4 * 60 * 60 * 1000;
-  const isCoolingDown = (now - lastEatTime < cooldownMs);
+  const isCoolingDown = (now - lastEatTime < (4 * 60 * 60 * 1000));
   let gainedExp = 0;
   let expMsg = "";
 
   if (!isCoolingDown) {
     gainedExp += 5;
     expMsg = "✨ 經驗值 +5";
-
     if (foodElement === fortune.targetElementKey) {
       gainedExp += 5;
-      expMsg += "<br><span class='text-amber-600 dark:text-amber-300 font-extrabold'>🔥 契合今日開運食補 經驗值額外+5！</span>";
+      expMsg += "<br><span class='text-amber-600 font-extrabold'>🔥 契合今日開運食補 經驗值額外+5！</span>";
     }
-
     userExp += gainedExp;
     lastEatTime = now;
     hasTriggeredAutoRefreshThisCycle = false;
     localStorage.setItem('user_exp', userExp);
     localStorage.setItem('last_eat_time', lastEatTime);
 
-    if (guildQuest && guildQuest.progress < 3) {
-      if (selectedFoodForConfirm.tags && selectedFoodForConfirm.tags.includes(guildQuest.type)) {
-        guildQuest.progress++;
-        localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
-        expMsg += `<br><span class='text-indigo-600 dark:text-indigo-300 font-extrabold'>⚔️ 副本任務進度 +1 (${guildQuest.progress}/3)</span>`;
-
-        if (guildQuest.progress >= 3) {
-          expMsg += `<br><span class='text-amber-500 font-extrabold'>🎉 恭喜完成副本挑戰！點擊公會即可領取靈氣！</span>`;
-        }
-      }
+    if (guildQuest && guildQuest.progress < 3 && selectedFoodForConfirm.tags && selectedFoodForConfirm.tags.includes(guildQuest.type)) {
+      guildQuest.progress++;
+      localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
+      expMsg += `<br><span class='text-indigo-600 font-extrabold'>⚔️ 副本任務進度 +1 (${guildQuest.progress}/3)</span>`;
+      if (guildQuest.progress >= 3) expMsg += `<br><span class='text-amber-500 font-extrabold'>🎉 恭喜完成副本挑戰！點擊公會即可領取靈氣！</span>`;
     }
   } else {
-    expMsg = "⏳ 4小時冷卻中，本次確認未獲得經驗值（副本任務進度未推進）";
+    expMsg = "⏳ 4小時冷卻中，本次確認未獲得經驗值";
   }
 
   let oldLevel = userLevel;
   let currentLv = 1;
   for (let i = LEVEL_UNLOCKS.length - 1; i >= 0; i--) {
-    if (userExp >= LEVEL_UNLOCKS[i].expNeeded) {
-      currentLv = LEVEL_UNLOCKS[i].level;
-      break;
-    }
+    if (userExp >= LEVEL_UNLOCKS[i].expNeeded) { currentLv = LEVEL_UNLOCKS[i].level; break; }
   }
 
   document.getElementById('modal-confirm-step1').classList.add('hidden');
-
   if (currentLv > oldLevel) {
     userLevel = currentLv;
     localStorage.setItem('user_level', userLevel);
     pendingCongratModalData = { foodName, expMsg, needMap };
-    const tier = LEVEL_UNLOCKS.find(l => l.level === userLevel);
-    showLevelUpModal(userLevel, tier ? tier.unlockDesc : "新功能");
+    showLevelUpModal(userLevel, LEVEL_UNLOCKS.find(l => l.level === userLevel).unlockDesc);
   } else {
     showCongratModal(foodName, expMsg, needMap);
   }
-
   updateLevelAndUI(false);
   updateGuildBannerUI();
-  filterAndDraw(false); 
+  filterAndDraw(false);
 }
 
 function showCongratModal(foodName, expMsg, needMap) {
   document.getElementById('modal-confirm-step2').classList.remove('hidden');
   document.getElementById('congrat-text').innerText = `今天就吃 ${foodName} 吧！`;
   document.getElementById('exp-reward-box').innerHTML = expMsg;
-
   const finalBtn = document.getElementById('btn-final-action');
-  
   if (needMap) {
     finalBtn.innerText = '耶！找找！';
-    finalBtn.onclick = () => {
-      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(foodName)}`;
-      window.open(url, '_blank');
-      closeModal();
-    };
+    finalBtn.onclick = () => { window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(foodName)}`, '_blank'); closeModal(); };
   } else {
     finalBtn.innerText = '耶！';
     finalBtn.onclick = closeModal;
@@ -1623,109 +1286,66 @@ function showCongratModal(foodName, expMsg, needMap) {
 
 window.closeModal = function() {
   document.getElementById('modal-overlay').classList.add('hidden');
-  document.getElementById('modal-birth').classList.add('hidden');
-  document.getElementById('modal-kyusei-result').classList.add('hidden');
-  document.getElementById('modal-onboarding-guide').classList.add('hidden');
-  document.getElementById('modal-confirm-step1').classList.add('hidden');
-  document.getElementById('modal-confirm-step2').classList.add('hidden');
-  document.getElementById('modal-settings').classList.add('hidden');
-  document.getElementById('modal-stats').classList.add('hidden');
-  document.getElementById('modal-levelup').classList.add('hidden');
-  document.getElementById('modal-title').classList.add('hidden');
-  document.getElementById('modal-guild-list').classList.add('hidden');
-  document.getElementById('modal-guild-accept').classList.add('hidden');
-  document.getElementById('modal-guild-complete').classList.add('hidden');
+  document.querySelectorAll('#modal-overlay > div').forEach(m => m.classList.add('hidden'));
   selectedFoodForConfirm = null;
   pendingCongratModalData = null;
 };
 
 function checkAndUpdateCooldown() {
-  const now = Date.now();
-  const diffMs = now - drawState.timestamp;
+  const diffMs = Date.now() - drawState.timestamp;
   const intervalMs = 10 * 60 * 1000;
-  
   if (diffMs >= intervalMs && drawState.count < MAX_DRAW) {
     const intervalsPassed = Math.floor(diffMs / intervalMs);
-    const addCount = intervalsPassed * 5;
-    drawState.count = Math.min(MAX_DRAW, drawState.count + addCount);
-    drawState.timestamp = drawState.timestamp + (intervalsPassed * intervalMs);
+    drawState.count = Math.min(MAX_DRAW, drawState.count + (intervalsPassed * 5));
+    drawState.timestamp += intervalsPassed * intervalMs;
     saveState();
   }
 }
 
-// 💡 動態切換冷知識刷新按鈕文案（-1水晶 換行 或是 倒數時間後自動刷新）
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
-  
   const now = Date.now();
-  const cooldownMs = 4 * 60 * 60 * 1000;
-  const elapsedEat = now - lastEatTime;
-  const remainEatMs = Math.max(0, cooldownMs - elapsedEat);
-
+  const remainEatMs = Math.max(0, (4 * 60 * 60 * 1000) - (now - lastEatTime));
+  
   const triviaCountdownEl = document.getElementById('trivia-countdown-text');
   if (triviaCountdownEl) {
     if (lastEatTime === 0 || remainEatMs === 0) {
       triviaCountdownEl.innerHTML = `💎 -1<br>換一個`;
-      
-      // 冷卻結束瞬間免費自動刷新一次
       if (lastEatTime !== 0 && remainEatMs === 0 && !hasTriggeredAutoRefreshThisCycle) {
         hasTriggeredAutoRefreshThisCycle = true;
         renderRandomTrivia();
       }
     } else {
-      const hrs = Math.floor(remainEatMs / (1000 * 60 * 60));
-      const mins = Math.floor((remainEatMs % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((remainEatMs % (1000 * 60)) / 1000);
-      const timeStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      const timeStr = `${String(Math.floor(remainEatMs / 3600000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 60000) / 1000)).padStart(2, '0')}`;
       triviaCountdownEl.innerHTML = `${timeStr}<br>後自動刷新`;
     }
   }
 
   const coinValEl = document.getElementById('coin-counter-val');
-  if (coinValEl) {
-    coinValEl.innerText = drawState.count;
-  }
+  if (coinValEl) coinValEl.innerText = isVIP ? '∞' : drawState.count;
 
   const coinSubtextEl = document.getElementById('coin-timer-subtext');
-  const intervalMs = 10 * 60 * 1000;
-  const elapsed = (now - drawState.timestamp) % intervalMs;
-  const remainingMs = intervalMs - elapsed;
-  const minutes = Math.floor(remainingMs / 60000);
-  const seconds = Math.floor((remainingMs % 60000) / 1000);
-  const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const remainingMs = (10 * 60 * 1000) - ((now - drawState.timestamp) % (10 * 60 * 1000));
+  const timeStr = `${String(Math.floor(remainingMs / 60000)).padStart(2, '0')}:${String(Math.floor((remainingMs % 60000) / 1000)).padStart(2, '0')}`;
 
   if (coinSubtextEl) {
-    if (drawState.count >= MAX_DRAW) {
+    if (isVIP) {
+      coinSubtextEl.innerText = '⭐ 正式版無限';
+      coinSubtextEl.className = 'text-[9px] font-bold text-amber-500 mt-0.5 leading-none whitespace-nowrap';
+    } else if (drawState.count >= MAX_DRAW) {
       coinSubtextEl.innerText = '✨ 已達上限';
-      coinSubtextEl.className = 'text-[9px] font-bold text-amber-500 dark:text-amber-400 mt-0.5 leading-none whitespace-nowrap';
     } else {
       coinSubtextEl.innerText = `⏳ 補充 ${timeStr}`;
-      coinSubtextEl.className = 'text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 leading-none whitespace-nowrap';
     }
-  }
-
-  const nextRefreshEl = document.getElementById('next-refresh-time');
-  if (nextRefreshEl) {
-    nextRefreshEl.innerText = `下一次自動補充：${timeStr}`;
   }
 
   const timerBar = document.getElementById('cooldown-timer-bar');
   const countdownEl = document.getElementById('cooldown-countdown');
-  if (timerBar && countdownEl) {
-    if (elapsedEat < cooldownMs && lastEatTime !== 0) {
-      const hrs = Math.floor(remainEatMs / (1000 * 60 * 60));
-      const mins = Math.floor((remainEatMs % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((remainEatMs % (1000 * 60)) / 1000);
-      countdownEl.innerText = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-      timerBar.classList.remove('hidden');
-    } else {
-      timerBar.classList.add('hidden');
-    }
-  }
-
-  const confirmStep1 = document.getElementById('modal-confirm-step1');
-  if (confirmStep1 && !confirmStep1.classList.contains('hidden')) {
-    updateConfirmModalExpText();
+  if (timerBar && countdownEl && remainEatMs > 0 && lastEatTime !== 0) {
+    countdownEl.innerText = `${String(Math.floor(remainEatMs / 3600000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 60000) / 1000)).padStart(2, '0')}`;
+    timerBar.classList.remove('hidden');
+  } else if (timerBar) {
+    timerBar.classList.add('hidden');
   }
 }
 
