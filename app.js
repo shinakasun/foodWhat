@@ -35,9 +35,10 @@ let currentTriviaIndex = -1;
 let selectedFoodForConfirm = null;
 let pendingCongratModalData = null;
 
-// 搜尋過濾用的暫存變數
+// 搜尋過濾用的暫存變數與注音組字狀態旗標
 let dislikeSearchQuery = '';
 let bannedSearchQuery = '';
+let isComposing = false; 
 
 const ONLINE_FOODS_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 const ONLINE_TRIVIAS_URL = 'https://shinakasun.github.io/foodWhatDataBase/trivias.json';
@@ -174,7 +175,6 @@ async function initApp() {
   setInterval(updateCountersAndTimer, 1000);
 }
 
-// 1. 正式版隱藏最下方看廣告按鈕與倒數計時器
 function updateAdSectionVisibility() {
   const adWrapper = document.getElementById('ad-section-wrapper');
   if (!adWrapper) return;
@@ -799,7 +799,7 @@ function renderStatsRanking() {
   `).join('');
 }
 
-// 2. 討厭的食物清單管理（超過5筆自動變為具備即時搜尋與卷軸拖拉的視窗）
+// 4. 討厭清單管理（加入組字中事件處理，防止注音輸入中斷）
 function renderDislikeManager() {
   const container = document.getElementById('dislike-manager-section');
   if (!container) return;
@@ -810,7 +810,11 @@ function renderDislikeManager() {
   if (userDislikes.length > 5) {
     html += `
       <div class="mb-2">
-        <input type="text" id="dislike-search-input" value="${dislikeSearchQuery}" oninput="onDislikeSearchInput(this.value)" placeholder="🔍 輸入關鍵字篩選討厭品項..." class="w-full p-2 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs text-slate-800 dark:text-white focus:outline-none">
+        <input type="text" id="dislike-search-input" value="${dislikeSearchQuery}" 
+          oncompositionstart="isComposing=true" 
+          oncompositionend="isComposing=false; onDislikeSearchInput(this.value)" 
+          oninput="if(!isComposing) onDislikeSearchInput(this.value)" 
+          placeholder="🔍 輸入關鍵字篩選討厭品項..." class="w-full p-2 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs text-slate-800 dark:text-white focus:outline-none">
       </div>
     `;
   }
@@ -842,7 +846,7 @@ window.removeDislikeItem = function(foodName) {
   renderDislikeManager();
 };
 
-// 2. 完全禁用食物清單管理（超過5筆自動變為具備即時搜尋與卷軸拖拉的視窗）
+// 4. 完全禁用清單管理（加入組字中事件處理，防止注音輸入中斷）
 function renderBannedManager() {
   const container = document.getElementById('banned-manager-section');
   const badge = document.getElementById('vip-status-badge');
@@ -867,7 +871,11 @@ function renderBannedManager() {
   if (userBanned.length > 5) {
     html += `
       <div class="mb-2">
-        <input type="text" id="banned-search-input" value="${bannedSearchQuery}" oninput="onBannedSearchInput(this.value)" placeholder="🔍 輸入關鍵字篩選禁用品項..." class="w-full p-2 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs text-slate-800 dark:text-white focus:outline-none">
+        <input type="text" id="banned-search-input" value="${bannedSearchQuery}" 
+          oncompositionstart="isComposing=true" 
+          oncompositionend="isComposing=false; onBannedSearchInput(this.value)" 
+          oninput="if(!isComposing) onBannedSearchInput(this.value)" 
+          placeholder="🔍 輸入關鍵字篩選禁用品項..." class="w-full p-2 border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs text-slate-800 dark:text-white focus:outline-none">
       </div>
     `;
   }
@@ -886,7 +894,7 @@ function renderBannedManager() {
     html += `</div>`;
   }
   container.innerHTML = html;
-}
+};
 
 window.onBannedSearchInput = function(val) {
   bannedSearchQuery = val;
@@ -911,7 +919,7 @@ window.confirmBuyVIP = function() {
   alert('🎉 恭喜您成功開通正式版！已隱藏廣告區塊、解鎖無限水晶與完全禁用討厭食物功能。');
   closeModal();
   updateAdSectionVisibility();
-  filterAndDraw(false);
+  updateOnlyFoodList();
 };
 
 window.changeTheme = function(themeName) {
@@ -974,6 +982,29 @@ function setupEventListeners() {
   }
   document.getElementById('btn-confirm-only').onclick = () => handleConfirm(false);
   document.getElementById('btn-confirm-map').onclick = () => handleConfirm(true);
+}
+
+// 1. 抽離不重刷個人最愛的局部更新函式 (切換狀態時專用)
+function updateOnlyFoodList() {
+  if (allFoods.length === 0) return;
+  const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
+  const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
+
+  if (currentDisplayedFoods.length === 0) {
+    let pool = [...allFoods];
+    if (userTaboos.length > 0) {
+      pool = pool.filter(f => !f.tags || !userTaboos.some(taboo => f.tags.includes(taboo)));
+    }
+    pool = pool.filter(f => !userBanned.includes(f.id));
+    if (activeAura) {
+      pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
+    }
+    currentDisplayedFoods = weightedSample(pool, getUnlockBoxCount(), fortune.targetElementKey);
+    localStorage.setItem('current_displayed_foods', JSON.stringify(currentDisplayedFoods));
+  }
+
+  renderMainUI(currentDisplayedFoods);
+  updateCountersAndTimer();
 }
 
 function filterAndDraw(isDrawn = false) {
@@ -1123,7 +1154,7 @@ function renderFavoriteUI(food) {
   container.appendChild(card);
 }
 
-// 3. 建立食物卡片 HTML（新增討厭按鈕與禁用按鈕）
+// 2. 建立食物卡片 HTML（套用獨立專屬 Class，確保各風格下按鈕顏色正常）
 function createFoodCardHTML(food) {
   const foodName = food.id;
   const safeId = btoa(encodeURIComponent(foodName)).replace(/=/g, '');
@@ -1136,16 +1167,14 @@ function createFoodCardHTML(food) {
   card.id = `food-card-${safeId}`;
   card.className = 'p-3 border dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 flex justify-between items-center shadow-sm hover:bg-slate-100 transition gap-2';
   
-  const likeBtnClass = isLiked ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
+  const likeBtnClass = isLiked ? 'like-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
   const likeAction = (userLevel >= 3) ? `togglePreference('${foodName.replace(/'/g, "\\'")}', 'like')` : `checkFeatureLock('like')`;
   const likeDisplay = (userLevel >= 3) ? '👍' : '🔒';
 
-  // 討厭按鈕邏輯 (Lv.8 解鎖)
-  const dislikeBtnClass = isDisliked ? 'bg-rose-500 text-white border-rose-500 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
+  const dislikeBtnClass = isDisliked ? 'dislike-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
   const dislikeAction = (userLevel >= 8) ? `togglePreference('${foodName.replace(/'/g, "\\'")}', 'dislike')` : `checkFeatureLock('dislike')`;
   const dislikeDisplay = (userLevel >= 8) ? '👎' : '🔒';
 
-  // 禁用按鈕邏輯 (正式版解鎖)
   let banBtnClass = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
   let banDisplay = '🔒 ⛔';
   let banAction = `openVipRequiredModal()`;
@@ -1153,7 +1182,7 @@ function createFoodCardHTML(food) {
   if (isVIP) {
     banDisplay = isBanned ? '🚫 已禁' : '⛔ 禁用';
     banAction = `toggleBanFood('${foodName.replace(/'/g, "\\'")}')`;
-    if (isBanned) banBtnClass = 'bg-rose-600 text-white border-rose-600 shadow-sm';
+    if (isBanned) banBtnClass = 'ban-active-btn shadow-sm';
   }
 
   card.innerHTML = `
@@ -1188,14 +1217,21 @@ window.openVipRequiredModal = function() {
   document.getElementById('modal-vip-required').classList.remove('hidden');
 };
 
+// 3. 點選禁用按鈕時，自動將該食物從喜歡清單中移除
 window.toggleBanFood = function(foodName) {
   if (userBanned.includes(foodName)) {
     userBanned = userBanned.filter(i => i !== foodName);
   } else {
     userBanned.push(foodName);
+    userLikes = userLikes.filter(i => i !== foodName); // 確保不會出現在個人最愛中
+    localStorage.setItem('user_likes', JSON.stringify(userLikes));
   }
   localStorage.setItem('user_banned', JSON.stringify(userBanned));
-  filterAndDraw(false);
+  
+  // 局部更新畫面，保留個人最愛精選不被重抽
+  updateOnlyFoodList();
+  const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
+  renderFavoriteUI(favoriteOne);
 };
 
 function initMarqueeForCard(safeId) {
@@ -1212,6 +1248,7 @@ function initMarqueeForCard(safeId) {
   }
 }
 
+// 1. 切換喜歡/討厭時，僅局部刷新盲盒與個人最愛，不觸發整組食物重抽
 window.togglePreference = function(foodName, type) {
   if (type === 'like') {
     if (userLevel < 3) { alert('🔒 喜歡按鈕需達到 Lv.3 才能使用！'); return; }
@@ -1224,7 +1261,11 @@ window.togglePreference = function(foodName, type) {
   }
   localStorage.setItem('user_likes', JSON.stringify(userLikes));
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
-  filterAndDraw(false);
+  
+  // 局部更新畫面，保留個人最愛精選不被重抽
+  updateOnlyFoodList();
+  const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
+  renderFavoriteUI(favoriteOne);
 };
 
 window.openFoodConfirmModal = function(foodName) {
