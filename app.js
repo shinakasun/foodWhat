@@ -35,7 +35,6 @@ let currentTriviaIndex = -1;
 let selectedFoodForConfirm = null;
 let pendingCongratModalData = null;
 
-// 搜尋過濾用的暫存變數與注音組字狀態旗標
 let dislikeSearchQuery = '';
 let bannedSearchQuery = '';
 let isComposing = false; 
@@ -799,7 +798,6 @@ function renderStatsRanking() {
   `).join('');
 }
 
-// 4. 討厭清單管理（加入組字中事件處理，防止注音輸入中斷）
 function renderDislikeManager() {
   const container = document.getElementById('dislike-manager-section');
   if (!container) return;
@@ -846,7 +844,6 @@ window.removeDislikeItem = function(foodName) {
   renderDislikeManager();
 };
 
-// 4. 完全禁用清單管理（加入組字中事件處理，防止注音輸入中斷）
 function renderBannedManager() {
   const container = document.getElementById('banned-manager-section');
   const badge = document.getElementById('vip-status-badge');
@@ -984,7 +981,6 @@ function setupEventListeners() {
   document.getElementById('btn-confirm-map').onclick = () => handleConfirm(true);
 }
 
-// 1. 抽離不重刷個人最愛的局部更新函式 (切換狀態時專用)
 function updateOnlyFoodList() {
   if (allFoods.length === 0) return;
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
@@ -1154,7 +1150,6 @@ function renderFavoriteUI(food) {
   container.appendChild(card);
 }
 
-// 2. 建立食物卡片 HTML（套用獨立專屬 Class，確保各風格下按鈕顏色正常）
 function createFoodCardHTML(food) {
   const foodName = food.id;
   const safeId = btoa(encodeURIComponent(foodName)).replace(/=/g, '');
@@ -1217,18 +1212,16 @@ window.openVipRequiredModal = function() {
   document.getElementById('modal-vip-required').classList.remove('hidden');
 };
 
-// 3. 點選禁用按鈕時，自動將該食物從喜歡清單中移除
 window.toggleBanFood = function(foodName) {
   if (userBanned.includes(foodName)) {
     userBanned = userBanned.filter(i => i !== foodName);
   } else {
     userBanned.push(foodName);
-    userLikes = userLikes.filter(i => i !== foodName); // 確保不會出現在個人最愛中
+    userLikes = userLikes.filter(i => i !== foodName);
     localStorage.setItem('user_likes', JSON.stringify(userLikes));
   }
   localStorage.setItem('user_banned', JSON.stringify(userBanned));
   
-  // 局部更新畫面，保留個人最愛精選不被重抽
   updateOnlyFoodList();
   const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
   renderFavoriteUI(favoriteOne);
@@ -1248,21 +1241,39 @@ function initMarqueeForCard(safeId) {
   }
 }
 
-// 1. 切換喜歡/討厭時，僅局部刷新盲盒與個人最愛，不觸發整組食物重抽
+// 1 & 2. 修正喜歡與討厭切換邏輯：若原本處於禁用狀態，點擊喜歡或討厭時自動解禁
 window.togglePreference = function(foodName, type) {
   if (type === 'like') {
     if (userLevel < 3) { alert('🔒 喜歡按鈕需達到 Lv.3 才能使用！'); return; }
-    if (userLikes.includes(foodName)) userLikes = userLikes.filter(i => i !== foodName);
-    else { userLikes.push(foodName); userDislikes = userDislikes.filter(i => i !== foodName); }
+    
+    // 如果原本是喜歡，就取消喜歡；如果不是，就設為喜歡並清除討厭
+    if (userLikes.includes(foodName)) {
+      userLikes = userLikes.filter(i => i !== foodName);
+    } else {
+      userLikes.push(foodName);
+      userDislikes = userDislikes.filter(i => i !== foodName);
+      // 規則 2：若被禁用，點選喜歡時自動解禁
+      userBanned = userBanned.filter(i => i !== foodName);
+    }
   } else if (type === 'dislike') {
     if (userLevel < 8) { alert('🔒 討厭按鈕需達到 Lv.8 才能使用！'); return; }
-    if (userDislikes.includes(foodName)) userDislikes = userDislikes.filter(i => i !== foodName);
-    else { userDislikes.push(foodName); userLikes = userLikes.filter(i => i !== foodName); }
+    
+    // 如果原本是討厭，就取消討厭；如果不是，就設為討厭並清除喜歡
+    if (userDislikes.includes(foodName)) {
+      userDislikes = userDislikes.filter(i => i !== foodName);
+    } else {
+      userDislikes.push(foodName);
+      userLikes = userLikes.filter(i => i !== foodName);
+      // 規則 2：若被禁用，點選討厭時自動解禁
+      userBanned = userBanned.filter(i => i !== foodName);
+    }
   }
+
   localStorage.setItem('user_likes', JSON.stringify(userLikes));
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
+  localStorage.setItem('user_banned', JSON.stringify(userBanned));
   
-  // 局部更新畫面，保留個人最愛精選不被重抽
+  // 規則 1：這裡僅局部更新盲盒清單與個人最愛（但個人最愛的內容資料結構不變，不會重新洗牌抽樣），絕不呼叫完整重抽
   updateOnlyFoodList();
   const favoriteOne = (userLevel >= 3) ? sampleFavorite() : null;
   renderFavoriteUI(favoriteOne);
