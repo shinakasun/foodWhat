@@ -26,7 +26,7 @@ let auraToastTimer = null;
 
 let hasTriggeredAutoRefreshThisCycle = false; 
 let currentDisplayedFoods = JSON.parse(localStorage.getItem('current_displayed_foods') || '[]');
-let currentFavoriteFood = null; // 紀錄目前顯示在個人最愛精選的食物，確保不因按鈕開關而隨意改變
+let currentFavoriteFood = null;
 
 const MAX_DRAW = 20;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
@@ -170,7 +170,6 @@ async function initApp() {
     showBirthModal();
   } else {
     updateFortuneText();
-    // 初始進入若尚未抽選，盲盒與最愛區保持未抽選狀態
     if (currentDisplayedFoods.length === 0) {
       renderEmptyState();
     } else {
@@ -218,11 +217,25 @@ function updateMainTitle() {
   }
 }
 
+// 稱號清單新增近期選過的食物（前五名）搭配愛好者組合
 window.openTitleModal = function() {
   const listEl = document.getElementById('title-options-list');
   const mealFull = getMealFullPrefix();
   const baseTitles = ["迷途旅人", "愛好者", "尋覓者"];
-  listEl.innerHTML = baseTitles.map(t => {
+
+  // 取得近期選過的食物前五名與次數
+  const recentSorted = Object.entries(foodCounts)
+    .map(([foodName, count]) => ({ foodName, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  let allAvailableTitles = [...baseTitles];
+  recentSorted.forEach(item => {
+    // 只要有被選擇過的食物，自動組合出「[食物名稱]愛好者」
+    allAvailableTitles.push(`${item.foodName}愛好者`);
+  });
+
+  listEl.innerHTML = allAvailableTitles.map(t => {
     const isSelected = userSelectedTitle === t;
     return `
       <div onclick="selectTitle('${t}')" class="p-2.5 rounded-xl border cursor-pointer flex justify-between items-center transition ${
@@ -233,6 +246,7 @@ window.openTitleModal = function() {
       </div>
     `;
   }).join('');
+
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-title').classList.remove('hidden');
 };
@@ -854,10 +868,12 @@ window.onDislikeSearchInput = function(val) {
   renderDislikeManager();
 };
 
+// 需求 1：在統計區解除討厭後，同步更新盲盒畫面中該食物的按鈕狀態
 window.removeDislikeItem = function(foodName) {
   userDislikes = userDislikes.filter(i => i !== foodName);
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
   renderDislikeManager();
+  updateSingleFoodCardDOM(foodName); // 即時更新主畫面盲盒狀態
 };
 
 function renderBannedManager() {
@@ -914,10 +930,12 @@ window.onBannedSearchInput = function(val) {
   renderBannedManager();
 };
 
+// 需求 1：在統計區解除禁用後，同步更新盲盒畫面中該食物的按鈕狀態
 window.unmarkBanned = function(foodName) {
   userBanned = userBanned.filter(i => i !== foodName);
   localStorage.setItem('user_banned', JSON.stringify(userBanned));
   renderBannedManager();
+  updateSingleFoodCardDOM(foodName); // 即時更新主畫面盲盒狀態
 };
 
 window.openVipStoreModal = function() {
@@ -996,13 +1014,11 @@ function setupEventListeners() {
   document.getElementById('btn-confirm-map').onclick = () => handleConfirm(true);
 }
 
-// 核心修改：filterAndDraw 負責在按下「隨機抽選」時重新抽取盲盒與個人最愛精選
 function filterAndDraw(isDrawn = false) {
   if (allFoods.length === 0) return;
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
 
-  // 只有當明確點擊隨機抽選按鈕 (isDrawn = true) 或者初次載入且有紀錄時才抽樣
   if (isDrawn || currentDisplayedFoods.length === 0) {
     let pool = [...allFoods];
     if (userTaboos.length > 0) {
@@ -1016,7 +1032,6 @@ function filterAndDraw(isDrawn = false) {
     currentDisplayedFoods = weightedSample(pool, getUnlockBoxCount(), fortune.targetElementKey);
     localStorage.setItem('current_displayed_foods', JSON.stringify(currentDisplayedFoods));
 
-    // 只有在按下隨機抽選時，才會重新抽選個人最愛精選
     if (userLevel >= 3) {
       currentFavoriteFood = sampleFavorite();
     }
@@ -1213,7 +1228,6 @@ window.openVipRequiredModal = function() {
   document.getElementById('modal-vip-required').classList.remove('hidden');
 };
 
-// 禁用按鈕切換：完全不重新整理畫面，僅更新資料與當前按鈕狀態
 window.toggleBanFood = function(foodName) {
   if (userBanned.includes(foodName)) {
     userBanned = userBanned.filter(i => i !== foodName);
@@ -1224,7 +1238,6 @@ window.toggleBanFood = function(foodName) {
   }
   localStorage.setItem('user_banned', JSON.stringify(userBanned));
   
-  // 局部更新當前卡片的按鈕樣式，不重抽任何區塊
   updateSingleFoodCardDOM(foodName);
 };
 
@@ -1242,7 +1255,6 @@ function initMarqueeForCard(safeId) {
   }
 }
 
-// 喜歡/討厭切換：完全不刷新畫面，僅更新記憶體並動態切換畫面上對應按鈕的顏色樣式
 window.togglePreference = function(foodName, type) {
   if (type === 'like') {
     if (userLevel < 3) { alert('🔒 喜歡按鈕需達到 Lv.3 才能使用！'); return; }
@@ -1252,7 +1264,7 @@ window.togglePreference = function(foodName, type) {
     } else {
       userLikes.push(foodName);
       userDislikes = userDislikes.filter(i => i !== foodName);
-      userBanned = userBanned.filter(i => i !== foodName); // 自動解禁
+      userBanned = userBanned.filter(i => i !== foodName);
     }
   } else if (type === 'dislike') {
     if (userLevel < 8) { alert('🔒 討厭按鈕需達到 Lv.8 才能使用！'); return; }
@@ -1262,7 +1274,7 @@ window.togglePreference = function(foodName, type) {
     } else {
       userDislikes.push(foodName);
       userLikes = userLikes.filter(i => i !== foodName);
-      userBanned = userBanned.filter(i => i !== foodName); // 自動解禁
+      userBanned = userBanned.filter(i => i !== foodName);
     }
   }
 
@@ -1270,18 +1282,13 @@ window.togglePreference = function(foodName, type) {
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
   localStorage.setItem('user_banned', JSON.stringify(userBanned));
   
-  // 零畫面刷新：直接透過 DOM 更新該食物在畫面上所有出現的位置（例如盲盒清單與個人最愛精選區）的按鈕外觀
   updateSingleFoodCardDOM(foodName);
 };
 
-// 輔助函式：不重新渲染整個畫面，僅針對特定食物的按鈕 DOM 狀態進行局部換色
 function updateSingleFoodCardDOM(foodName) {
-  const safeId = btoa(encodeURIComponent(foodName)).replace(/=/g, '');
-  // 找出所有含有此食物名稱的卡片 DOM（盲盒區與最愛區可能同時存在）
   const cards = document.querySelectorAll(`[id^="food-card-"]`);
   
   cards.forEach(card => {
-    // 檢查該卡片標題是否符合此 foodName
     const titleEl = card.querySelector('h3');
     if (titleEl && titleEl.title === foodName) {
       const isLiked = userLikes.includes(foodName);
@@ -1294,13 +1301,9 @@ function updateSingleFoodCardDOM(foodName) {
         const dislikeBtn = buttons[1];
         const banBtn = buttons[2];
 
-        // 更新喜歡按鈕樣式
         likeBtn.className = `px-2 py-1 text-xs rounded-lg border transition ${isLiked ? 'like-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200'}`;
-
-        // 更新討厭按鈕樣式
         dislikeBtn.className = `px-2 py-1 text-xs rounded-lg border transition taboo-btn ${isDisliked ? 'dislike-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200'}`;
 
-        // 更新禁用按鈕樣式
         if (isVIP) {
           banBtn.innerText = isBanned ? '🚫 已禁' : '⛔ 禁用';
           banBtn.className = `px-2 py-1 text-xs rounded-lg border transition ${isBanned ? 'ban-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200'}`;
