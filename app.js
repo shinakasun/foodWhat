@@ -213,42 +213,95 @@ function updateMainTitle() {
   if (!userBirth) {
     titleEl.innerHTML = `<span>歡迎您！</span><br><span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人 ▼</span>`;
   } else {
-    titleEl.innerHTML = `<span>歡迎回來</span><br><span class="text-indigo-600 dark:text-indigo-400">${getMealFullPrefix()}${userSelectedTitle} ▼</span>`;
+    // 需求 1：時段前綴僅保留在「歡迎回來 [時段]」，下方稱號本身（如 麻豆碗粿愛好者）前面不再重複帶時段
+    titleEl.innerHTML = `<span>歡迎回來 ${getMealFullPrefix()}</span><br><span class="text-indigo-600 dark:text-indigo-400">${userSelectedTitle} ▼</span>`;
   }
 }
 
-// 稱號清單新增近期選過的食物（前五名）搭配愛好者組合
+// 稱號階級門檻定義
+const TITLE_TIERS = [
+  { threshold: 50, titleSuffix: '化身' },
+  { threshold: 30, titleSuffix: '半神' },
+  { threshold: 20, titleSuffix: '帝王' },
+  { threshold: 15, titleSuffix: '聖人' },
+  { threshold: 9,  titleSuffix: '宗師' },
+  { threshold: 6,  titleSuffix: '大師' },
+  { threshold: 3,  titleSuffix: '專家' },
+  { threshold: 1,  titleSuffix: '愛好者' }
+];
+
+// 需求 3：稱號區呈現可展開的按鈕清單（支援多個食物分組與折疊展開）
 window.openTitleModal = function() {
   const listEl = document.getElementById('title-options-list');
-  const mealFull = getMealFullPrefix();
   const baseTitles = ["迷途旅人", "愛好者", "尋覓者"];
 
-  // 取得近期選過的食物前五名與次數
-  const recentSorted = Object.entries(foodCounts)
+  // 取得曾經選過的食物與次數
+  const sortedFoods = Object.entries(foodCounts)
     .map(([foodName, count]) => ({ foodName, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+    .sort((a, b) => b.count - a.count);
 
-  let allAvailableTitles = [...baseTitles];
-  recentSorted.forEach(item => {
-    // 只要有被選擇過的食物，自動組合出「[食物名稱]愛好者」
-    allAvailableTitles.push(`${item.foodName}愛好者`);
-  });
+  let html = '';
 
-  listEl.innerHTML = allAvailableTitles.map(t => {
+  // 基礎稱號
+  baseTitles.forEach(t => {
     const isSelected = userSelectedTitle === t;
-    return `
+    html += `
       <div onclick="selectTitle('${t}')" class="p-2.5 rounded-xl border cursor-pointer flex justify-between items-center transition ${
         isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
       }">
-        <span>${mealFull}${t}</span>
+        <span>${t}</span>
         ${isSelected ? '<span class="text-indigo-600">✓</span>' : ''}
       </div>
     `;
-  }).join('');
+  });
 
+  // 各食物的可選稱號群組（預設可展開/收合）
+  sortedFoods.forEach(({ foodName, count }) => {
+    // 找出該次數下所有可解鎖的稱號
+    const unlockedTitles = TITLE_TIERS.filter(tier => count >= tier.threshold).map(tier => `${foodName}${tier.titleSuffix}`);
+    if (unlockedTitles.length === 0) return;
+
+    const isGroupActive = unlockedTitles.includes(userSelectedTitle);
+
+    html += `
+      <div class="border dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 overflow-hidden">
+        <div onclick="toggleTitleGroup('${foodName}')" class="p-2.5 cursor-pointer flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-700/50 transition">
+          <div class="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200">
+            <span>🍱 ${foodName}</span>
+            <span class="text-[10px] text-slate-400 font-normal">(${count}次)</span>
+            ${isGroupActive ? '<span class="text-xs text-indigo-600">●</span>' : ''}
+          </div>
+          <span id="title-arrow-${foodName}" class="text-xs text-slate-400 transition-transform">▼</span>
+        </div>
+        <div id="title-group-${foodName}" class="hidden p-2 pt-0 space-y-1.5 border-t border-slate-100 dark:border-slate-700/60 mt-1">
+          ${unlockedTitles.map(t => {
+            const isSelected = userSelectedTitle === t;
+            return `
+              <div onclick="selectTitle('${t}')" class="p-2 rounded-lg border cursor-pointer flex justify-between items-center transition text-xs ${
+                isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50'
+              }">
+                <span>${t}</span>
+                ${isSelected ? '<span class="text-indigo-600 font-bold">✓</span>' : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  });
+
+  listEl.innerHTML = html;
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-title').classList.remove('hidden');
+};
+
+window.toggleTitleGroup = function(foodName) {
+  const groupEl = document.getElementById(`title-group-${foodName}`);
+  const arrowEl = document.getElementById(`title-arrow-${foodName}`);
+  if (!groupEl) return;
+  const isHidden = groupEl.classList.contains('hidden');
+  groupEl.classList.toggle('hidden', !isHidden);
+  arrowEl.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
 };
 
 window.selectTitle = function(title) {
@@ -868,12 +921,11 @@ window.onDislikeSearchInput = function(val) {
   renderDislikeManager();
 };
 
-// 需求 1：在統計區解除討厭後，同步更新盲盒畫面中該食物的按鈕狀態
 window.removeDislikeItem = function(foodName) {
   userDislikes = userDislikes.filter(i => i !== foodName);
   localStorage.setItem('user_dislikes', JSON.stringify(userDislikes));
   renderDislikeManager();
-  updateSingleFoodCardDOM(foodName); // 即時更新主畫面盲盒狀態
+  updateSingleFoodCardDOM(foodName);
 };
 
 function renderBannedManager() {
@@ -930,12 +982,11 @@ window.onBannedSearchInput = function(val) {
   renderBannedManager();
 };
 
-// 需求 1：在統計區解除禁用後，同步更新盲盒畫面中該食物的按鈕狀態
 window.unmarkBanned = function(foodName) {
   userBanned = userBanned.filter(i => i !== foodName);
   localStorage.setItem('user_banned', JSON.stringify(userBanned));
   renderBannedManager();
-  updateSingleFoodCardDOM(foodName); // 即時更新主畫面盲盒狀態
+  updateSingleFoodCardDOM(foodName);
 };
 
 window.openVipStoreModal = function() {
@@ -1433,13 +1484,29 @@ function showCongratModal(foodName, expMsg, needMap) {
   document.getElementById('congrat-text').innerText = `今天就吃 ${foodName} 吧！`;
   document.getElementById('exp-reward-box').innerHTML = expMsg;
   const finalBtn = document.getElementById('btn-final-action');
+  
+  // 需求 4：升級/確認選定後的按鈕文字改為 "耶!繼續吃!"
+  finalBtn.innerText = '耶!繼續吃!';
+
   if (needMap) {
-    finalBtn.innerText = '耶！找找！';
     finalBtn.onclick = () => { window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(foodName)}`, '_blank'); closeModal(); };
   } else {
-    finalBtn.innerText = '耶！';
     finalBtn.onclick = closeModal;
   }
+}
+
+// 需求 4：升至 Lv. 升級彈窗中的按鈕文字也同步更新為 "耶!繼續吃!"
+function showLevelUpModal(lv, desc) {
+  document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
+  document.getElementById('levelup-desc').innerText = `🎉 恭喜解鎖了：${desc}！`;
+  document.getElementById('levelup-dislike-tip').classList.toggle('hidden', lv !== 8);
+  
+  const levelupBtn = document.querySelector('#modal-levelup button');
+  if (levelupBtn) levelupBtn.innerText = '耶!繼續吃!';
+
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-confirm-step2').classList.add('hidden');
+  document.getElementById('modal-levelup').classList.remove('hidden');
 }
 
 window.closeModal = function() {
