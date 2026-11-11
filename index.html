@@ -109,14 +109,12 @@
       <p id="fortune-text" class="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed font-medium">✨ 正在解析今日日辰氣場...</p>
     </div>
     
-    <!-- 美食冷知識區 (Lv.6 解鎖) - 已包覆刷新按鈕 -->
+    <!-- 美食冷知識區 (Lv.6 解鎖) -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition hidden">
       ❓ <strong>[已鎖定] 美食冷知識區</strong> (Lv.6 解鎖)
     </div>
     <div id="trivia-wrapper" class="mb-3 hidden relative">
       <div id="trivia-box" class="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-3">
-        
-        <!-- 左側內容區 -->
         <div class="flex-grow min-w-0 flex flex-col h-[76px]">
           <div class="font-bold text-amber-800 dark:text-amber-300 text-xs mb-1 flex items-center gap-1 shrink-0">
             💡 美食冷知識
@@ -125,8 +123,6 @@
             <p id="trivia-content" class="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]"></p>
           </div>
         </div>
-
-        <!-- 右側刷新按鈕與動態計時文案（收納於卡片內） -->
         <div class="flex flex-col items-center justify-center shrink-0 min-w-[68px] border-l border-amber-200/60 dark:border-amber-900/40 pl-3">
           <button onclick="refreshTriviaWithCoin()" class="w-10 h-10 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center justify-center shadow-sm active:scale-95" title="換一個冷知識">
             <span class="text-lg">🔄</span>
@@ -135,9 +131,7 @@
             💎 -1<br>換一個
           </span>
         </div>
-
       </div>
-
       <div id="toast-exp-floating" class="absolute -top-6 right-8 bg-amber-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none">
         💎 -1
       </div>
@@ -162,7 +156,6 @@
       <div id="toast-aura-floating" class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900/95 dark:bg-slate-100 dark:text-slate-900 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xl opacity-0 transition-all duration-300 pointer-events-none whitespace-nowrap text-center leading-tight z-20">
         靈氣已切換
       </div>
-
       <div id="aura-control-panel" class="flex items-center gap-1.5 overflow-x-auto pb-1">
         <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">靈氣：</span>
         <button id="aura-btn-cold" onclick="toggleAura('cold')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">❄️ 極寒靈氣 (未解鎖)</button>
@@ -195,7 +188,6 @@
       <button id="draw-btn" class="w-full py-3 bg-orange-700 hover:bg-orange-800 active:bg-orange-900 text-white font-bold rounded-xl shadow-lg transition flex flex-col items-center justify-center">
         <span class="text-lg">🎲 隨機抽選 (-1 💎)</span>
       </button>
-
       <div id="toast-draw-exp-floating" class="absolute -top-7 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[11px] font-extrabold px-3 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none whitespace-nowrap">
         ✨ 經驗值 +1
       </div>
@@ -221,7 +213,7 @@
     </div>
   </div>
 
-  <!-- 引導模式：半透明黑色背景遮罩 -->
+  <!-- 引導模式遮罩 -->
   <div id="guide-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs hidden z-40 transition-opacity duration-300"></div>
 
   <!-- 彈窗 Modal 區塊 -->
@@ -243,13 +235,11 @@
     <div id="modal-kyusei-result" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <div class="text-4xl mb-2">🔮</div>
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-3">九星氣學本命診斷</h2>
-      
       <div class="p-4 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded-xl mb-4 space-y-2 text-left">
         <div class="text-sm font-extrabold text-indigo-900 dark:text-indigo-200" id="kyusei-star-name">根據九星氣學 您屬於：三碧木星</div>
         <div class="text-xs font-bold text-indigo-700 dark:text-indigo-300" id="kyusei-element-name">對應五行：木</div>
         <div class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pt-1 border-t border-indigo-100 dark:border-indigo-900" id="kyusei-traits">特質：萌芽、雷鳴、衝勁、活力</div>
       </div>
-
       <button onclick="confirmKyuseiResult()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
         展開今日美食冒險！
       </button>
@@ -259,11 +249,9 @@
     <div id="modal-onboarding-guide" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden z-50">
       <div class="text-4xl mb-2">🍱</div>
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-3">新手探索指南</h2>
-      
       <div class="p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-xl mb-4 text-slate-700 dark:text-slate-200 text-xs leading-relaxed font-medium">
         這裡面有出現你想吃的東西嗎？<br>如果沒有的話，按一下<strong class="text-amber-600 dark:text-amber-400">隨機抽選按鈕</strong>再抽一次喔！
       </div>
-
       <button onclick="finishOnboardingGuide()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
         我知道了，開始抽選！
       </button>
@@ -274,12 +262,10 @@
       <div class="text-4xl mb-2">⭐</div>
       <h2 class="text-xl font-bold text-slate-800 dark:text-white mb-2" id="levelup-title">升至 Lv.2！</h2>
       <p id="levelup-desc" class="text-slate-600 dark:text-slate-300 font-medium mb-2"></p>
-      
       <div id="levelup-dislike-tip" class="bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 p-3 rounded-xl mb-4 leading-snug hidden">
         <div class="text-xs font-bold text-amber-800 dark:text-amber-200 mb-1">被討厭的食物會降低出現機率</div>
         <div class="text-[11px] text-amber-700 dark:text-amber-400">但它還是有可能會出現🤷</div>
       </div>
-
       <button onclick="closeLevelUpModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">
         耶! 我越來越會吃了!
       </button>
@@ -302,11 +288,8 @@
         <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-1.5">🛡️ 冒險者公會佈告欄</h2>
         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
-
       <p id="guild-modal-subtext" class="text-xs text-slate-500 dark:text-slate-400 mb-3">選擇一項副本任務進行挑戰：</p>
-      
       <div id="guild-quest-list-container" class="space-y-2.5 mb-4"></div>
-
       <div class="space-y-2">
         <button id="btn-abandon-quest" onclick="abandonQuest()" class="w-full py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-bold rounded-xl transition text-xs hidden">
           🗑️ 放棄當前任務
@@ -345,22 +328,18 @@
     <!-- 食物確認 Modal -->
     <div id="modal-confirm-step1" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2" id="confirm-title">確定要吃 XXX 嗎？</h2>
-      
       <div id="confirm-element-bonus-hint" class="mb-3 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-800 dark:text-amber-300 text-xs font-bold leading-relaxed hidden">
         🔥 食物屬性符合今日開運建議！確認選擇可額外獲得 +5 經驗值！
       </div>
-
       <div class="space-y-3">
         <div>
           <button id="btn-confirm-only" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">確定</button>
           <div id="hint-exp-confirm" class="text-xs font-bold text-amber-600 dark:text-amber-400 mt-1.5">（確定選擇可獲得 +5 經驗值）</div>
         </div>
-
         <div>
           <button id="btn-confirm-map" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition">確定 + 地圖搜尋</button>
           <div id="hint-exp-map" class="text-xs font-bold text-amber-600 dark:text-amber-400 mt-1.5">（確定選擇可獲得 +5 經驗值）</div>
         </div>
-
         <button onclick="closeModal()" class="w-full py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition">算了換一個</button>
       </div>
     </div>
@@ -376,16 +355,66 @@
       <button id="btn-final-action" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition">耶！</button>
     </div>
 
+    <!-- 提示未成為正式版的彈窗 (禁用按鈕點擊用) -->
+    <div id="modal-vip-required" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl hidden">
+      <div class="text-4xl mb-2">🔒</div>
+      <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-2">需要解鎖正式版</h2>
+      <p class="text-xs text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
+        永久封禁食物功能為<strong class="text-amber-600 dark:text-amber-400">正式版 (VIP)</strong> 專屬特權！升級正式版即可徹底將討厭的食物從抽取池中永久移除。
+      </p>
+      <div class="space-y-2">
+        <button onclick="closeModal(); openVipStoreModal();" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition text-sm shadow-md">
+          ⭐ 查看正式版說明與升級
+        </button>
+        <button onclick="closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition text-xs">
+          我知道了
+        </button>
+      </div>
+    </div>
+
+    <!-- 正式版 (VIP) 功能說明與購買確認 Modal -->
+    <div id="modal-vip-store" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-lg font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+          ⭐ 升級正式版 (VIP 尊榮特權)
+        </h2>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">一次解鎖，享受最純粹的美食決策體驗：</p>
+      <div class="space-y-3 mb-5 text-xs">
+        <div class="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
+          <span class="text-base shrink-0">🚫</span>
+          <div>
+            <div class="font-bold text-amber-900 dark:text-amber-200">永久封禁討厭食物</div>
+            <div class="text-[11px] text-amber-700 dark:text-amber-400">點擊禁用按鈕可徹底從抽取池過濾，100% 不再出現！</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <span class="text-base shrink-0">🎬</span>
+          <div>
+            <div class="font-bold text-slate-800 dark:text-white">無須看廣告直接補充水晶</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400">告別廣告與次數限制，隨時保持充足水晶刷新盲盒與冷知識。</div>
+          </div>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <button onclick="confirmBuyVIP()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-extrabold rounded-xl shadow-lg transition text-sm flex justify-center items-center gap-1">
+          <span>確定購買正式版 (直接開通測試)</span>
+        </button>
+        <button onclick="closeModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition text-xs">
+          取消
+        </button>
+      </div>
+    </div>
+
     <!-- 設定面板 Modal -->
     <div id="modal-settings" class="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl hidden text-left">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">⚙️ 系統設定</h2>
         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
-      
       <div class="space-y-4 text-sm max-h-[70vh] overflow-y-auto pr-1">
-        
-        <!-- 佈景主題下拉選擇選單 (新增夜櫻風格) -->
+        <!-- 佈景主題下拉選擇選單 -->
         <div id="setting-theme-wrapper" class="opacity-50">
           <div class="flex justify-between items-center mb-1">
             <span class="text-slate-700 dark:text-slate-300 font-medium">🎨 佈景主題：</span>
@@ -430,12 +459,12 @@
         </div>
 
         <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <button onclick="buyVIP()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition text-xs">⭐ 購買正式版 (解鎖 VIP 專屬完全禁用)</button>
+          <!-- 修改按鈕文字為「正式版」 -->
+          <button onclick="openVipStoreModal()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition text-xs shadow">⭐ 正式版</button>
           <button onclick="resetCooldownForTest()" class="w-full py-2 bg-indigo-100 dark:bg-indigo-950/60 hover:bg-indigo-200 text-indigo-700 dark:text-indigo-300 font-bold rounded-xl transition text-xs">⚡ [測試] 歸零額外經驗值冷卻</button>
           <button onclick="clearLocalStorage()" class="w-full py-2 bg-rose-100 hover:bg-rose-200 text-rose-600 font-bold rounded-xl transition text-xs">🗑️ [測試] 清空 LocalStorage</button>
         </div>
       </div>
-
       <button onclick="saveSettings()" class="w-full mt-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">儲存設定</button>
     </div>
 
@@ -445,18 +474,15 @@
         <h2 class="text-lg font-bold text-slate-800 dark:text-white">📊 數據統計中心</h2>
         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
-
       <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-1 text-xs">
         <div>
           <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🕒 近期選擇過的食物 (近 5 筆)</h3>
           <div id="stats-recent-list" class="space-y-1 text-slate-600 dark:text-slate-400"></div>
         </div>
-
         <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
           <h3 class="font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">🏆 美食選擇排行榜 (前 10 名)</h3>
           <div id="stats-ranking-list" class="space-y-1 text-slate-600 dark:text-slate-400"></div>
         </div>
-
         <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
           <button onclick="toggleDislikeSection()" class="w-full py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition flex justify-between items-center text-xs">
             <span id="dislike-toggle-label">👎 不喜歡的食物名單</span>
@@ -466,10 +492,9 @@
             <div id="stats-dislike-list"></div>
           </div>
         </div>
-
         <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
           <div class="flex justify-between items-center mb-1">
-            <h3 class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">⛔ 完全禁用的食物 (VIP)</h3>
+            <h3 class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">⛔ 完全禁用的食物 (正式版)</h3>
             <span id="vip-status-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium">免費版</span>
           </div>
           <div id="stats-banned-list" class="space-y-1.5"></div>
