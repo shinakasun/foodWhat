@@ -139,9 +139,9 @@ const LEVEL_UNLOCKS = [
   { level: 8, name: "解鎖討厭按鈕", expNeeded: 72, unlockDesc: "👎 討厭按鈕與黑名單" },
   { level: 9, name: "解鎖第六選項", expNeeded: 90, unlockDesc: "第六個盲盒選項" },
   { level: 10, name: "解鎖第七選項", expNeeded: 110, unlockDesc: "第七個盲盒選項" },
-  { level: 11, name: "解鎖第八選項", expNeeded: 135, unlockDesc: "第八個盲盒選項" },
-  { level: 12, name: "解鎖第九選項", expNeeded: 165, unlockDesc: "第九個盲盒選項 (完全體)" },
-  { level: 13, name: "解鎖高等冒險", expNeeded: 200, unlockDesc: "🥗 冒險者精通" }
+  { level: 11, name: "解鎖第八選項 (上限)", expNeeded: 135, unlockDesc: "第八個盲盒選項 (完全體)" },
+  { level: 12, name: "解鎖高等冒險", expNeeded: 165, unlockDesc: "🥗 冒險者精通" },
+  { level: 13, name: "解鎖傳說冒險", expNeeded: 200, unlockDesc: "✨ 傳說級冒險者" }
 ];
 
 function getNextOptionUnlockRequirement() {
@@ -150,7 +150,6 @@ function getNextOptionUnlockRequirement() {
   if (userLevel === 8) return { nextCount: 6, reqLevel: 9 };
   if (userLevel === 9) return { nextCount: 7, reqLevel: 10 };
   if (userLevel === 10) return { nextCount: 8, reqLevel: 11 };
-  if (userLevel === 11) return { nextCount: 9, reqLevel: 12 };
   return null;
 }
 
@@ -199,12 +198,12 @@ function updateAdSectionVisibility() {
   }
 }
 
-function getMealFullPrefix() {
+function getMealTimeDynamicText() {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 11) return "早餐";
-  else if (hour >= 11 && hour < 16) return "午餐";
-  else if (hour >= 16 && hour < 23) return "晚餐";
-  else return "宵夜";
+  if (hour >= 5 && hour < 11) return "吃早餐囉!";
+  else if (hour >= 11 && hour < 16) return "吃午餐囉!";
+  else if (hour >= 16 && hour < 23) return "吃晚餐囉!";
+  else return "吃宵夜囉!";
 }
 
 function updateMainTitle() {
@@ -213,12 +212,11 @@ function updateMainTitle() {
   if (!userBirth) {
     titleEl.innerHTML = `<span>歡迎您！</span><br><span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人 ▼</span>`;
   } else {
-    // 需求 1：時段前綴僅保留在「歡迎回來 [時段]」，下方稱號本身（如 麻豆碗粿愛好者）前面不再重複帶時段
-    titleEl.innerHTML = `<span>歡迎回來 ${getMealFullPrefix()}</span><br><span class="text-indigo-600 dark:text-indigo-400">${userSelectedTitle} ▼</span>`;
+    // 需求 1：標題改為「歡迎回來 吃晚餐囉!」(依時間動態切換) 與稱號
+    titleEl.innerHTML = `<span>歡迎回來 ${getMealTimeDynamicText()}</span><br><span class="text-indigo-600 dark:text-indigo-400">${userSelectedTitle} ▼</span>`;
   }
 }
 
-// 稱號階級門檻定義
 const TITLE_TIERS = [
   { threshold: 50, titleSuffix: '化身' },
   { threshold: 30, titleSuffix: '半神' },
@@ -230,19 +228,16 @@ const TITLE_TIERS = [
   { threshold: 1,  titleSuffix: '愛好者' }
 ];
 
-// 需求 3：稱號區呈現可展開的按鈕清單（支援多個食物分組與折疊展開）
 window.openTitleModal = function() {
   const listEl = document.getElementById('title-options-list');
   const baseTitles = ["迷途旅人", "愛好者", "尋覓者"];
 
-  // 取得曾經選過的食物與次數
   const sortedFoods = Object.entries(foodCounts)
     .map(([foodName, count]) => ({ foodName, count }))
     .sort((a, b) => b.count - a.count);
 
   let html = '';
 
-  // 基礎稱號
   baseTitles.forEach(t => {
     const isSelected = userSelectedTitle === t;
     html += `
@@ -255,9 +250,7 @@ window.openTitleModal = function() {
     `;
   });
 
-  // 各食物的可選稱號群組（預設可展開/收合）
   sortedFoods.forEach(({ foodName, count }) => {
-    // 找出該次數下所有可解鎖的稱號
     const unlockedTitles = TITLE_TIERS.filter(tier => count >= tier.threshold).map(tier => `${foodName}${tier.titleSuffix}`);
     if (unlockedTitles.length === 0) return;
 
@@ -394,6 +387,10 @@ function showLevelUpModal(lv, desc) {
   document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
   document.getElementById('levelup-desc').innerText = `🎉 恭喜解鎖了：${desc}！`;
   document.getElementById('levelup-dislike-tip').classList.toggle('hidden', lv !== 8);
+  
+  const levelupBtn = document.querySelector('#modal-levelup button');
+  if (levelupBtn) levelupBtn.innerText = '耶!繼續吃!';
+
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
   document.getElementById('modal-levelup').classList.remove('hidden');
@@ -682,8 +679,8 @@ window.checkFeatureLock = function(featureKey) {
   }
 };
 
+// 需求 3：盲盒的最大數量上限調整成 8 個
 function getUnlockBoxCount() {
-  if (userLevel >= 12) return 9;
   if (userLevel >= 11) return 8;
   if (userLevel >= 10) return 7;
   if (userLevel >= 9) return 6;
@@ -1485,7 +1482,6 @@ function showCongratModal(foodName, expMsg, needMap) {
   document.getElementById('exp-reward-box').innerHTML = expMsg;
   const finalBtn = document.getElementById('btn-final-action');
   
-  // 需求 4：升級/確認選定後的按鈕文字改為 "耶!繼續吃!"
   finalBtn.innerText = '耶!繼續吃!';
 
   if (needMap) {
@@ -1493,20 +1489,6 @@ function showCongratModal(foodName, expMsg, needMap) {
   } else {
     finalBtn.onclick = closeModal;
   }
-}
-
-// 需求 4：升至 Lv. 升級彈窗中的按鈕文字也同步更新為 "耶!繼續吃!"
-function showLevelUpModal(lv, desc) {
-  document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
-  document.getElementById('levelup-desc').innerText = `🎉 恭喜解鎖了：${desc}！`;
-  document.getElementById('levelup-dislike-tip').classList.toggle('hidden', lv !== 8);
-  
-  const levelupBtn = document.querySelector('#modal-levelup button');
-  if (levelupBtn) levelupBtn.innerText = '耶!繼續吃!';
-
-  document.getElementById('modal-overlay').classList.remove('hidden');
-  document.getElementById('modal-confirm-step2').classList.add('hidden');
-  document.getElementById('modal-levelup').classList.remove('hidden');
 }
 
 window.closeModal = function() {
@@ -1568,7 +1550,7 @@ function updateCountersAndTimer() {
   const countdownEl = document.getElementById('cooldown-countdown');
   if (timerBar && countdownEl && remainEatMs > 0 && lastEatTime !== 0) {
     countdownEl.innerText = `${String(Math.floor(remainEatMs / 3600000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 60000) / 1000)).padStart(2, '0')}`;
-    timerBar.classList.remove('hidden');
+    timerBar.classList.add('hidden');
   } else if (timerBar) {
     timerBar.classList.add('hidden');
   }
