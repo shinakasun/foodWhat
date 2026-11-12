@@ -24,7 +24,7 @@
     html.theme-dark body { background-color: #020617; color: #f8fafc; }
     html.theme-dark .app-card { background-color: #0f172a; border-color: #1e293b; color: #f8fafc; }
     
-    /* 質感黑灰 + 亮粉色系 (夜櫻風格優化：高對比清晰文字) */
+    /* 質感黑灰 + 亮粉色系 (夜櫻風格) */
     html.theme-night-sakura { color-scheme: dark; }
     html.theme-night-sakura body { background-color: #18181b; color: #f4f4f5; }
     html.theme-night-sakura .app-card { background-color: #27272a; border-color: #3f3f46; color: #f4f4f5; }
@@ -63,8 +63,8 @@
     <div class="flex justify-between items-start mb-3">
       <div id="title-container" onclick="openTitleModal()" class="cursor-pointer group select-none" title="點擊更換頭銜">
         <h1 id="app-main-title" class="text-xl font-bold leading-tight group-hover:text-indigo-600 transition">
-          <span>歡迎您！</span><br>
-          <span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人 ▼</span>
+          <span>歡迎回來 吃晚餐囉!</span><br>
+          <span class="text-indigo-600 dark:text-indigo-400">迷途旅人 ▼</span>
         </h1>
       </div>
       <div class="flex items-center gap-1.5">
@@ -170,8 +170,9 @@
       <div id="aura-control-panel" class="flex items-center gap-1.5 overflow-x-auto pb-1">
         <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">靈氣：</span>
         <button id="aura-btn-cold" onclick="toggleAura('cold')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">❄️ 極寒靈氣 (未解鎖)</button>
-        <button id="aura-btn-hot" onclick="toggleAura('hot')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🔥 灼熱靈氣 (未解鎖)</button>
-        <button id="aura-btn-snack" onclick="toggleAura('snack')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">⚡ 迅捷靈氣 (未解鎖)</button>
+        <button id="aura-btn-hot" onclick="toggleAura('hot')" class="toggleAura('hot')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🔥 灼熱靈氣 (未解鎖)</button>
+        <button id="aura-btn-snack" onclick="toggleAura('snack')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🍡 小惡魔靈氣 (未解鎖)</button>
+        <button id="aura-btn-fried" onclick="toggleAura('fried')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🌋 罪惡靈氣 (未解鎖)</button>
       </div>
     </div>
 
