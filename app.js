@@ -23,6 +23,7 @@ let unlockedAuras = JSON.parse(localStorage.getItem('unlocked_auras') || '[]');
 let activeAura = localStorage.getItem('active_aura') || null; 
 let tempSelectedQuestType = null;
 let auraToastTimer = null;
+let confirmModalTimer = null; // 確認視窗每秒計時器
 
 let hasTriggeredAutoRefreshThisCycle = false; 
 let currentDisplayedFoods = JSON.parse(localStorage.getItem('current_displayed_foods') || '[]');
@@ -212,7 +213,6 @@ function updateMainTitle() {
   if (!userBirth) {
     titleEl.innerHTML = `<span>歡迎您！</span><br><span class="text-indigo-600 dark:text-indigo-400">食物迷途旅人 ▼</span>`;
   } else {
-    // 需求 1：標題改為「歡迎回來 吃晚餐囉!」(依時間動態切換) 與稱號
     titleEl.innerHTML = `<span>歡迎回來 ${getMealTimeDynamicText()}</span><br><span class="text-indigo-600 dark:text-indigo-400">${userSelectedTitle} ▼</span>`;
   }
 }
@@ -383,10 +383,15 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
   applyFeatureUnlocks();
 }
 
+// 需求 1 調整：若升到 Lv.8 時已經是 VIP，顯示對應的提示
 function showLevelUpModal(lv, desc) {
   document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
-  document.getElementById('levelup-desc').innerText = `🎉 恭喜解鎖了：${desc}！`;
-  document.getElementById('levelup-dislike-tip').classList.toggle('hidden', lv !== 8);
+  let descText = `🎉 恭喜解鎖了：${desc}！`;
+  if (lv === 8 && isVIP) {
+    descText += `<br><span class="text-amber-500 font-bold text-[11px]">（您已是VIP，討厭按鈕已自動隱藏以保留最大食物顯示空間！）</span>`;
+  }
+  document.getElementById('levelup-desc').innerHTML = descText;
+  document.getElementById('levelup-dislike-tip').classList.toggle('hidden', lv !== 8 || isVIP);
   
   const levelupBtn = document.querySelector('#modal-levelup button');
   if (levelupBtn) levelupBtn.innerText = '耶!繼續吃!';
@@ -492,7 +497,7 @@ function updateGuildBannerUI() {
     titleEl.innerText = "冒險者公會";
     subEl.innerText = "點擊接取副本任務，贏取稀有靈氣！";
   } else {
-    const questNames = { cold: '❄️ 凜冬陣地', hot: '🔥 灼熱地城', snack: '🍡 小惡魔城' };
+    const questNames = { cold: '❄️ 凜冬陣地', hot: '🔥 灼熱地城', snack: '🍡 小惡魔城', fried: '🌋 罪惡熔爐' };
     banner.className = "p-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white text-xs font-bold shadow-md cursor-pointer hover:opacity-95 transition flex justify-between items-center";
     titleEl.innerText = `⚔️ 進行中任務：${questNames[guildQuest.type]}`;
     subEl.innerText = `任務進度：${guildQuest.progress} / 3 (點擊查看詳情)`;
@@ -509,12 +514,13 @@ window.openGuildModal = function() {
   const subtext = document.getElementById('guild-modal-subtext');
   const abandonBtn = document.getElementById('btn-abandon-quest');
   container.innerHTML = '';
-  const remainingQuests = ['cold', 'hot', 'snack'].filter(t => !unlockedAuras.includes(t));
+  // 需求 3：新增 'fried' 罪惡熔爐任務
+  const remainingQuests = ['cold', 'hot', 'snack', 'fried'].filter(t => !unlockedAuras.includes(t));
 
   if (guildQuest) {
     abandonBtn.classList.remove('hidden');
     subtext.innerText = "當前正在執行的副本任務：";
-    const questNames = { cold: '❄️ 凜冬陣地', hot: '🔥 灼熱地城', snack: '🍡 小惡魔城' };
+    const questNames = { cold: '❄️ 凜冬陣地', hot: '🔥 灼熱地城', snack: '🍡 小惡魔城', fried: '🌋 罪惡熔爐' };
     container.innerHTML = `
       <div class="p-3.5 rounded-xl border-2 border-amber-500 bg-amber-50/70 dark:bg-amber-950/40">
         <div class="flex justify-between items-center mb-1">
@@ -533,7 +539,8 @@ window.openGuildModal = function() {
     [
       { type: 'cold', title: '❄️ 凜冬陣地', reward: '極寒靈氣', bgClass: 'border-blue-200 bg-blue-50/50 text-blue-900' },
       { type: 'hot', title: '🔥 灼熱地城', reward: '灼熱靈氣', bgClass: 'border-rose-200 bg-rose-50/50 text-rose-900' },
-      { type: 'snack', title: '🍡 小惡魔城', reward: '迅捷靈氣', bgClass: 'border-amber-200 bg-amber-50/50 text-amber-900' }
+      { type: 'snack', title: '🍡 小惡魔城', reward: '迅捷靈氣', bgClass: 'border-amber-200 bg-amber-50/50 text-amber-900' },
+      { type: 'fried', title: '🌋 罪惡熔爐', reward: '罪惡靈氣', bgClass: 'border-orange-200 bg-orange-50/50 text-orange-900' }
     ].filter(q => !unlockedAuras.includes(q.type)).forEach(q => {
       container.innerHTML += `
         <div onclick="openAcceptQuestModal('${q.type}')" class="p-3 rounded-xl border ${q.bgClass} cursor-pointer transition flex justify-between items-center">
@@ -565,9 +572,9 @@ window.abandonQuest = function() {
 
 window.openAcceptQuestModal = function(type) {
   tempSelectedQuestType = type;
-  const icons = { cold: '❄️', hot: '🔥', snack: '🍡' };
-  const names = { cold: '凜冬陣地', hot: '灼熱地城', snack: '小惡魔城' };
-  const auras = { cold: '極寒靈氣', hot: '灼熱靈氣', snack: '迅捷靈氣' };
+  const icons = { cold: '❄️', hot: '🔥', snack: '🍡', fried: '🌋' };
+  const names = { cold: '凜冬陣地', hot: '灼熱地城', snack: '小惡魔城', fried: '罪惡熔爐' };
+  const auras = { cold: '極寒靈氣', hot: '灼熱靈氣', snack: '迅捷靈氣', fried: '罪惡靈氣' };
   document.getElementById('accept-quest-icon').innerText = icons[type];
   document.getElementById('accept-quest-title').innerText = `是否接受：${names[type]}？`;
   document.getElementById('accept-quest-desc').innerText = `完成後將獲取${auras[type]}！`;
@@ -589,7 +596,7 @@ window.confirmAcceptQuest = function() {
 };
 
 function openCompleteQuestModal() {
-  const auras = { cold: '極寒靈氣', hot: '灼熱靈氣', snack: '迅捷靈氣' };
+  const auras = { cold: '極寒靈氣', hot: '灼熱靈氣', snack: '迅捷靈氣', fried: '罪惡靈氣' };
   document.getElementById('complete-reward-text').innerText = `恭喜完成挑戰，獲得了獎勵：${auras[guildQuest.type]}！`;
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-guild-complete').classList.remove('hidden');
@@ -626,16 +633,17 @@ function triggerAuraTextToast(type) {
   const texts = {
     cold: '極寒靈氣開啟<br>下一次隨機抽選只會出現清爽的食物囉！',
     hot: '灼熱靈氣開啟<br>下一次隨機抽選只會出現熱呼呼的食物囉！',
-    snack: '迅捷靈氣開啟<br>下一次隨機抽選只會出現點心/輕食囉！'
+    snack: '迅捷靈氣開啟<br>下一次隨機抽選只會出現點心/輕食囉！',
+    fried: '罪惡靈氣開啟<br>下一次隨機抽選只會出現油炸類食物囉！'
   };
   showAuraToast(texts[type]);
 }
 
 function updateAuraButtonsUI() {
-  ['cold', 'hot', 'snack'].forEach(t => {
+  ['cold', 'hot', 'snack', 'fried'].forEach(t => {
     const btn = document.getElementById(`aura-btn-${t}`);
     if (!btn) return;
-    const labels = { cold: '❄️ 極寒靈氣', hot: '🔥 灼熱靈氣', snack: '⚡ 迅捷靈氣' };
+    const labels = { cold: '❄️ 極寒靈氣', hot: '🔥 灼熱靈氣', snack: '⚡ 迅捷靈氣', fried: '🌋 罪惡靈氣' };
     if (!unlockedAuras.includes(t)) {
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 opacity-60";
       btn.innerText = `${labels[t]} (未解鎖)`;
@@ -679,7 +687,6 @@ window.checkFeatureLock = function(featureKey) {
   }
 };
 
-// 需求 3：盲盒的最大數量上限調整成 8 個
 function getUnlockBoxCount() {
   if (userLevel >= 11) return 8;
   if (userLevel >= 10) return 7;
@@ -694,6 +701,13 @@ async function fetchFoods() {
     const res = await fetch(`${ONLINE_FOODS_URL}?t=${Date.now()}`);
     if (!res.ok) throw new Error('食物資料載入失敗');
     allFoods = await res.json();
+    if (currentDisplayedFoods.length > 0) {
+      currentDisplayedFoods = currentDisplayedFoods.map(oldFood => {
+        const latestFood = allFoods.find(f => f.id === oldFood.id);
+        return latestFood ? latestFood : oldFood;
+      });
+      localStorage.setItem('current_displayed_foods', JSON.stringify(currentDisplayedFoods));
+    }
   } catch (err) {
     document.getElementById('food-container').innerHTML = `<div class="text-center py-6 text-red-500 font-bold">無法連線至食物資料庫</div>`;
   }
@@ -995,9 +1009,10 @@ window.openVipStoreModal = function() {
 window.confirmBuyVIP = function() {
   isVIP = true;
   localStorage.setItem('is_vip', 'true');
-  alert('🎉 恭喜您成功開通正式版！已隱藏廣告區塊、解鎖無限水晶與完全禁用討厭食物功能。');
+  alert('🎉 恭喜您成功開通正式版！已隱藏廣告區塊、解鎖無限水晶、隱藏討厭按鈕以擴大食物顯示空間！');
   closeModal();
   updateAdSectionVisibility();
+  filterAndDraw(false);
 };
 
 window.changeTheme = function(themeName) {
@@ -1098,7 +1113,7 @@ function weightedSample(list, k, targetElementKey) {
   for (let i = 0; i < k; i++) {
     if (tempPool.length === 0) break;
     let totalWeight = tempPool.reduce((acc, item) => {
-      let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
+      let weight = (!isVIP && userDislikes.includes(item.id)) ? 0.2 : 1.0;
       if (item.element === targetElementKey) weight *= 2.0;
       return acc + weight;
     }, 0);
@@ -1106,7 +1121,7 @@ function weightedSample(list, k, targetElementKey) {
     let weightSum = 0;
     for (let j = 0; j < tempPool.length; j++) {
       let item = tempPool[j];
-      let weight = userDislikes.includes(item.id) ? 0.2 : 1.0;
+      let weight = (!isVIP && userDislikes.includes(item.id)) ? 0.2 : 1.0;
       if (item.element === targetElementKey) weight *= 2.0;
       weightSum += weight;
       if (randomNum <= weightSum) {
@@ -1214,6 +1229,7 @@ function renderFavoriteUI(food) {
   container.appendChild(card);
 }
 
+// 需求 1 調整：VIP 隱藏討厭按鈕，禁用按鈕只留圖示
 function createFoodCardHTML(food) {
   const foodName = food.id;
   const safeId = btoa(encodeURIComponent(foodName)).replace(/=/g, '');
@@ -1230,16 +1246,20 @@ function createFoodCardHTML(food) {
   const likeAction = (userLevel >= 3) ? `togglePreference('${foodName.replace(/'/g, "\\'")}', 'like')` : `checkFeatureLock('like')`;
   const likeDisplay = (userLevel >= 3) ? '👍' : '🔒';
 
-  const dislikeBtnClass = isDisliked ? 'dislike-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
-  const dislikeAction = (userLevel >= 8) ? `togglePreference('${foodName.replace(/'/g, "\\'")}', 'dislike')` : `checkFeatureLock('dislike')`;
-  const dislikeDisplay = (userLevel >= 8) ? '👎' : '🔒';
+  let dislikeButtonHTML = '';
+  if (!isVIP) {
+    const dislikeBtnClass = isDisliked ? 'dislike-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
+    const dislikeAction = (userLevel >= 8) ? `togglePreference('${foodName.replace(/'/g, "\\'")}', 'dislike')` : `checkFeatureLock('dislike')`;
+    const dislikeDisplay = (userLevel >= 8) ? '👎' : '🔒';
+    dislikeButtonHTML = `<button onclick="${dislikeAction}" class="px-2 py-1 text-xs rounded-lg border transition taboo-btn ${dislikeBtnClass}" title="討厭">${dislikeDisplay}</button>`;
+  }
 
   let banBtnClass = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200';
   let banDisplay = '🔒 ⛔';
   let banAction = `openVipRequiredModal()`;
 
   if (isVIP) {
-    banDisplay = isBanned ? '🚫 已禁' : '⛔ 禁用';
+    banDisplay = isBanned ? '🚫' : '⛔';
     banAction = `toggleBanFood('${foodName.replace(/'/g, "\\'")}')`;
     if (isBanned) banBtnClass = 'ban-active-btn shadow-sm';
   }
@@ -1259,9 +1279,7 @@ function createFoodCardHTML(food) {
       <button onclick="${likeAction}" class="px-2 py-1 text-xs rounded-lg border transition ${likeBtnClass}" title="喜歡">
         ${likeDisplay}
       </button>
-      <button onclick="${dislikeAction}" class="px-2 py-1 text-xs rounded-lg border transition taboo-btn ${dislikeBtnClass}" title="討厭">
-        ${dislikeDisplay}
-      </button>
+      ${dislikeButtonHTML}
       <button onclick="${banAction}" class="px-2 py-1 text-xs rounded-lg border transition ${banBtnClass}" title="永久禁用">
         ${banDisplay}
       </button>
@@ -1344,23 +1362,29 @@ function updateSingleFoodCardDOM(foodName) {
       const isBanned = userBanned.includes(foodName);
 
       const buttons = card.querySelectorAll('button');
-      if (buttons.length >= 3) {
-        const likeBtn = buttons[0];
-        const dislikeBtn = buttons[1];
-        const banBtn = buttons[2];
-
+      let btnIdx = 0;
+      const likeBtn = buttons[btnIdx++];
+      if (likeBtn) {
         likeBtn.className = `px-2 py-1 text-xs rounded-lg border transition ${isLiked ? 'like-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200'}`;
-        dislikeBtn.className = `px-2 py-1 text-xs rounded-lg border transition taboo-btn ${isDisliked ? 'dislike-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200'}`;
+      }
 
-        if (isVIP) {
-          banBtn.innerText = isBanned ? '🚫 已禁' : '⛔ 禁用';
-          banBtn.className = `px-2 py-1 text-xs rounded-lg border transition ${isBanned ? 'ban-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200'}`;
+      if (!isVIP) {
+        const dislikeBtn = buttons[btnIdx++];
+        if (dislikeBtn) {
+          dislikeBtn.className = `px-2 py-1 text-xs rounded-lg border transition taboo-btn ${isDisliked ? 'dislike-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200'}`;
         }
+      }
+
+      const banBtn = buttons[btnIdx++];
+      if (banBtn && isVIP) {
+        banBtn.innerText = isBanned ? '🚫' : '⛔';
+        banBtn.className = `px-2 py-1 text-xs rounded-lg border transition ${isBanned ? 'ban-active-btn shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 hover:bg-slate-200'}`;
       }
     }
   });
 }
 
+// 需求 2 調整：開啟確認視窗時啟動每秒計時器更新倒數
 window.openFoodConfirmModal = function(foodName) {
   selectedFoodForConfirm = allFoods.find(f => f.id === foodName);
   if (!selectedFoodForConfirm) return;
@@ -1371,6 +1395,9 @@ window.openFoodConfirmModal = function(foodName) {
   document.getElementById('confirm-element-bonus-hint').classList.toggle('hidden', selectedFoodForConfirm.element !== fortune.targetElementKey);
 
   updateConfirmModalExpText();
+  if (confirmModalTimer) clearInterval(confirmModalTimer);
+  confirmModalTimer = setInterval(updateConfirmModalExpText, 1000);
+
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-confirm-step1').classList.remove('hidden');
   document.getElementById('modal-confirm-step2').classList.add('hidden');
@@ -1492,6 +1519,10 @@ function showCongratModal(foodName, expMsg, needMap) {
 }
 
 window.closeModal = function() {
+  if (confirmModalTimer) {
+    clearInterval(confirmModalTimer);
+    confirmModalTimer = null;
+  }
   document.getElementById('modal-overlay').classList.add('hidden');
   document.querySelectorAll('#modal-overlay > div').forEach(m => m.classList.add('hidden'));
   selectedFoodForConfirm = null;
@@ -1550,7 +1581,7 @@ function updateCountersAndTimer() {
   const countdownEl = document.getElementById('cooldown-countdown');
   if (timerBar && countdownEl && remainEatMs > 0 && lastEatTime !== 0) {
     countdownEl.innerText = `${String(Math.floor(remainEatMs / 3600000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 60000) / 1000)).padStart(2, '0')}`;
-    timerBar.classList.add('hidden');
+    timerBar.classList.remove('hidden');
   } else if (timerBar) {
     timerBar.classList.add('hidden');
   }
