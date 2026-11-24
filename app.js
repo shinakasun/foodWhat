@@ -1,5 +1,6 @@
 let allFoods = [];
 let allTrivias = [];
+let allJokes = [];
 
 let userExp = parseInt(localStorage.getItem('user_exp') || '0');
 let userLevel = parseInt(localStorage.getItem('user_level') || '1');
@@ -18,31 +19,57 @@ let userBirth = JSON.parse(localStorage.getItem('user_birth') || 'null');
 let settingsPushTrivia = localStorage.getItem('push_trivia') !== 'false';
 let currentTheme = localStorage.getItem('app_theme') || 'default';
 
-let guildQuest = JSON.parse(localStorage.getItem('guild_quest') || 'null'); 
-let unlockedAuras = JSON.parse(localStorage.getItem('unlocked_auras') || '[]'); 
-let activeAura = localStorage.getItem('active_aura') || null; 
+let guildQuest = JSON.parse(localStorage.getItem('guild_quest') || 'null');
+let unlockedAuras = JSON.parse(localStorage.getItem('unlocked_auras') || '[]');
+let activeAura = localStorage.getItem('active_aura') || null;
 let tempSelectedQuestType = null;
 let auraToastTimer = null;
-let confirmModalTimer = null; // 確認視窗每秒計時器
+let confirmModalTimer = null;
 
-let hasTriggeredAutoRefreshThisCycle = false; 
+// 盲盒上限改為 6 個，若先前已解鎖 7 或 8 則收斂至 6
 let currentDisplayedFoods = JSON.parse(localStorage.getItem('current_displayed_foods') || '[]');
+if (currentDisplayedFoods.length > 6) {
+  currentDisplayedFoods = currentDisplayedFoods.slice(0, 6);
+  localStorage.setItem('current_displayed_foods', JSON.stringify(currentDisplayedFoods));
+}
 let currentFavoriteFood = null;
 
 const MAX_DRAW = 20;
 let drawState = JSON.parse(localStorage.getItem('draw_state') || JSON.stringify({ count: MAX_DRAW, timestamp: Date.now() }));
 if (drawState.count > MAX_DRAW) drawState.count = MAX_DRAW;
 
+// 冷知識與笑話每 1 小時 (3600 秒) 自動刷新一次
+const ONE_HOUR_MS = 60 * 60 * 1000;
+let lastTriviaRefreshTime = parseInt(localStorage.getItem('last_trivia_refresh_time') || '0');
+let lastJokeRefreshTime = parseInt(localStorage.getItem('last_joke_refresh_time') || '0');
+
 let currentTriviaIndex = -1;
+let currentJokeIndex = -1;
 let selectedFoodForConfirm = null;
 let pendingCongratModalData = null;
 
 let dislikeSearchQuery = '';
 let bannedSearchQuery = '';
-let isComposing = false; 
+let isComposing = false;
 
 const ONLINE_FOODS_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 const ONLINE_TRIVIAS_URL = 'https://shinakasun.github.io/foodWhatDataBase/trivias.json';
+const ONLINE_JOKES_URL = 'https://shinakasun.github.io/foodWhatDataBase/jokes.json';
+
+const FALLBACK_JOKES = [
+  { content: "為什麼食物盲盒最怕遇到減肥的人？因為打開的瞬間，對方心裡已經默默算出熱量了。" },
+  { content: "今天九星氣學算出來宜吃『木』，我立刻買了一根牙籤——據說這叫順應天命。" },
+  { content: "公會任務叫我吃三份指定料理，我吃第一份時覺得是冒險，吃第三份時覺得是體能訓練。" }
+];
+
+const QUEST_CONFIG = {
+  cold:      { label: '❄️ 凜冬陣地', shortName: '凜冬陣地', icon: '❄️', auraName: '極寒靈氣', btnLabel: '❄️ 極寒靈氣', cardClass: 'border-blue-200 bg-blue-50/50 text-blue-900' },
+  hot:       { label: '🔥 灼熱地城', shortName: '灼熱地城', icon: '🔥', auraName: '灼熱靈氣', btnLabel: '🔥 灼熱靈氣', cardClass: 'border-rose-200 bg-rose-50/50 text-rose-900' },
+  snack:     { label: '🍡 小惡魔城', shortName: '小惡魔城', icon: '🍡', auraName: '迅捷靈氣', btnLabel: '⚡ 迅捷靈氣', cardClass: 'border-amber-200 bg-amber-50/50 text-amber-900' },
+  fried:     { label: '🌋 罪惡熔爐', shortName: '罪惡熔爐', icon: '🌋', auraName: '罪惡靈氣', btnLabel: '🌋 罪惡靈氣', cardClass: 'border-orange-200 bg-orange-50/50 text-orange-900' },
+  breakfast: { label: '🌅 黎明城',   shortName: '黎明城',   icon: '🌅', auraName: '黎明靈氣', btnLabel: '🌅 黎明靈氣', cardClass: 'border-sky-200 bg-sky-50/50 text-sky-900' }
+};
+const ALL_QUEST_TYPES = ['cold', 'hot', 'snack', 'fried', 'breakfast'];
 
 const ELEMENT_MAP = {
   elementMetal: { name: '金', icon: '🪙', class: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800' },
@@ -129,38 +156,47 @@ function getTodayFortuneAnalysis(userElementKey) {
   };
 }
 
+// 盲盒上限改為 6 個 (Lv.9 達到 6 個上限)，Lv.13 為最高等級並解鎖笑話區
 const LEVEL_UNLOCKS = [
-  { level: 1, name: "初始狀態 (3選項)", expNeeded: 0, unlockDesc: "初始開局" },
-  { level: 2, name: "解鎖第四選項", expNeeded: 5, unlockDesc: "第四個盲盒選項" },
-  { level: 3, name: "解鎖主題與個人最愛", expNeeded: 12, unlockDesc: "👍 喜歡按鈕、⭐ 個人最愛區與主題風格切換" },
-  { level: 4, name: "解鎖冒險者公會", expNeeded: 20, unlockDesc: "🛡️ 冒險者公會副本挑戰系統" },
-  { level: 5, name: "解鎖統計按鈕", expNeeded: 30, unlockDesc: "📊 數據統計中心" },
-  { level: 6, name: "解鎖美食冷知識", expNeeded: 42, unlockDesc: "💡 每日美食冷知識區" },
-  { level: 7, name: "解鎖第五選項", expNeeded: 56, unlockDesc: "第五個盲盒選項" },
-  { level: 8, name: "解鎖討厭按鈕", expNeeded: 72, unlockDesc: "👎 討厭按鈕與黑名單" },
-  { level: 9, name: "解鎖第六選項", expNeeded: 90, unlockDesc: "第六個盲盒選項" },
-  { level: 10, name: "解鎖第七選項", expNeeded: 110, unlockDesc: "第七個盲盒選項" },
-  { level: 11, name: "解鎖第八選項 (上限)", expNeeded: 135, unlockDesc: "第八個盲盒選項 (完全體)" },
-  { level: 12, name: "解鎖高等冒險", expNeeded: 165, unlockDesc: "🥗 冒險者精通" },
-  { level: 13, name: "解鎖傳說冒險", expNeeded: 200, unlockDesc: "✨ 傳說級冒險者" }
+  { level: 1,  name: "初始狀態 (3選項)",        expNeeded: 0,   unlockDesc: "初始開局" },
+  { level: 2,  name: "解鎖第四選項",            expNeeded: 5,   unlockDesc: "第四個盲盒選項" },
+  { level: 3,  name: "解鎖主題與個人最愛",      expNeeded: 12,  unlockDesc: "👍 喜歡按鈕、⭐ 個人最愛區與主題風格切換" },
+  { level: 4,  name: "解鎖冒險者公會",          expNeeded: 20,  unlockDesc: "🛡️ 冒險者公會副本挑戰系統" },
+  { level: 5,  name: "解鎖統計按鈕",            expNeeded: 30,  unlockDesc: "📊 數據統計中心" },
+  { level: 6,  name: "解鎖冷知識區",            expNeeded: 42,  unlockDesc: "💡 冷知識區 (每小時自動刷新)" },
+  { level: 7,  name: "解鎖第五選項",            expNeeded: 56,  unlockDesc: "第五個盲盒選項" },
+  { level: 8,  name: "解鎖討厭按鈕",            expNeeded: 72,  unlockDesc: "👎 討厭按鈕與黑名單" },
+  { level: 9,  name: "解鎖第六選項 (盲盒上限)", expNeeded: 90,  unlockDesc: "第六個盲盒選項 (盲盒數量達上限 6 個)" },
+  { level: 10, name: "冒險者進階",              expNeeded: 110, unlockDesc: "🧭 冒險者進階稱號與累積" },
+  { level: 11, name: "冒險者老練",              expNeeded: 135, unlockDesc: "⚔️ 冒險者老練稱號與累積" },
+  { level: 12, name: "冒險者精通",              expNeeded: 165, unlockDesc: "🥗 冒險者精通" },
+  { level: 13, name: "解鎖笑話區 (最高等級)",   expNeeded: 200, unlockDesc: "😂 笑話區 (最高等級解鎖，每小時自動刷新)" }
 ];
 
 function getNextOptionUnlockRequirement() {
   if (userLevel === 1) return { nextCount: 4, reqLevel: 2 };
   if (userLevel === 6) return { nextCount: 5, reqLevel: 7 };
   if (userLevel === 8) return { nextCount: 6, reqLevel: 9 };
-  if (userLevel === 9) return { nextCount: 7, reqLevel: 10 };
-  if (userLevel === 10) return { nextCount: 8, reqLevel: 11 };
   return null;
 }
 
 async function initApp() {
+  const now = Date.now();
+  if (!lastTriviaRefreshTime) {
+    lastTriviaRefreshTime = now;
+    localStorage.setItem('last_trivia_refresh_time', String(lastTriviaRefreshTime));
+  }
+  if (!lastJokeRefreshTime) {
+    lastJokeRefreshTime = now;
+    localStorage.setItem('last_joke_refresh_time', String(lastJokeRefreshTime));
+  }
+
   changeTheme(currentTheme);
   setupEventListeners();
   initDateSelectors('select-birth');
   initDateSelectors('select-setting');
 
-  await Promise.all([fetchFoods(), fetchTrivias()]);
+  await Promise.all([fetchFoods(), fetchTrivias(), fetchJokes()]);
   checkAndUpdateCooldown();
   updateLevelAndUI(false);
   updateMainTitle();
@@ -177,6 +213,7 @@ async function initApp() {
       if (currentFavoriteFood) renderFavoriteUI(currentFavoriteFood);
     }
   }
+  updateCountersAndTimer();
   setInterval(updateCountersAndTimer, 1000);
 }
 
@@ -383,7 +420,6 @@ function updateLevelAndUI(shouldCheckLevelUp = true) {
   applyFeatureUnlocks();
 }
 
-// 需求 1 調整：若升到 Lv.8 時已經是 VIP，顯示對應的提示
 function showLevelUpModal(lv, desc) {
   document.getElementById('levelup-title').innerText = `升至 Lv.${lv}！`;
   let descText = `🎉 恭喜解鎖了：${desc}！`;
@@ -412,18 +448,34 @@ window.closeLevelUpModal = function() {
 };
 
 function applyFeatureUnlocks() {
+  // 冷知識區 (Lv.6 解鎖)
   const triviaLocked = document.getElementById('trivia-locked-box');
   const triviaWrapper = document.getElementById('trivia-wrapper');
   if (userLevel >= 6 && settingsPushTrivia) {
     triviaLocked.classList.add('hidden');
     triviaWrapper.classList.remove('hidden');
-    if (document.getElementById('trivia-content').innerText === '') renderRandomTrivia();
+    if (document.getElementById('trivia-content').innerText === '') renderRandomTrivia(false);
   } else if (userLevel === 5) {
     triviaLocked.classList.remove('hidden');
     triviaWrapper.classList.add('hidden');
   } else {
     triviaLocked.classList.add('hidden');
     triviaWrapper.classList.add('hidden');
+  }
+
+  // 笑話區 (最高等級 Lv.13 解鎖)
+  const jokeLocked = document.getElementById('joke-locked-box');
+  const jokeWrapper = document.getElementById('joke-wrapper');
+  if (userLevel >= 13 && settingsPushTrivia) {
+    jokeLocked.classList.add('hidden');
+    jokeWrapper.classList.remove('hidden');
+    if (document.getElementById('joke-content').innerText === '') renderRandomJoke(false);
+  } else if (userLevel === 12) {
+    jokeLocked.classList.remove('hidden');
+    jokeWrapper.classList.add('hidden');
+  } else {
+    jokeLocked.classList.add('hidden');
+    jokeWrapper.classList.add('hidden');
   }
 
   const guildLocked = document.getElementById('guild-locked-box');
@@ -488,6 +540,24 @@ function applyFeatureUnlocks() {
   }
 }
 
+// 確保進行中任務擁有明確指定的單一目標食物，避免吃到其他同標籤食物就累積進度
+function ensureGuildQuestTargetFood() {
+  if (!guildQuest || guildQuest.progress >= 3) return null;
+  if (!guildQuest.currentTargetFood) {
+    const eligibleFoods = allFoods.filter(f =>
+      f.tags &&
+      f.tags.includes(guildQuest.type) &&
+      !userBanned.includes(f.id) &&
+      (userTaboos.length === 0 || !userTaboos.some(taboo => f.tags.includes(taboo)))
+    );
+    const pool = eligibleFoods.length > 0 ? eligibleFoods : allFoods.filter(f => f.tags && f.tags.includes(guildQuest.type));
+    const picked = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : { id: '神祕任務料理', element: 'elementMetal' };
+    guildQuest.currentTargetFood = picked.id;
+    localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
+  }
+  return guildQuest.currentTargetFood;
+}
+
 function updateGuildBannerUI() {
   const banner = document.getElementById('guild-banner');
   const titleEl = document.getElementById('guild-banner-title');
@@ -497,10 +567,11 @@ function updateGuildBannerUI() {
     titleEl.innerText = "冒險者公會";
     subEl.innerText = "點擊接取副本任務，贏取稀有靈氣！";
   } else {
-    const questNames = { cold: '❄️ 凜冬陣地', hot: '🔥 灼熱地城', snack: '🍡 小惡魔城', fried: '🌋 罪惡熔爐' };
+    const cfg = QUEST_CONFIG[guildQuest.type] || QUEST_CONFIG.cold;
+    const targetName = ensureGuildQuestTargetFood() || '指定任務食物';
     banner.className = "p-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white text-xs font-bold shadow-md cursor-pointer hover:opacity-95 transition flex justify-between items-center";
-    titleEl.innerText = `⚔️ 進行中任務：${questNames[guildQuest.type]}`;
-    subEl.innerText = `任務進度：${guildQuest.progress} / 3 (點擊查看詳情)`;
+    titleEl.innerText = `⚔️ 進行中任務：${cfg.label}`;
+    subEl.innerText = `目標：${targetName} ｜ 進度：${guildQuest.progress} / 3`;
   }
 }
 
@@ -514,19 +585,21 @@ window.openGuildModal = function() {
   const subtext = document.getElementById('guild-modal-subtext');
   const abandonBtn = document.getElementById('btn-abandon-quest');
   container.innerHTML = '';
-  // 需求 3：新增 'fried' 罪惡熔爐任務
-  const remainingQuests = ['cold', 'hot', 'snack', 'fried'].filter(t => !unlockedAuras.includes(t));
+
+  const remainingQuests = ALL_QUEST_TYPES.filter(t => !unlockedAuras.includes(t));
 
   if (guildQuest) {
     abandonBtn.classList.remove('hidden');
-    subtext.innerText = "當前正在執行的副本任務：";
-    const questNames = { cold: '❄️ 凜冬陣地', hot: '🔥 灼熱地城', snack: '🍡 小惡魔城', fried: '🌋 罪惡熔爐' };
+    subtext.innerText = "當前正在執行的副本任務（僅食用指定任務目標才計入進度）：";
+    const cfg = QUEST_CONFIG[guildQuest.type] || QUEST_CONFIG.cold;
+    const targetName = ensureGuildQuestTargetFood() || '指定任務食物';
     container.innerHTML = `
       <div class="p-3.5 rounded-xl border-2 border-amber-500 bg-amber-50/70 dark:bg-amber-950/40">
         <div class="flex justify-between items-center mb-1">
-          <div class="text-xs font-black text-amber-900 dark:text-amber-200">${questNames[guildQuest.type]}</div>
+          <div class="text-xs font-black text-amber-900 dark:text-amber-200">${cfg.label}</div>
           <span class="text-xs font-bold text-amber-600">進度: ${guildQuest.progress} / 3</span>
         </div>
+        <div class="text-[11px] text-amber-800 dark:text-amber-300 font-medium">🎯 指定目標食物：<strong>${targetName}</strong></div>
       </div>
     `;
   } else if (remainingQuests.length === 0) {
@@ -536,17 +609,13 @@ window.openGuildModal = function() {
   } else {
     abandonBtn.classList.add('hidden');
     subtext.innerText = "選擇一項副本任務進行挑戰：";
-    [
-      { type: 'cold', title: '❄️ 凜冬陣地', reward: '極寒靈氣', bgClass: 'border-blue-200 bg-blue-50/50 text-blue-900' },
-      { type: 'hot', title: '🔥 灼熱地城', reward: '灼熱靈氣', bgClass: 'border-rose-200 bg-rose-50/50 text-rose-900' },
-      { type: 'snack', title: '🍡 小惡魔城', reward: '迅捷靈氣', bgClass: 'border-amber-200 bg-amber-50/50 text-amber-900' },
-      { type: 'fried', title: '🌋 罪惡熔爐', reward: '罪惡靈氣', bgClass: 'border-orange-200 bg-orange-50/50 text-orange-900' }
-    ].filter(q => !unlockedAuras.includes(q.type)).forEach(q => {
+    remainingQuests.forEach(type => {
+      const cfg = QUEST_CONFIG[type];
       container.innerHTML += `
-        <div onclick="openAcceptQuestModal('${q.type}')" class="p-3 rounded-xl border ${q.bgClass} cursor-pointer transition flex justify-between items-center">
+        <div onclick="openAcceptQuestModal('${type}')" class="p-3 rounded-xl border ${cfg.cardClass} cursor-pointer transition flex justify-between items-center">
           <div>
-            <div class="text-xs font-bold">${q.title}</div>
-            <div class="text-[10px] opacity-80">任務獎勵：${q.reward}</div>
+            <div class="text-xs font-bold">${cfg.label}</div>
+            <div class="text-[10px] opacity-80">任務獎勵：${cfg.auraName}</div>
           </div>
           <span class="text-xs font-bold">接取 ▶</span>
         </div>
@@ -572,19 +641,18 @@ window.abandonQuest = function() {
 
 window.openAcceptQuestModal = function(type) {
   tempSelectedQuestType = type;
-  const icons = { cold: '❄️', hot: '🔥', snack: '🍡', fried: '🌋' };
-  const names = { cold: '凜冬陣地', hot: '灼熱地城', snack: '小惡魔城', fried: '罪惡熔爐' };
-  const auras = { cold: '極寒靈氣', hot: '灼熱靈氣', snack: '迅捷靈氣', fried: '罪惡靈氣' };
-  document.getElementById('accept-quest-icon').innerText = icons[type];
-  document.getElementById('accept-quest-title').innerText = `是否接受：${names[type]}？`;
-  document.getElementById('accept-quest-desc').innerText = `完成後將獲取${auras[type]}！`;
+  const cfg = QUEST_CONFIG[type];
+  document.getElementById('accept-quest-icon').innerText = cfg.icon;
+  document.getElementById('accept-quest-title').innerText = `是否接受：${cfg.shortName}？`;
+  document.getElementById('accept-quest-desc').innerText = `完成後將獲取${cfg.auraName}！`;
   document.getElementById('modal-guild-list').classList.add('hidden');
   document.getElementById('modal-guild-accept').classList.remove('hidden');
 };
 
 window.confirmAcceptQuest = function() {
   if (!tempSelectedQuestType) return;
-  guildQuest = { type: tempSelectedQuestType, progress: 0 };
+  guildQuest = { type: tempSelectedQuestType, progress: 0, currentTargetFood: null };
+  ensureGuildQuestTargetFood();
   localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
   activeAura = null;
   localStorage.setItem('active_aura', '');
@@ -596,11 +664,11 @@ window.confirmAcceptQuest = function() {
 };
 
 function openCompleteQuestModal() {
-  const auras = { cold: '極寒靈氣', hot: '灼熱靈氣', snack: '迅捷靈氣', fried: '罪惡靈氣' };
-  document.getElementById('complete-reward-text').innerText = `恭喜完成挑戰，獲得了獎勵：${auras[guildQuest.type]}！`;
+  const cfg = QUEST_CONFIG[guildQuest.type] || QUEST_CONFIG.cold;
+  document.getElementById('complete-reward-text').innerText = `恭喜完成挑戰，獲得了獎勵：${cfg.auraName}！`;
   document.getElementById('modal-overlay').classList.remove('hidden');
   document.getElementById('modal-guild-complete').classList.remove('hidden');
-};
+}
 
 window.claimQuestReward = function() {
   if (!guildQuest) return;
@@ -631,28 +699,29 @@ window.toggleAura = function(auraType) {
 
 function triggerAuraTextToast(type) {
   const texts = {
-    cold: '極寒靈氣開啟<br>下一次隨機抽選只會出現清爽的食物囉！',
-    hot: '灼熱靈氣開啟<br>下一次隨機抽選只會出現熱呼呼的食物囉！',
-    snack: '迅捷靈氣開啟<br>下一次隨機抽選只會出現點心/輕食囉！',
-    fried: '罪惡靈氣開啟<br>下一次隨機抽選只會出現油炸類食物囉！'
+    cold:      '極寒靈氣開啟<br>下一次隨機抽選只會出現清爽的食物囉！',
+    hot:       '灼熱靈氣開啟<br>下一次隨機抽選只會出現熱呼呼的食物囉！',
+    snack:     '迅捷靈氣開啟<br>下一次隨機抽選只會出現點心/輕食囉！',
+    fried:     '罪惡靈氣開啟<br>下一次隨機抽選只會出現油炸類食物囉！',
+    breakfast: '黎明靈氣開啟<br>下一次隨機抽選只會出現早餐屬性食物囉！'
   };
   showAuraToast(texts[type]);
 }
 
 function updateAuraButtonsUI() {
-  ['cold', 'hot', 'snack', 'fried'].forEach(t => {
+  ALL_QUEST_TYPES.forEach(t => {
     const btn = document.getElementById(`aura-btn-${t}`);
     if (!btn) return;
-    const labels = { cold: '❄️ 極寒靈氣', hot: '🔥 灼熱靈氣', snack: '⚡ 迅捷靈氣', fried: '🌋 罪惡靈氣' };
+    const label = QUEST_CONFIG[t].btnLabel;
     if (!unlockedAuras.includes(t)) {
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 opacity-60";
-      btn.innerText = `${labels[t]} (未解鎖)`;
+      btn.innerText = `${label} (未解鎖)`;
     } else if (activeAura === t) {
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-indigo-600 text-white border-indigo-600 shadow-sm";
-      btn.innerText = labels[t];
+      btn.innerText = label;
     } else {
       btn.className = "px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-white dark:bg-slate-900 text-indigo-600 border-indigo-200 hover:bg-indigo-50";
-      btn.innerText = labels[t];
+      btn.innerText = label;
     }
   });
 }
@@ -676,20 +745,27 @@ window.resetCooldownForTest = function() {
   closeModal();
   updateCountersAndTimer();
   filterAndDraw(false);
-  alert('⚡ [測試功能] 經驗值冷卻與冷知識倒數已成功歸零！');
+  alert('⚡ [測試功能] 經驗值冷卻已成功歸零！');
 };
 
 window.checkFeatureLock = function(featureKey) {
-  const reqLevels = { stats: 5, trivia: 6, guild: 4, favorite: 3, like: 3, dislike: 8 };
-  const reqNames = { stats: "📊 數據統計中心 (Lv.5)", trivia: "💡 美食冷知識 (Lv.6)", guild: "🛡️ 冒險者公會 (Lv.4)", favorite: "⭐ 個人最愛精選 (Lv.3)", like: "👍 喜歡按鈕 (Lv.3)", dislike: "👎 討厭按鈕 (Lv.8)" };
+  const reqLevels = { stats: 5, trivia: 6, guild: 4, favorite: 3, like: 3, dislike: 8, joke: 13 };
+  const reqNames = {
+    stats:    "📊 數據統計中心 (Lv.5)",
+    trivia:   "💡 冷知識區 (Lv.6)",
+    guild:    "🛡️ 冒險者公會 (Lv.4)",
+    favorite: "⭐ 個人最愛精選 (Lv.3)",
+    like:     "👍 喜歡按鈕 (Lv.3)",
+    dislike:  "👎 討厭按鈕 (Lv.8)",
+    joke:     "😂 笑話區 (Lv.13 滿級)"
+  };
   if (userLevel < (reqLevels[featureKey] || 1)) {
     alert(`🔒 此功能尚未解鎖！\n需要達到 【${reqNames[featureKey]}】 才能使用（目前 Lv.${userLevel}）。`);
   }
 };
 
+// 食物盲盒數量上限改為 6 個
 function getUnlockBoxCount() {
-  if (userLevel >= 11) return 8;
-  if (userLevel >= 10) return 7;
   if (userLevel >= 9) return 6;
   if (userLevel >= 7) return 5;
   if (userLevel >= 2) return 4;
@@ -702,7 +778,7 @@ async function fetchFoods() {
     if (!res.ok) throw new Error('食物資料載入失敗');
     allFoods = await res.json();
     if (currentDisplayedFoods.length > 0) {
-      currentDisplayedFoods = currentDisplayedFoods.map(oldFood => {
+      currentDisplayedFoods = currentDisplayedFoods.slice(0, 6).map(oldFood => {
         const latestFood = allFoods.find(f => f.id === oldFood.id);
         return latestFood ? latestFood : oldFood;
       });
@@ -718,11 +794,27 @@ async function fetchTrivias() {
     const res = await fetch(`${ONLINE_TRIVIAS_URL}?t=${Date.now()}`);
     if (!res.ok) return;
     allTrivias = await res.json();
-    if (userLevel >= 6 && settingsPushTrivia) renderRandomTrivia();
+    if (userLevel >= 6 && settingsPushTrivia) renderRandomTrivia(false);
   } catch (err) {}
 }
 
-function renderRandomTrivia() {
+async function fetchJokes() {
+  try {
+    const res = await fetch(`${ONLINE_JOKES_URL}?t=${Date.now()}`);
+    if (!res.ok) throw new Error('笑話庫尚未建立');
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      allJokes = data;
+    } else {
+      allJokes = FALLBACK_JOKES;
+    }
+  } catch (err) {
+    allJokes = FALLBACK_JOKES;
+  }
+  if (userLevel >= 13 && settingsPushTrivia) renderRandomJoke(false);
+}
+
+function renderRandomTrivia(resetAutoTimer = true) {
   if (userLevel < 6) return;
   const triviaWrapper = document.getElementById('trivia-wrapper');
   if (!settingsPushTrivia || allTrivias.length === 0) {
@@ -736,7 +828,33 @@ function renderRandomTrivia() {
   const selectedTrivia = availableTrivias[Math.floor(Math.random() * availableTrivias.length)];
   currentTriviaIndex = allTrivias.indexOf(selectedTrivia);
   document.getElementById('trivia-content').innerText = selectedTrivia.content;
+  if (resetAutoTimer) {
+    lastTriviaRefreshTime = Date.now();
+    localStorage.setItem('last_trivia_refresh_time', String(lastTriviaRefreshTime));
+  }
   triviaWrapper.classList.remove('hidden');
+}
+
+function renderRandomJoke(resetAutoTimer = true) {
+  if (userLevel < 13) return;
+  const jokeWrapper = document.getElementById('joke-wrapper');
+  const pool = allJokes.length > 0 ? allJokes : FALLBACK_JOKES;
+  if (!settingsPushTrivia || pool.length === 0) {
+    jokeWrapper.classList.add('hidden');
+    return;
+  }
+  let availableJokes = pool;
+  if (currentJokeIndex >= 0 && pool.length > 1) {
+    availableJokes = pool.filter((_, idx) => idx !== currentJokeIndex);
+  }
+  const selectedJoke = availableJokes[Math.floor(Math.random() * availableJokes.length)];
+  currentJokeIndex = pool.indexOf(selectedJoke);
+  document.getElementById('joke-content').innerText = selectedJoke.content || selectedJoke.text || '';
+  if (resetAutoTimer) {
+    lastJokeRefreshTime = Date.now();
+    localStorage.setItem('last_joke_refresh_time', String(lastJokeRefreshTime));
+  }
+  jokeWrapper.classList.remove('hidden');
 }
 
 window.refreshTriviaWithCoin = function() {
@@ -749,7 +867,22 @@ window.refreshTriviaWithCoin = function() {
     saveState();
     showExpToast('toast-exp-floating');
   }
-  renderRandomTrivia();
+  renderRandomTrivia(true);
+  updateCountersAndTimer();
+};
+
+// 笑話區刷新水晶直接刷新
+window.refreshJokeWithCoin = function() {
+  if (!isVIP && drawState.count <= 0) {
+    alert('刷新水晶不足！可購買正式版享有無限水晶，或看廣告補充。');
+    return;
+  }
+  if (!isVIP) {
+    drawState.count--;
+    saveState();
+    showExpToast('toast-joke-floating');
+  }
+  renderRandomJoke(true);
   updateCountersAndTimer();
 };
 
@@ -765,11 +898,16 @@ function showExpToast(elementId) {
 }
 
 window.toggleTriviaBox = function(show) {
-  if (userLevel < 6) { alert('🔒 美食冷知識區尚未解鎖！'); return; }
+  if (userLevel < 6) { alert('🔒 冷知識區尚未解鎖！'); return; }
   settingsPushTrivia = show;
   localStorage.setItem('push_trivia', show);
-  if (show) renderRandomTrivia();
-  else document.getElementById('trivia-wrapper').classList.add('hidden');
+  if (show) {
+    renderRandomTrivia(false);
+    if (userLevel >= 13) renderRandomJoke(false);
+  } else {
+    document.getElementById('trivia-wrapper').classList.add('hidden');
+    document.getElementById('joke-wrapper').classList.add('hidden');
+  }
 };
 
 function updateFortuneText() {
@@ -986,7 +1124,7 @@ function renderBannedManager() {
     html += `</div>`;
   }
   container.innerHTML = html;
-};
+}
 
 window.onBannedSearchInput = function(val) {
   bannedSearchQuery = val;
@@ -1144,9 +1282,10 @@ function sampleFavorite() {
 function renderMainUI(foods) {
   const container = document.getElementById('food-container');
   container.innerHTML = '';
-  if (foods.length === 0) { container.innerHTML = '<p class="text-slate-400 text-center py-6">沒有符合條件的食物！</p>'; return; }
+  const cappedFoods = foods.slice(0, 6);
+  if (cappedFoods.length === 0) { container.innerHTML = '<p class="text-slate-400 text-center py-6">沒有符合條件的食物！</p>'; return; }
 
-  foods.forEach((food, index) => {
+  cappedFoods.forEach((food, index) => {
     if (index === 0 && guildQuest && guildQuest.progress < 3) {
       container.appendChild(createGuildQuestCardHTML());
     }
@@ -1185,20 +1324,18 @@ function createGuildQuestCardHTML() {
       <span class="text-[10px] font-bold text-amber-600 bg-amber-100 px-2.5 py-1 rounded">冷卻中</span>
     `;
   } else {
-    const targetTag = guildQuest.type;
-    const eligibleFoods = allFoods.filter(f => f.tags && f.tags.includes(targetTag));
-    const targetFood = eligibleFoods.length > 0 ? eligibleFoods[Math.floor(Math.random() * eligibleFoods.length)] : { id: '神祕任務料理', element: 'elementMetal' };
-    const foodName = targetFood.id;
+    const foodName = ensureGuildQuestTargetFood() || '神祕任務料理';
+    const targetFood = allFoods.find(f => f.id === foodName) || { id: foodName, element: 'elementMetal' };
     const safeId = btoa(encodeURIComponent("guild_" + foodName)).replace(/=/g, '');
     const elemInfo = ELEMENT_MAP[targetFood.element] || { name: '未知', icon: '❓', class: 'text-slate-500 bg-slate-100' };
 
     card.className = 'p-3.5 border-2 border-indigo-500 rounded-xl bg-indigo-50/70 flex justify-between items-center shadow-sm cursor-pointer hover:bg-indigo-100 transition gap-2';
-    card.onclick = () => openFoodConfirmModal(foodName);
+    card.onclick = () => openFoodConfirmModal(foodName, true);
     card.innerHTML = `
       <div class="flex items-center gap-2.5 min-w-0 flex-1">
         <span>🎯</span>
         <div class="min-w-0 flex-1 overflow-hidden">
-          <div class="text-[10px] font-bold text-indigo-500 leading-none mb-1">任務目標：</div>
+          <div class="text-[10px] font-bold text-indigo-500 leading-none mb-1">任務指定目標：</div>
           <div class="overflow-hidden whitespace-nowrap w-full relative" id="marquee-container-${safeId}">
             <div class="font-black text-sm text-indigo-900 inline-block" id="marquee-text-${safeId}">${foodName}</div>
           </div>
@@ -1229,7 +1366,6 @@ function renderFavoriteUI(food) {
   container.appendChild(card);
 }
 
-// 需求 1 調整：VIP 隱藏討厭按鈕，禁用按鈕只留圖示
 function createFoodCardHTML(food) {
   const foodName = food.id;
   const safeId = btoa(encodeURIComponent(foodName)).replace(/=/g, '');
@@ -1265,7 +1401,7 @@ function createFoodCardHTML(food) {
   }
 
   card.innerHTML = `
-    <div class="cursor-pointer flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden" onclick="openFoodConfirmModal('${foodName.replace(/'/g, "\\'")}')">
+    <div class="cursor-pointer flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden" onclick="openFoodConfirmModal('${foodName.replace(/'/g, "\\'")}', false)">
       <div class="overflow-hidden whitespace-nowrap flex-1 relative" id="marquee-container-${safeId}">
         <h3 class="font-bold text-sm text-slate-800 dark:text-white inline-block" id="marquee-text-${safeId}" title="${foodName}">
           ${foodName}
@@ -1384,10 +1520,9 @@ function updateSingleFoodCardDOM(foodName) {
   });
 }
 
-// 需求 2 調整：開啟確認視窗時啟動每秒計時器更新倒數
-window.openFoodConfirmModal = function(foodName) {
-  selectedFoodForConfirm = allFoods.find(f => f.id === foodName);
-  if (!selectedFoodForConfirm) return;
+window.openFoodConfirmModal = function(foodName, isFromGuildCard = false) {
+  selectedFoodForConfirm = allFoods.find(f => f.id === foodName) || { id: foodName, element: 'elementMetal', tags: [] };
+  selectedFoodForConfirm._fromGuildCard = isFromGuildCard;
 
   const kyusei = userBirth ? calculateKyusei(userBirth.year, userBirth.month, userBirth.day) : KYUSEI_DATA[3];
   const fortune = getTodayFortuneAnalysis(kyusei.elementKey);
@@ -1470,15 +1605,23 @@ function handleConfirm(needMap) {
     }
     userExp += gainedExp;
     lastEatTime = now;
-    hasTriggeredAutoRefreshThisCycle = false;
     localStorage.setItem('user_exp', userExp);
     localStorage.setItem('last_eat_time', lastEatTime);
 
-    if (guildQuest && guildQuest.progress < 3 && selectedFoodForConfirm.tags && selectedFoodForConfirm.tags.includes(guildQuest.type)) {
-      guildQuest.progress++;
-      localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
-      expMsg += `<br><span class='text-indigo-600 font-extrabold'>⚔️ 副本任務進度 +1 (${guildQuest.progress}/3)</span>`;
-      if (guildQuest.progress >= 3) expMsg += `<br><span class='text-amber-500 font-extrabold'>🎉 恭喜完成副本挑戰！點擊公會即可領取靈氣！</span>`;
+    // 嚴格比對：必須是任務區指定的目標食物 (guildQuest.currentTargetFood) 才累積進度
+    if (guildQuest && guildQuest.progress < 3) {
+      const targetFoodName = ensureGuildQuestTargetFood();
+      if (foodName === targetFoodName) {
+        guildQuest.progress++;
+        // 每次成功完成一步，抽出下一個新的指定任務目標食物
+        if (guildQuest.progress < 3) {
+          guildQuest.currentTargetFood = null;
+          ensureGuildQuestTargetFood();
+        }
+        localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
+        expMsg += `<br><span class='text-indigo-600 font-extrabold'>⚔️ 副本任務進度 +1 (${guildQuest.progress}/3)</span>`;
+        if (guildQuest.progress >= 3) expMsg += `<br><span class='text-amber-500 font-extrabold'>🎉 恭喜完成副本挑戰！點擊公會即可領取靈氣！</span>`;
+      }
     }
   } else {
     expMsg = "⏳ 4小時冷卻中，本次確認未獲得經驗值";
@@ -1501,6 +1644,7 @@ function handleConfirm(needMap) {
   }
   updateLevelAndUI(false);
   updateGuildBannerUI();
+  renderMainUI(currentDisplayedFoods);
 }
 
 function showCongratModal(foodName, expMsg, needMap) {
@@ -1540,23 +1684,62 @@ function checkAndUpdateCooldown() {
   }
 }
 
+function formatHourCountdown(remainMs) {
+  const totalSec = Math.max(0, Math.floor(remainMs / 1000));
+  const hrs = Math.floor(totalSec / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+  if (hrs > 0) {
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 function updateCountersAndTimer() {
   checkAndUpdateCooldown();
   const now = Date.now();
   const remainEatMs = Math.max(0, (4 * 60 * 60 * 1000) - (now - lastEatTime));
-  
-  const triviaCountdownEl = document.getElementById('trivia-countdown-text');
-  if (triviaCountdownEl) {
-    if (lastEatTime === 0 || remainEatMs === 0) {
-      triviaCountdownEl.innerHTML = `💎 -1<br>換一個`;
-      if (lastEatTime !== 0 && remainEatMs === 0 && !hasTriggeredAutoRefreshThisCycle) {
-        hasTriggeredAutoRefreshThisCycle = true;
-        renderRandomTrivia();
-      }
-    } else {
-      const timeStr = `${String(Math.floor(remainEatMs / 3600000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((remainEatMs % 60000) / 1000)).padStart(2, '0')}`;
-      triviaCountdownEl.innerHTML = `${timeStr}<br>後自動刷新`;
+
+  // 冷知識：每 1 小時自動刷新一次 + 旁邊倒數計時器
+  if (!lastTriviaRefreshTime) {
+    lastTriviaRefreshTime = now;
+    localStorage.setItem('last_trivia_refresh_time', String(lastTriviaRefreshTime));
+  }
+  let elapsedTrivia = now - lastTriviaRefreshTime;
+  if (elapsedTrivia >= ONE_HOUR_MS) {
+    const cycles = Math.floor(elapsedTrivia / ONE_HOUR_MS);
+    lastTriviaRefreshTime += cycles * ONE_HOUR_MS;
+    localStorage.setItem('last_trivia_refresh_time', String(lastTriviaRefreshTime));
+    if (userLevel >= 6 && settingsPushTrivia && allTrivias.length > 0) {
+      renderRandomTrivia(false);
     }
+    elapsedTrivia = now - lastTriviaRefreshTime;
+  }
+  const remainTriviaMs = Math.max(0, ONE_HOUR_MS - elapsedTrivia);
+  const triviaAutoTimerEl = document.getElementById('trivia-auto-timer');
+  if (triviaAutoTimerEl) {
+    triviaAutoTimerEl.innerText = `⏱️ ${formatHourCountdown(remainTriviaMs)}`;
+  }
+
+  // 笑話區：每 1 小時自動刷新一次 + 旁邊倒數計時器
+  if (!lastJokeRefreshTime) {
+    lastJokeRefreshTime = now;
+    localStorage.setItem('last_joke_refresh_time', String(lastJokeRefreshTime));
+  }
+  let elapsedJoke = now - lastJokeRefreshTime;
+  if (elapsedJoke >= ONE_HOUR_MS) {
+    const cycles = Math.floor(elapsedJoke / ONE_HOUR_MS);
+    lastJokeRefreshTime += cycles * ONE_HOUR_MS;
+    localStorage.setItem('last_joke_refresh_time', String(lastJokeRefreshTime));
+    if (userLevel >= 13 && settingsPushTrivia) {
+      renderRandomJoke(false);
+    }
+    elapsedJoke = now - lastJokeRefreshTime;
+  }
+  const remainJokeMs = Math.max(0, ONE_HOUR_MS - elapsedJoke);
+  const jokeAutoTimerEl = document.getElementById('joke-auto-timer');
+  if (jokeAutoTimerEl) {
+    jokeAutoTimerEl.innerText = `⏱️ ${formatHourCountdown(remainJokeMs)}`;
   }
 
   const coinValEl = document.getElementById('coin-counter-val');
