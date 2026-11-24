@@ -31,29 +31,45 @@
     html.theme-night-sakura button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { 
       background-color: #3f3f46 !important; 
       color: #f472b6 !important; 
-      border-color: #52525b !important; 
+      border: 1px solid #71717a !important; 
     }
 
     html.theme-spring body { background-color: #d1fae5; color: #065f46; }
     html.theme-spring .app-card { background-color: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
-    html.theme-spring button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { background-color: #ffffff !important; color: #065f46 !important; border-color: #a7f3d0 !important; }
+    html.theme-spring button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) {
+      background-color: #ffffff !important;
+      color: #065f46 !important;
+      border: 1px solid #34d399 !important;
+    }
 
     html.theme-summer body { background-color: #e0f2fe; color: #0369a1; }
     html.theme-summer .app-card { background-color: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
-    html.theme-summer button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { background-color: #fef3c7 !important; color: #78350f !important; border-color: #fde68a !important; }
+    html.theme-summer button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) {
+      background-color: #fef3c7 !important;
+      color: #78350f !important;
+      border: 1px solid #f59e0b !important;
+    }
 
     html.theme-autumn body { background-color: #ffedd5; color: #9a3412; }
     html.theme-autumn .app-card { background-color: #fff7ed; border-color: #fed7aa; color: #9a3412; }
-    html.theme-autumn button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { background-color: #fef3c7 !important; color: #78350f !important; border-color: #fde68a !important; }
+    html.theme-autumn button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) {
+      background-color: #fef3c7 !important;
+      color: #78350f !important;
+      border: 1px solid #ea580c !important;
+    }
 
     html.theme-winter body { background-color: #e0f4ff; color: #0f4c81; }
     html.theme-winter .app-card { background-color: #f2f9ff; border-color: #b9e2ff; color: #0f4c81; }
-    html.theme-winter button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) { background-color: #ffffff !important; color: #0f4c81 !important; border-color: #bae6fd !important; }
+    html.theme-winter button:not(.like-active-btn):not(.dislike-active-btn):not(.ban-active-btn):not(#draw-btn) {
+      background-color: #ffffff !important;
+      color: #0f4c81 !important;
+      border: 1px solid #38bdf8 !important;
+    }
 
     /* 強制維持狀態按鈕色彩不受主題干擾 */
-    .like-active-btn { background-color: #10b981 !important; color: #ffffff !important; border-color: #10b981 !important; }
-    .dislike-active-btn { background-color: #ef4444 !important; color: #ffffff !important; border-color: #ef4444 !important; }
-    .ban-active-btn { background-color: #e11d48 !important; color: #ffffff !important; border-color: #e11d48 !important; }
+    .like-active-btn { background-color: #10b981 !important; color: #ffffff !important; border: 1px solid #059669 !important; }
+    .dislike-active-btn { background-color: #ef4444 !important; color: #ffffff !important; border: 1px solid #dc2626 !important; }
+    .ban-active-btn { background-color: #e11d48 !important; color: #ffffff !important; border: 1px solid #be123c !important; }
   </style>
 </head>
 <body id="body-root" class="bg-slate-100 text-slate-800 min-h-screen flex flex-col items-center p-4 transition-colors duration-200">
@@ -123,21 +139,23 @@
       <p id="fortune-text" class="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed font-medium">✨ 正在解析今日日辰氣場...</p>
     </div>
     
+    <!-- 冷知識區 (Lv.6 解鎖，每 1 小時自動刷新) -->
     <div id="trivia-locked-box" onclick="checkFeatureLock('trivia')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition hidden">
-      ❓ <strong>[已鎖定] 美食冷知識區</strong> (Lv.6 解鎖)
+      ❓ <strong>[已鎖定] 冷知識區</strong> (Lv.6 解鎖)
     </div>
     <div id="trivia-wrapper" class="mb-3 hidden relative">
       <div id="trivia-box" class="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-3">
         <div class="flex-grow min-w-0 flex flex-col h-[76px]">
-          <div class="font-bold text-amber-800 dark:text-amber-300 text-xs mb-1 flex items-center gap-1 shrink-0">
-            💡 美食冷知識
+          <div class="font-bold text-amber-800 dark:text-amber-300 text-xs mb-1 flex items-center justify-between gap-1 shrink-0">
+            <span>💡 冷知識</span>
+            <span id="trivia-auto-timer" class="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400 bg-amber-100/90 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">⏱️ 60:00</span>
           </div>
           <div class="overflow-y-auto pr-1 flex-grow scrollbar-none">
             <p id="trivia-content" class="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]"></p>
           </div>
         </div>
         <div class="flex flex-col items-center justify-center shrink-0 min-w-[68px] border-l border-amber-200/60 dark:border-amber-900/40 pl-3">
-          <button onclick="refreshTriviaWithCoin()" class="w-10 h-10 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center justify-center shadow-sm active:scale-95" title="換一個冷知識">
+          <button onclick="refreshTriviaWithCoin()" class="w-10 h-10 rounded-xl bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 font-bold transition flex items-center justify-center shadow-sm active:scale-95" title="消耗水晶換一個冷知識">
             <span class="text-lg">🔄</span>
           </button>
           <span id="trivia-countdown-text" class="text-[9px] text-amber-800 dark:text-amber-300 font-bold text-center mt-1 leading-tight whitespace-nowrap">
@@ -146,6 +164,35 @@
         </div>
       </div>
       <div id="toast-exp-floating" class="absolute -top-6 right-8 bg-amber-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none">
+        💎 -1
+      </div>
+    </div>
+
+    <!-- 笑話區 (最高等級 Lv.13 解鎖，位於冷知識區下方，每 1 小時自動刷新) -->
+    <div id="joke-locked-box" onclick="checkFeatureLock('joke')" class="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 text-xs text-slate-400 dark:text-slate-500 text-center cursor-pointer hover:bg-slate-200 transition hidden">
+      😂 <strong>[已鎖定] 笑話區</strong> (Lv.13 滿級解鎖)
+    </div>
+    <div id="joke-wrapper" class="mb-3 hidden relative">
+      <div id="joke-box" class="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-xs text-emerald-900 dark:text-emerald-200 flex items-center gap-3">
+        <div class="flex-grow min-w-0 flex flex-col h-[76px]">
+          <div class="font-bold text-emerald-800 dark:text-emerald-300 text-xs mb-1 flex items-center justify-between gap-1 shrink-0">
+            <span>😂 笑話區</span>
+            <span id="joke-auto-timer" class="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100/90 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded">⏱️ 60:00</span>
+          </div>
+          <div class="overflow-y-auto pr-1 flex-grow scrollbar-none">
+            <p id="joke-content" class="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]"></p>
+          </div>
+        </div>
+        <div class="flex flex-col items-center justify-center shrink-0 min-w-[68px] border-l border-emerald-200/60 dark:border-emerald-900/40 pl-3">
+          <button onclick="refreshJokeWithCoin()" class="w-10 h-10 rounded-xl bg-emerald-200 hover:bg-emerald-300 dark:bg-emerald-900 dark:hover:bg-emerald-800 text-emerald-950 dark:text-emerald-100 font-bold transition flex items-center justify-center shadow-sm active:scale-95" title="消耗水晶換一個笑話">
+            <span class="text-lg">🔄</span>
+          </button>
+          <span id="joke-countdown-text" class="text-[9px] text-emerald-800 dark:text-emerald-300 font-bold text-center mt-1 leading-tight whitespace-nowrap">
+            💎 -1<br>換一個
+          </span>
+        </div>
+      </div>
+      <div id="toast-joke-floating" class="absolute -top-6 right-8 bg-emerald-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full shadow-lg opacity-0 transition-all duration-500 pointer-events-none">
         💎 -1
       </div>
     </div>
@@ -170,9 +217,10 @@
       <div id="aura-control-panel" class="flex items-center gap-1.5 overflow-x-auto pb-1">
         <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 whitespace-nowrap">靈氣：</span>
         <button id="aura-btn-cold" onclick="toggleAura('cold')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">❄️ 極寒靈氣 (未解鎖)</button>
-        <button id="aura-btn-hot" onclick="toggleAura('hot')" class="toggleAura('hot')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🔥 灼熱靈氣 (未解鎖)</button>
+        <button id="aura-btn-hot" onclick="toggleAura('hot')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🔥 灼熱靈氣 (未解鎖)</button>
         <button id="aura-btn-snack" onclick="toggleAura('snack')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🍡 小惡魔靈氣 (未解鎖)</button>
         <button id="aura-btn-fried" onclick="toggleAura('fried')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🌋 罪惡靈氣 (未解鎖)</button>
+        <button id="aura-btn-breakfast" onclick="toggleAura('breakfast')" class="px-2.5 py-1 text-[11px] rounded-lg border transition font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700">🌅 黎明靈氣 (未解鎖)</button>
       </div>
     </div>
 
@@ -305,8 +353,8 @@
       <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-1" id="accept-quest-title">是否接受：凜冬陣地？</h2>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-3" id="accept-quest-desc">完成後將獲取極寒靈氣！</p>
       <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-600 dark:text-slate-300 mb-4 text-left space-y-1">
-        <div>📌 <strong>任務目標</strong>：選取任務食物 3 次</div>
-        <div>⚡ <strong>特殊規則</strong>：需在額外經驗值「未冷卻」時選取才計入進度！</div>
+        <div>📌 <strong>任務目標</strong>：選取指定的任務食物 3 次</div>
+        <div>⚡ <strong>特殊規則</strong>：需在額外經驗值「未冷卻」時選取任務目標食物才計入進度！</div>
         <div class="text-amber-600 dark:text-amber-400 font-bold mt-1">⚠️ 接受任務期間將自動關閉並禁用靈氣！</div>
       </div>
       <div class="space-y-2">
@@ -477,7 +525,7 @@
 
         <div class="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-3">
           <div class="flex justify-between items-center">
-            <span class="text-slate-700 dark:text-slate-300">顯示食物冷知識</span>
+            <span class="text-slate-700 dark:text-slate-300">顯示冷知識與笑話</span>
             <input type="checkbox" id="setting-push-trivia" onchange="toggleTriviaBox(this.checked)" class="w-4 h-4 accent-indigo-600">
           </div>
         </div>
