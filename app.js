@@ -56,12 +56,6 @@ const ONLINE_FOODS_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.js
 const ONLINE_TRIVIAS_URL = 'https://shinakasun.github.io/foodWhatDataBase/trivias.json';
 const ONLINE_JOKES_URL = 'https://shinakasun.github.io/foodWhatDataBase/jokes.json';
 
-const FALLBACK_JOKES = [
-  { content: "為什麼食物盲盒最怕遇到減肥的人？因為打開的瞬間，對方心裡已經默默算出熱量了。" },
-  { content: "今天九星氣學算出來宜吃『木』，我立刻買了一根牙籤——據說這叫順應天命。" },
-  { content: "公會任務叫我吃三份指定料理，我吃第一份時覺得是冒險，吃第三份時覺得是體能訓練。" }
-];
-
 const QUEST_CONFIG = {
   cold:      { label: '❄️ 凜冬陣地', shortName: '凜冬陣地', icon: '❄️', auraName: '極寒靈氣', btnLabel: '❄️ 極寒靈氣', cardClass: 'border-blue-200 bg-blue-50/50 text-blue-900' },
   hot:       { label: '🔥 灼熱地城', shortName: '灼熱地城', icon: '🔥', auraName: '灼熱靈氣', btnLabel: '🔥 灼熱靈氣', cardClass: 'border-rose-200 bg-rose-50/50 text-rose-900' },
@@ -801,15 +795,12 @@ async function fetchTrivias() {
 async function fetchJokes() {
   try {
     const res = await fetch(`${ONLINE_JOKES_URL}?t=${Date.now()}`);
-    if (!res.ok) throw new Error('笑話庫尚未建立');
+    if (!res.ok) throw new Error('jokes.json 載入失敗');
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      allJokes = data;
-    } else {
-      allJokes = FALLBACK_JOKES;
-    }
+    allJokes = Array.isArray(data) ? data : [];
   } catch (err) {
-    allJokes = FALLBACK_JOKES;
+    console.error('載入 jokes.json 失敗:', err);
+    allJokes = [];
   }
   if (userLevel >= 13 && settingsPushTrivia) renderRandomJoke(false);
 }
@@ -827,7 +818,7 @@ function renderRandomTrivia(resetAutoTimer = true) {
   }
   const selectedTrivia = availableTrivias[Math.floor(Math.random() * availableTrivias.length)];
   currentTriviaIndex = allTrivias.indexOf(selectedTrivia);
-  document.getElementById('trivia-content').innerText = selectedTrivia.content;
+  document.getElementById('trivia-content').innerText = typeof selectedTrivia === 'string' ? selectedTrivia : (selectedTrivia.content || '');
   if (resetAutoTimer) {
     lastTriviaRefreshTime = Date.now();
     localStorage.setItem('last_trivia_refresh_time', String(lastTriviaRefreshTime));
@@ -838,18 +829,23 @@ function renderRandomTrivia(resetAutoTimer = true) {
 function renderRandomJoke(resetAutoTimer = true) {
   if (userLevel < 13) return;
   const jokeWrapper = document.getElementById('joke-wrapper');
-  const pool = allJokes.length > 0 ? allJokes : FALLBACK_JOKES;
-  if (!settingsPushTrivia || pool.length === 0) {
+  const jokeContentEl = document.getElementById('joke-content');
+  if (!settingsPushTrivia) {
     jokeWrapper.classList.add('hidden');
     return;
   }
-  let availableJokes = pool;
-  if (currentJokeIndex >= 0 && pool.length > 1) {
-    availableJokes = pool.filter((_, idx) => idx !== currentJokeIndex);
+  if (allJokes.length === 0) {
+    jokeContentEl.innerText = '無法載入笑話資料庫 (jokes.json)';
+    jokeWrapper.classList.remove('hidden');
+    return;
+  }
+  let availableJokes = allJokes;
+  if (currentJokeIndex >= 0 && allJokes.length > 1) {
+    availableJokes = allJokes.filter((_, idx) => idx !== currentJokeIndex);
   }
   const selectedJoke = availableJokes[Math.floor(Math.random() * availableJokes.length)];
-  currentJokeIndex = pool.indexOf(selectedJoke);
-  document.getElementById('joke-content').innerText = selectedJoke.content || selectedJoke.text || '';
+  currentJokeIndex = allJokes.indexOf(selectedJoke);
+  jokeContentEl.innerText = typeof selectedJoke === 'string' ? selectedJoke : (selectedJoke.content || selectedJoke.text || '');
   if (resetAutoTimer) {
     lastJokeRefreshTime = Date.now();
     localStorage.setItem('last_joke_refresh_time', String(lastJokeRefreshTime));
@@ -898,7 +894,7 @@ function showExpToast(elementId) {
 }
 
 window.toggleTriviaBox = function(show) {
-  if (userLevel < 6) { alert('🔒 冷知識區尚未解鎖！'); return; }
+  if (userLevel < 6) { alert('🔒 冷知識與笑話區尚未解鎖！'); return; }
   settingsPushTrivia = show;
   localStorage.setItem('push_trivia', show);
   if (show) {
