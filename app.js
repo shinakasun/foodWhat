@@ -1,3 +1,53 @@
+// ============================================================
+// 🛠️ 開發者模式 (隱藏功能)
+// 上架正式版時，把 ENABLE_DEV_MODE 改成 false，整個開發者模式（含隱藏指令）就會完全停用
+// ============================================================
+const ENABLE_DEV_MODE = true;
+
+// 畫面內日誌：手機上沒有 console 時，可在開發者面板查看（只記錄，不顯示給一般使用者）
+const DEV_LOG_BUFFER = [];
+(function captureLogs() {
+  const push = (level, args) => {
+    try {
+      const text = args.map(a => {
+        if (a instanceof Error) return `${a.name}: ${a.message}`;
+        if (typeof a === 'object') { try { return JSON.stringify(a); } catch (e) { return String(a); } }
+        return String(a);
+      }).join(' ');
+      const t = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+      DEV_LOG_BUFFER.push(`[${t}] ${level}: ${text}`);
+      if (DEV_LOG_BUFFER.length > 200) DEV_LOG_BUFFER.shift();
+    } catch (e) {}
+  };
+  ['log', 'warn', 'error'].forEach(level => {
+    const orig = console[level];
+    console[level] = function(...args) { push(level.toUpperCase(), args); orig.apply(console, args); };
+  });
+  window.addEventListener('error', e => push('UNCAUGHT', [e.message + (e.filename ? ` (${String(e.filename).split('/').pop()}:${e.lineno})` : '')]));
+  window.addEventListener('unhandledrejection', e => push('PROMISE', [e.reason || 'unhandled rejection']));
+})();
+
+let devMode = ENABLE_DEV_MODE && localStorage.getItem('dev_mode') === 'true';
+// 開發者旗標：hour = 模擬小時(null=真實時間)、dayOffset = 模擬日期位移(天)、freeDraw = 抽選不扣水晶、adFail = 模擬廣告載入失敗
+let devFlags = Object.assign({ hour: null, dayOffset: 0, freeDraw: false, adFail: false }, JSON.parse(localStorage.getItem('dev_flags') || '{}'));
+function saveDevFlags() { localStorage.setItem('dev_flags', JSON.stringify(devFlags)); }
+
+// 以下變數必須宣告在檔案最上面：initApp 可能在檔案底部的程式碼執行之前就被呼叫
+let secretStep = 0;          // 隱藏指令目前進行到第幾步
+let secretTimer = null;
+let devUIBuilt = false;
+let devOpenGroups = new Set(['status']);
+let devToastTimer = null;
+
+// 取得「現在」的時間。一般使用者永遠是真實時間；開發者模式下可模擬小時與日期（只影響餐時、早餐模式、今日運勢，不影響各種冷卻計時）
+function getDevNow() {
+  const d = new Date();
+  if (!devMode) return d;
+  if (devFlags.dayOffset) d.setDate(d.getDate() + devFlags.dayOffset);
+  if (devFlags.hour !== null && devFlags.hour !== undefined) d.setHours(devFlags.hour);
+  return d;
+}
+
 let allFoods = [];
 let allTrivias = [];
 let allJokes = [];
@@ -158,7 +208,7 @@ const FORTUNE_SPELLS = {
 };
 
 function getTodayFortuneAnalysis(userElementKey) {
-  const today = new Date();
+  const today = getDevNow();
   const dayHash = (today.getFullYear() * 13 + (today.getMonth() + 1) * 31 + today.getDate()) % 5;
   const spell = (FORTUNE_SPELLS[userElementKey] || FORTUNE_SPELLS['elementWood'])[dayHash];
   return {
@@ -204,6 +254,8 @@ async function initApp() {
 
   changeTheme(currentTheme);
   setupEventListeners();
+  initSecretGesture();
+  if (devMode) { ensureDevUI(); applyDevModeUI(); }
   initDateSelectors('select-birth');
   initDateSelectors('select-setting');
 
@@ -250,7 +302,7 @@ function updateAdSectionVisibility() {
 
 // 早餐時段：05:00 ~ 10:59
 function isBreakfastTime() {
-  const hour = new Date().getHours();
+  const hour = getDevNow().getHours();
   return hour >= 5 && hour < 11;
 }
 
@@ -260,7 +312,7 @@ function isBreakfastModeActive() {
 }
 
 function getTodayKey() {
-  const d = new Date();
+  const d = getDevNow();
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
@@ -287,7 +339,7 @@ window.toggleBreakfastMode = function(on) {
 
 // 當前餐時：早餐 / 午餐 / 晚餐 / 宵夜
 function getMealName() {
-  const hour = new Date().getHours();
+  const hour = getDevNow().getHours();
   if (isBreakfastTime()) return "早餐";
   else if (hour >= 11 && hour < 16) return "午餐";
   else if (hour >= 16 && hour < 23) return "晚餐";
@@ -823,10 +875,9 @@ function showAuraToast(htmlContent) {
 window.resetCooldownForTest = function() {
   lastEatTime = 0;
   localStorage.setItem('last_eat_time', '0');
-  closeModal();
   updateCountersAndTimer();
   filterAndDraw(false);
-  alert('⚡ [測試功能] 經驗值冷卻已成功歸零！');
+  if (typeof devToast === 'function') devToast('⚡ 額外經驗值冷卻已歸零');
 };
 
 window.checkFeatureLock = function(featureKey) {
@@ -1048,6 +1099,7 @@ window.finishOnboardingGuide = function() {
 };
 
 window.openSettingsModal = function() {
+  resetSecret();
   if (userBirth) {
     document.getElementById('select-setting-year').value = userBirth.year;
     document.getElementById('select-setting-month').value = userBirth.month;
@@ -1253,7 +1305,11 @@ window.changeTheme = function(themeName) {
 
 window.clearLocalStorage = function() {
   if (confirm('確定要清空所有 LocalStorage 資料並重置 App 嗎？')) {
+    // 開發者模式與開發旗標不跟著清掉，避免測試時每次都要重新輸入暗號
+    const keep = {};
+    ['dev_mode', 'dev_flags'].forEach(k => { const v = localStorage.getItem(k); if (v !== null) keep[k] = v; });
     localStorage.clear();
+    Object.entries(keep).forEach(([k, v]) => localStorage.setItem(k, v));
     location.reload();
   }
 };
@@ -1261,6 +1317,10 @@ window.clearLocalStorage = function() {
 window.simulateWatchAd = function() {
   if (isVIP) {
     alert('⭐ 您已是正式版會員，無需觀看廣告！');
+    return;
+  }
+  if (devMode && devFlags.adFail) {
+    alert('📺 廣告載入失敗，請稍後再試。（開發者模式：模擬廣告失敗）');
     return;
   }
   const btn = document.getElementById('btn-watch-ad');
@@ -1280,11 +1340,12 @@ function setupEventListeners() {
   const drawBtn = document.getElementById('draw-btn');
   if (drawBtn) {
     drawBtn.addEventListener('click', () => {
-      if (!isVIP && drawState.count <= 0) {
+      const freeDraw = devMode && devFlags.freeDraw;
+      if (!isVIP && !freeDraw && drawState.count <= 0) {
         alert('刷新水晶不足！可購買正式版獲得無限水晶，或看廣告補充。');
         return;
       }
-      if (!isVIP) {
+      if (!isVIP && !freeDraw) {
         drawState.count--;
         saveState();
       }
@@ -1910,3 +1971,569 @@ function saveState() {
 }
 
 initApp();
+
+// ============================================================
+// 🛠️ 開發者模式：隱藏指令偵測
+// 在「設定」頁面：滑動 上、上、下、下、左、右、左、右，
+// 再依序點「忌吃螃蟹 (crab)」括號內的 b、a 兩個字母
+// ============================================================
+const SECRET_SEQUENCE = [
+  { k: 'swipe', v: 'up' }, { k: 'swipe', v: 'up' },
+  { k: 'swipe', v: 'down' }, { k: 'swipe', v: 'down' },
+  { k: 'swipe', v: 'left' }, { k: 'swipe', v: 'right' },
+  { k: 'swipe', v: 'left' }, { k: 'swipe', v: 'right' },
+  { k: 'letter', v: 'b' }, { k: 'letter', v: 'a' }
+];
+const SECRET_SWIPE_COUNT = 8;      // 前 8 步是滑動，之後才是點字母
+const SECRET_STEP_TIMEOUT = 10000; // 每一步之間最多間隔 10 秒，超過就重來
+
+function resetSecret() {
+  secretStep = 0;
+  if (secretTimer) { clearTimeout(secretTimer); secretTimer = null; }
+}
+
+function secretInput(kind, value) {
+  if (!ENABLE_DEV_MODE) return;
+  const expected = SECRET_SEQUENCE[secretStep];
+  if (expected && expected.k === kind && expected.v === value) {
+    secretStep++;
+    if (secretTimer) clearTimeout(secretTimer);
+    secretTimer = setTimeout(resetSecret, SECRET_STEP_TIMEOUT);
+    if (secretStep >= SECRET_SEQUENCE.length) {
+      resetSecret();
+      enableDevMode();
+    }
+    return;
+  }
+  // 輸錯：重來；但如果這一下剛好是第一步，就當作新的開頭
+  resetSecret();
+  if (SECRET_SEQUENCE[0].k === kind && SECRET_SEQUENCE[0].v === value) {
+    secretStep = 1;
+    secretTimer = setTimeout(resetSecret, SECRET_STEP_TIMEOUT);
+  }
+}
+
+function initSecretGesture() {
+  if (!ENABLE_DEV_MODE) return;
+  const modal = document.getElementById('modal-settings');
+  if (!modal) return;
+
+  const MIN_DIST = 50;
+  let sx = 0, sy = 0, tracking = false;
+  const begin = (x, y) => { sx = x; sy = y; tracking = true; };
+  const end = (x, y) => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = x - sx, dy = y - sy;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < MIN_DIST) return; // 太短：視為點擊，不算滑動
+    const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    secretInput('swipe', dir);
+  };
+  // 手機觸控
+  modal.addEventListener('touchstart', e => { if (e.touches.length === 1) begin(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  modal.addEventListener('touchend', e => { const t = e.changedTouches[0]; if (t) end(t.clientX, t.clientY); }, { passive: true });
+  modal.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+  // 電腦滑鼠（方便在瀏覽器測試）
+  modal.addEventListener('mousedown', e => begin(e.clientX, e.clientY));
+  window.addEventListener('mouseup', e => end(e.clientX, e.clientY)); // 放開滑鼠時游標可能已移出視窗，所以掛在 window 上
+
+  // 螃蟹英文字母 c r a b：滑動完成後依序點 b、a
+  modal.querySelectorAll('.secret-letter').forEach(el => {
+    el.addEventListener('click', e => {
+      const inLetterStage = secretStep >= SECRET_SWIPE_COUNT;
+      secretInput('letter', el.dataset.letter);
+      // 只有在輸入暗號的階段才擋掉 label 的預設行為，避免誤勾「忌吃螃蟹」；平常點擊維持原本行為
+      if (inLetterStage) e.preventDefault();
+    });
+  });
+}
+
+function enableDevMode() {
+  if (!ENABLE_DEV_MODE) return;
+  const already = devMode;
+  devMode = true;
+  localStorage.setItem('dev_mode', 'true');
+  ensureDevUI();
+  applyDevModeUI();
+  if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+  devToast(already ? '🛠️ 已在開發者模式' : '🛠️ 開發者模式已啟用');
+  if (already) window.openDevPanel();
+}
+
+window.exitDevMode = function() {
+  devMode = false;
+  devFlags = { hour: null, dayOffset: 0, freeDraw: false, adFail: false };
+  localStorage.removeItem('dev_mode');
+  localStorage.removeItem('dev_flags');
+  closeModal();
+  applyDevModeUI();
+  updateMainTitle();
+  updateFortuneText();
+  updateCountersAndTimer();
+  devToast('已退出開發者模式');
+};
+
+// ============================================================
+// 🛠️ 開發者模式：介面（全部用 JS 動態建立，一般模式下 DOM 裡完全沒有這些元素）
+// ============================================================
+
+function devEl(tag, cls, text) {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+function ensureDevUI() {
+  if (devUIBuilt || !devMode) return;
+  devUIBuilt = true;
+
+  // 浮動小徽章：點一下直接開面板
+  const badge = devEl('button', 'fixed bottom-3 right-3 z-30 px-2.5 py-1 rounded-full bg-fuchsia-600 text-white text-[11px] font-bold shadow-lg opacity-80 hidden', '🛠️ DEV');
+  badge.id = 'dev-badge';
+  badge.addEventListener('click', () => window.openDevPanel());
+  document.body.appendChild(badge);
+
+  // 提示訊息（比 alert 好用，不會擋住畫面）
+  const toast = devEl('div', 'fixed left-1/2 -translate-x-1/2 bottom-16 z-[70] px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-xl opacity-0 pointer-events-none transition-opacity duration-300 max-w-[85vw] text-center');
+  toast.id = 'dev-toast';
+  document.body.appendChild(toast);
+
+  // 開發者面板彈窗（放進 modal-overlay，closeModal 才會一起關掉）
+  const panel = devEl('div', 'bg-white dark:bg-slate-900 rounded-2xl p-5 w-full max-w-md shadow-2xl hidden text-left');
+  panel.id = 'modal-dev';
+  const header = devEl('div', 'flex justify-between items-center mb-3');
+  header.appendChild(devEl('h2', 'text-lg font-bold text-fuchsia-600 dark:text-fuchsia-400', '🛠️ 開發者面板'));
+  const closeBtn = devEl('button', 'text-slate-400 hover:text-slate-600', '✕');
+  closeBtn.addEventListener('click', closeModal);
+  header.appendChild(closeBtn);
+  panel.appendChild(header);
+  const body = devEl('div', 'space-y-2 max-h-[75vh] overflow-y-auto pr-1 text-xs');
+  body.id = 'dev-panel-body';
+  panel.appendChild(body);
+  document.getElementById('modal-overlay').appendChild(panel);
+
+  // 設定頁面裡的開發者區塊
+  const settingsBody = document.querySelector('#modal-settings .space-y-4');
+  if (settingsBody) {
+    const sec = devEl('div', 'pt-3 border-t border-fuchsia-200 dark:border-fuchsia-900 space-y-2');
+    sec.id = 'dev-settings-section';
+    sec.appendChild(devEl('div', 'text-[11px] font-bold text-fuchsia-600 dark:text-fuchsia-400', '🛠️ 開發者模式'));
+    const open = devEl('button', 'w-full py-2 bg-fuchsia-100 dark:bg-fuchsia-950/60 hover:bg-fuchsia-200 text-fuchsia-700 dark:text-fuchsia-300 font-bold rounded-xl transition text-xs', '🛠️ 開啟開發者面板');
+    open.addEventListener('click', () => window.openDevPanel());
+    const exit = devEl('button', 'w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition text-xs', '🚪 退出開發者模式');
+    exit.addEventListener('click', () => window.exitDevMode());
+    sec.appendChild(open);
+    sec.appendChild(exit);
+    settingsBody.appendChild(sec);
+  }
+}
+
+function applyDevModeUI() {
+  const badge = document.getElementById('dev-badge');
+  const sec = document.getElementById('dev-settings-section');
+  if (badge) badge.classList.toggle('hidden', !devMode);
+  if (sec) sec.classList.toggle('hidden', !devMode);
+}
+
+function devToast(msg) {
+  const t = document.getElementById('dev-toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.remove('opacity-0');
+  t.classList.add('opacity-100');
+  if (devToastTimer) clearTimeout(devToastTimer);
+  devToastTimer = setTimeout(() => { t.classList.remove('opacity-100'); t.classList.add('opacity-0'); }, 1800);
+}
+
+window.openDevPanel = function() {
+  if (!devMode) return;
+  ensureDevUI();
+  closeModal();
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-dev').classList.remove('hidden');
+  renderDevPanel();
+};
+
+// 動作之後共用的畫面刷新
+function devRefreshUI(redraw = false) {
+  updateLevelAndUI(false);
+  updateAdSectionVisibility();
+  updateMainTitle();
+  updateFortuneText();
+  updateGuildBannerUI();
+  updateAuraButtonsUI();
+  updateCountersAndTimer();
+  if (allFoods.length > 0) filterAndDraw(redraw);
+  renderDevPanel();
+}
+
+function devStatusText() {
+  const now = Date.now();
+  const remainEat = Math.max(0, 4 * 3600000 - (now - lastEatTime));
+  const d = getDevNow();
+  const simulated = devFlags.hour !== null || devFlags.dayOffset !== 0;
+  let lsBytes = 0;
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); lsBytes += (k.length + (localStorage.getItem(k) || '').length) * 2; } } catch (e) {}
+  return [
+    `等級 Lv.${userLevel}　經驗值 ${userExp}`,
+    `水晶：${isVIP ? '∞ (VIP)' : drawState.count + ' / ' + MAX_DRAW}　VIP：${isVIP ? '是' : '否'}`,
+    `額外經驗冷卻：${remainEat > 0 ? formatHMS(remainEat) : '已歸零(可獲得)'}`,
+    `公會任務：${guildQuest ? `${guildQuest.type} ${guildQuest.progress}/3　目標：${guildQuest.currentTargetFood || '-'}` : '無'}`,
+    `靈氣：解鎖 [${unlockedAuras.join(', ') || '無'}]　啟用 ${activeAura || '無'}`,
+    `主題：${currentTheme}　早餐模式：${breakfastMode ? '開' : '關'} (目前生效：${isBreakfastModeActive() ? '是' : '否'})`,
+    `${simulated ? '⚠️ 模擬時間' : '目前時間'}：${d.toLocaleString('zh-TW', { hour12: false })}　餐時：${getMealName()}`,
+    `資料庫：食物 ${allFoods.length}／冷知識 ${allTrivias.length}／笑話 ${allJokes.length}`,
+    `畫面：${window.innerWidth}x${window.innerHeight} @${window.devicePixelRatio}x　網路：${navigator.onLine ? 'online' : 'offline'}`,
+    `LocalStorage：${(lsBytes / 1024).toFixed(1)} KB`,
+    `旗標：抽選不扣水晶=${devFlags.freeDraw ? 'ON' : 'off'}　廣告失敗=${devFlags.adFail ? 'ON' : 'off'}`
+  ].join('\n');
+}
+
+// ---- 各項開發者動作 ----
+function devSetCrystals(n) {
+  drawState.count = Math.max(0, Math.min(MAX_DRAW, n));
+  drawState.timestamp = Date.now();
+  saveState();
+  updateCountersAndTimer();
+  devToast(`💎 水晶設為 ${drawState.count}`);
+  renderDevPanel();
+}
+
+function devAddExp(n) {
+  userExp = Math.max(0, userExp + n);
+  localStorage.setItem('user_exp', userExp);
+  devRefreshUI(false);
+  devToast(`✨ 經驗值 ${n >= 0 ? '+' : ''}${n}　→ Lv.${userLevel}`);
+}
+
+function devSetLevel(lv) {
+  const tier = LEVEL_UNLOCKS.find(l => l.level === lv);
+  if (!tier) return;
+  userExp = tier.expNeeded;
+  localStorage.setItem('user_exp', userExp);
+  updateLevelAndUI(false);
+  if (userLevel < 3 && currentTheme !== 'default') {
+    changeTheme('default');
+    const sel = document.getElementById('setting-theme-select');
+    if (sel) sel.value = 'default';
+  }
+  devRefreshUI(true); // 盲盒數量會隨等級改變，所以順便免費重抽一次
+  devToast(`⭐ 已切換到 Lv.${lv}`);
+}
+
+function devToggleVIP() {
+  isVIP = !isVIP;
+  localStorage.setItem('is_vip', String(isVIP));
+  devRefreshUI(false);
+  devToast(isVIP ? '⭐ 已切換為 VIP' : '已切換為免費版');
+}
+
+function devQuestAccept(type) {
+  guildQuest = { type, progress: 0, currentTargetFood: null, eaten: [] };
+  ensureGuildQuestTargetFood();
+  localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
+  activeAura = null;
+  localStorage.setItem('active_aura', '');
+  devRefreshUI(false);
+  devToast(`⚔️ 已接取任務：${QUEST_CONFIG[type].shortName}`);
+}
+
+function devQuestProgress(delta) {
+  if (!guildQuest) { devToast('目前沒有進行中的任務'); return; }
+  guildQuest.progress = Math.max(0, Math.min(3, guildQuest.progress + delta));
+  if (guildQuest.progress < 3 && !guildQuest.currentTargetFood) ensureGuildQuestTargetFood();
+  localStorage.setItem('guild_quest', JSON.stringify(guildQuest));
+  devRefreshUI(false);
+  devToast(`⚔️ 任務進度 ${guildQuest.progress}/3`);
+}
+
+function devQuestClear() {
+  guildQuest = null;
+  localStorage.removeItem('guild_quest');
+  devRefreshUI(false);
+  devToast('已清除任務');
+}
+
+function devUnlockAuras() {
+  unlockedAuras = [...ALL_QUEST_TYPES];
+  localStorage.setItem('unlocked_auras', JSON.stringify(unlockedAuras));
+  applyFeatureUnlocks();
+  devRefreshUI(false);
+  devToast('✨ 已解鎖全部靈氣');
+}
+
+function devClearAuras() {
+  unlockedAuras = [];
+  activeAura = null;
+  localStorage.setItem('unlocked_auras', '[]');
+  localStorage.setItem('active_aura', '');
+  applyFeatureUnlocks();
+  devRefreshUI(true);
+  devToast('已清除全部靈氣');
+}
+
+function devSetHour(h) {
+  devFlags.hour = h;
+  saveDevFlags();
+  lastMealName = null;
+  devRefreshUI(false);
+  devToast(h === null ? '🕒 已恢復真實時間' : `🕒 模擬時間：${String(h).padStart(2, '0')}:00　餐時：${getMealName()}`);
+}
+
+function devShiftDay(delta) {
+  devFlags.dayOffset = delta === 0 ? 0 : devFlags.dayOffset + delta;
+  saveDevFlags();
+  devRefreshUI(false);
+  devToast(devFlags.dayOffset === 0 ? '📅 已恢復今天日期' : `📅 日期位移 ${devFlags.dayOffset > 0 ? '+' : ''}${devFlags.dayOffset} 天`);
+}
+
+function devReplayBreakfastPrompt() {
+  breakfastPromptDate = '';
+  localStorage.setItem('breakfast_prompt_date', '');
+  if (!isBreakfastTime()) { devToast('目前不是早餐時段，請先模擬早上時間（例如 08:00）'); renderDevPanel(); return; }
+  closeModal();
+  maybeShowBreakfastPrompt();
+}
+
+function devSetCooldown(on) {
+  lastEatTime = on ? Date.now() : 0;
+  localStorage.setItem('last_eat_time', String(lastEatTime));
+  updateCountersAndTimer();
+  filterAndDraw(false);
+  renderDevPanel();
+  devToast(on ? '⏳ 已進入 4 小時冷卻' : '⚡ 額外經驗值冷卻已歸零');
+}
+
+function devRefreshContent() {
+  if (userLevel >= 6) renderRandomTrivia(true);
+  if (userLevel >= MAX_LEVEL) renderRandomJoke(true);
+  updateCountersAndTimer();
+  devToast(userLevel < 6 ? '冷知識/笑話尚未解鎖（需 Lv.6 / 滿級）' : '💡 已刷新冷知識與笑話');
+}
+
+function devFreeRedraw() {
+  filterAndDraw(true);
+  renderDevPanel();
+  devToast('🎲 已免費重抽（未扣水晶/未加經驗）');
+}
+
+function devPreviewLevelUp() {
+  const tier = LEVEL_UNLOCKS.find(l => l.level === userLevel) || LEVEL_UNLOCKS[0];
+  closeModal();
+  showLevelUpModal(userLevel, tier.unlockDesc);
+}
+
+function devClearHistory() {
+  if (!confirm('清除食物選擇紀錄與排行統計？')) return;
+  foodHistory = []; foodCounts = {};
+  localStorage.setItem('food_history', '[]');
+  localStorage.setItem('food_counts', '{}');
+  devToast('已清除選擇紀錄與統計');
+  renderDevPanel();
+}
+
+function devClearPrefs() {
+  if (!confirm('清除喜歡 / 討厭 / 封禁的食物清單？')) return;
+  userLikes = []; userDislikes = []; userBanned = [];
+  localStorage.setItem('user_likes', '[]');
+  localStorage.setItem('user_dislikes', '[]');
+  localStorage.setItem('user_banned', '[]');
+  devRefreshUI(true);
+  devToast('已清除喜好清單');
+}
+
+function devResetBirth() {
+  if (!confirm('清除生日並重新載入，以重跑新手流程（生日→命盤→新手引導）？')) return;
+  localStorage.removeItem('user_birth');
+  localStorage.removeItem('current_displayed_foods');
+  location.reload();
+}
+
+async function devReloadData() {
+  devToast('⏳ 重新載入資料庫...');
+  await Promise.all([fetchFoods(), fetchTrivias(), fetchJokes()]);
+  renderDevPanel();
+  devToast(`✅ 食物 ${allFoods.length}／冷知識 ${allTrivias.length}／笑話 ${allJokes.length}`);
+}
+
+function devCollectSave() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); data[k] = localStorage.getItem(k); }
+  return JSON.stringify(data);
+}
+
+async function devExportSave() {
+  const text = devCollectSave();
+  try {
+    await navigator.clipboard.writeText(text);
+    devToast('📋 存檔已複製到剪貼簿');
+  } catch (e) {
+    prompt('複製失敗，請手動全選複製下面的存檔：', text);
+  }
+}
+
+function devImportSave() {
+  const text = prompt('貼上之前匯出的存檔 JSON（會覆蓋目前所有資料）：');
+  if (!text) return;
+  try {
+    const data = JSON.parse(text);
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) throw new Error('格式不正確');
+    localStorage.clear();
+    Object.entries(data).forEach(([k, v]) => localStorage.setItem(k, String(v)));
+    localStorage.setItem('dev_mode', 'true');
+    location.reload();
+  } catch (e) {
+    alert('匯入失敗：' + e.message);
+  }
+}
+
+function devThrowTestError() {
+  console.log('dev: 即將丟出測試錯誤');
+  setTimeout(() => { throw new Error('開發者面板的測試錯誤'); }, 0);
+  setTimeout(renderDevPanel, 100);
+  devToast('💥 已丟出測試錯誤，請看下方日誌');
+}
+
+function devForceTheme(theme) {
+  // 繞過等級限制，直接套用主題（只用來看版面，不會解鎖功能）
+  currentTheme = theme;
+  localStorage.setItem('app_theme', theme);
+  const htmlRoot = document.getElementById('html-root');
+  htmlRoot.className = `theme-${theme}`;
+  htmlRoot.classList.toggle('dark', theme === 'dark' || theme === 'night-sakura');
+  devToast(`🎨 已套用主題：${theme}`);
+}
+
+// ---- 面板繪製 ----
+function renderDevPanel() {
+  const body = document.getElementById('dev-panel-body');
+  if (!body) return;
+  const scrollTop = body.scrollTop;
+  body.innerHTML = '';
+
+  const btnCls = 'px-2 py-2 rounded-lg bg-fuchsia-50 dark:bg-fuchsia-950/40 hover:bg-fuchsia-100 text-fuchsia-800 dark:text-fuchsia-200 font-bold border border-fuchsia-200 dark:border-fuchsia-900 text-[11px] leading-tight active:scale-95 transition';
+  const dangerCls = 'px-2 py-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-900 text-[11px] leading-tight active:scale-95 transition';
+
+  const group = (key, title, build) => {
+    const d = devEl('details', 'rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40');
+    if (devOpenGroups.has(key)) d.open = true;
+    d.addEventListener('toggle', () => { d.open ? devOpenGroups.add(key) : devOpenGroups.delete(key); });
+    d.appendChild(devEl('summary', 'cursor-pointer select-none px-3 py-2 font-bold text-slate-700 dark:text-slate-200', title));
+    const inner = devEl('div', 'px-3 pb-3 pt-1 space-y-2');
+    build(inner);
+    d.appendChild(inner);
+    body.appendChild(d);
+  };
+  const grid = (parent, cols) => { const g = devEl('div', `grid grid-cols-${cols} gap-1.5`); parent.appendChild(g); return g; };
+  const btn = (parent, label, fn, danger = false) => {
+    const b = devEl('button', danger ? dangerCls : btnCls, label);
+    b.addEventListener('click', fn);
+    parent.appendChild(b);
+  };
+  const toggle = (parent, label, get, set) => {
+    const on = get();
+    const b = devEl('button', on ? 'px-2 py-2 rounded-lg bg-fuchsia-600 text-white font-bold border border-fuchsia-700 text-[11px] leading-tight active:scale-95 transition' : btnCls, `${label}：${on ? 'ON' : 'OFF'}`);
+    b.addEventListener('click', () => { set(!get()); renderDevPanel(); });
+    parent.appendChild(b);
+  };
+  const note = (parent, text) => parent.appendChild(devEl('p', 'text-[10px] text-slate-400 dark:text-slate-500 leading-snug', text));
+
+  group('status', '📋 目前狀態', p => {
+    const pre = devEl('pre', 'whitespace-pre-wrap break-words text-[10px] leading-relaxed text-slate-600 dark:text-slate-300 font-mono', devStatusText());
+    p.appendChild(pre);
+    const g = grid(p, 2);
+    btn(g, '🔄 更新狀態', renderDevPanel);
+    btn(g, '📋 複製狀態文字', async () => { try { await navigator.clipboard.writeText(devStatusText()); devToast('已複製'); } catch (e) { prompt('請手動複製：', devStatusText()); } });
+  });
+
+  group('crystal', '💎 水晶 / VIP / 廣告', p => {
+    const g = grid(p, 3);
+    btn(g, '補滿水晶', () => devSetCrystals(MAX_DRAW));
+    btn(g, '水晶 +5', () => devSetCrystals(drawState.count + 5));
+    btn(g, '水晶歸零', () => devSetCrystals(0));
+    const g2 = grid(p, 2);
+    btn(g2, isVIP ? '⭐ 切換為免費版' : '⭐ 切換為 VIP', devToggleVIP);
+    toggle(g2, '抽選不扣水晶', () => devFlags.freeDraw, v => { devFlags.freeDraw = v; saveDevFlags(); });
+    toggle(g2, '模擬廣告失敗', () => devFlags.adFail, v => { devFlags.adFail = v; saveDevFlags(); });
+    btn(g2, '🎬 立即補 +10 水晶', () => { drawState.count = Math.min(MAX_DRAW, drawState.count + 10); saveState(); updateCountersAndTimer(); renderDevPanel(); devToast('+10 💎（未經過廣告流程）'); });
+  });
+
+  group('level', '⭐ 等級 / 經驗值', p => {
+    const g = grid(p, 5);
+    LEVEL_UNLOCKS.forEach(l => btn(g, `Lv.${l.level}`, () => devSetLevel(l.level)));
+    const g2 = grid(p, 4);
+    btn(g2, 'EXP +1', () => devAddExp(1));
+    btn(g2, 'EXP +5', () => devAddExp(5));
+    btn(g2, 'EXP +20', () => devAddExp(20));
+    btn(g2, 'EXP +100', () => devAddExp(100));
+    const g3 = grid(p, 2);
+    btn(g3, '🎉 預覽升級彈窗', devPreviewLevelUp);
+    btn(g3, '⏳ 進入吃飯冷卻', () => devSetCooldown(true));
+    btn(g3, '⚡ 歸零額外經驗冷卻', () => devSetCooldown(false));
+    btn(g3, '🎲 免費重抽盲盒', devFreeRedraw);
+    note(p, '切換等級會直接把經驗值設為該等級的門檻，並免費重抽一次盲盒。');
+  });
+
+  group('quest', '🛡️ 公會任務 / 靈氣', p => {
+    note(p, '接取任務（需 Lv.4 才看得到公會）：');
+    const g = grid(p, 4);
+    ALL_QUEST_TYPES.forEach(t => btn(g, QUEST_CONFIG[t].icon + QUEST_CONFIG[t].shortName, () => devQuestAccept(t)));
+    const g2 = grid(p, 3);
+    btn(g2, '進度 +1', () => devQuestProgress(1));
+    btn(g2, '直接完成', () => devQuestProgress(3));
+    btn(g2, '清除任務', devQuestClear, true);
+    const g3 = grid(p, 2);
+    btn(g3, '✨ 解鎖全部靈氣', devUnlockAuras);
+    btn(g3, '清除全部靈氣', devClearAuras, true);
+  });
+
+  group('time', '🕒 時間 / 日期模擬', p => {
+    note(p, '只影響餐時、早餐模式與今日運勢，不影響各種冷卻計時。');
+    const g = grid(p, 3);
+    btn(g, '🌅 早上 08:00', () => devSetHour(8));
+    btn(g, '🍱 中午 12:00', () => devSetHour(12));
+    btn(g, '🌙 晚上 19:00', () => devSetHour(19));
+    btn(g, '🦉 宵夜 00:00', () => devSetHour(0));
+    btn(g, '🕒 真實時間', () => devSetHour(null));
+    btn(g, '重跑早餐詢問', devReplayBreakfastPrompt);
+    const g2 = grid(p, 3);
+    btn(g2, '📅 -1 天', () => devShiftDay(-1));
+    btn(g2, '📅 +1 天', () => devShiftDay(1));
+    btn(g2, '📅 回到今天', () => devShiftDay(0));
+  });
+
+  group('content', '💡 內容 / 資料庫 / 主題', p => {
+    const g = grid(p, 2);
+    btn(g, '💡 刷新冷知識與笑話', devRefreshContent);
+    btn(g, '☁️ 重新載入資料庫', devReloadData);
+    note(p, '強制套用主題（繞過 Lv.3 限制，只看版面）：');
+    const g2 = grid(p, 4);
+    [['default', '預設'], ['dark', '深色'], ['night-sakura', '夜櫻'], ['spring', '春'], ['summer', '夏'], ['autumn', '秋'], ['winter', '冬']].forEach(([k, n]) => btn(g2, n, () => devForceTheme(k)));
+  });
+
+  group('data', '💾 存檔 / 重置', p => {
+    const g = grid(p, 2);
+    btn(g, '📋 匯出存檔(複製)', devExportSave);
+    btn(g, '📥 匯入存檔(貼上)', devImportSave);
+    btn(g, '🔁 重新載入 App', () => location.reload());
+    btn(g, '🎂 重設生日(重跑新手流程)', devResetBirth, true);
+    btn(g, '🧹 清除選擇紀錄/統計', devClearHistory, true);
+    btn(g, '🧹 清除喜好/封禁清單', devClearPrefs, true);
+    btn(g, '🗑️ 清空 LocalStorage', window.clearLocalStorage, true);
+    note(p, '清空 LocalStorage 時會保留開發者模式，不用重新輸入暗號。');
+  });
+
+  group('log', '📜 錯誤 / 日誌', p => {
+    const pre = devEl('pre', 'whitespace-pre-wrap break-words text-[10px] leading-snug text-slate-600 dark:text-slate-300 font-mono max-h-48 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-700');
+    pre.textContent = DEV_LOG_BUFFER.length ? DEV_LOG_BUFFER.join('\n') : '（目前沒有日誌）';
+    p.appendChild(pre);
+    const g = grid(p, 2);
+    btn(g, '🔄 更新', renderDevPanel);
+    btn(g, '📋 複製日誌', async () => { try { await navigator.clipboard.writeText(DEV_LOG_BUFFER.join('\n')); devToast('已複製'); } catch (e) { prompt('請手動複製：', DEV_LOG_BUFFER.join('\n')); } });
+    btn(g, '🗑️ 清除日誌', () => { DEV_LOG_BUFFER.length = 0; renderDevPanel(); });
+    btn(g, '💥 丟出測試錯誤', devThrowTestError);
+  });
+
+  body.scrollTop = scrollTop;
+}
