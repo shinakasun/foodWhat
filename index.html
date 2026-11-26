@@ -523,7 +523,7 @@
             <label class="flex items-center gap-1.5"><input type="checkbox" value="pork" class="meat-taboo accent-indigo-600"> 忌吃豬肉 (pork)</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" value="mutton" class="meat-taboo accent-indigo-600"> 忌吃羊肉 (mutton)</label>
             <label class="flex items-center gap-1.5"><input type="checkbox" value="shrimp" class="meat-taboo accent-indigo-600"> 忌吃蝦子 (shrimp)</label>
-            <label class="flex items-center gap-1.5"><input type="checkbox" value="crab" class="meat-taboo accent-indigo-600"> 忌吃螃蟹 (crab)</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" value="crab" class="meat-taboo accent-indigo-600"> 忌吃螃蟹 (<span class="secret-letter" data-letter="c">c</span><span class="secret-letter" data-letter="r">r</span><span class="secret-letter" data-letter="a">a</span><span class="secret-letter" data-letter="b">b</span>)</label>
           </div>
         </div>
 
@@ -553,8 +553,6 @@
 
         <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
           <button onclick="openVipStoreModal()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition text-xs shadow">⭐ 正式版</button>
-          <button onclick="resetCooldownForTest()" class="w-full py-2 bg-indigo-100 dark:bg-indigo-950/60 hover:bg-indigo-200 text-indigo-700 dark:text-indigo-300 font-bold rounded-xl transition text-xs">⚡ [測試] 歸零額外經驗值冷卻</button>
-          <button onclick="clearLocalStorage()" class="w-full py-2 bg-rose-100 hover:bg-rose-200 text-rose-600 font-bold rounded-xl transition text-xs">🗑️ [測試] 清空 LocalStorage</button>
         </div>
       </div>
       <button onclick="saveSettings()" class="w-full mt-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition text-sm">儲存設定</button>
