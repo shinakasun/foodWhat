@@ -17,6 +17,8 @@ let userTaboos = JSON.parse(localStorage.getItem('user_taboos') || '[]');
 let isVIP = localStorage.getItem('is_vip') === 'true';
 let userBirth = JSON.parse(localStorage.getItem('user_birth') || 'null');
 let settingsPushTrivia = localStorage.getItem('push_trivia') !== 'false';
+let breakfastMode = localStorage.getItem('breakfast_mode') === 'true';          // 早餐模式開關
+let breakfastPromptDate = localStorage.getItem('breakfast_prompt_date') || '';  // 最後一次詢問早餐模式的日期
 let currentTheme = localStorage.getItem('app_theme') || 'default';
 
 let guildQuest = JSON.parse(localStorage.getItem('guild_quest') || 'null');
@@ -25,6 +27,7 @@ let activeAura = localStorage.getItem('active_aura') || null;
 let tempSelectedQuestType = null;
 let auraToastTimer = null;
 let confirmModalTimer = null;
+let lastQuestCoolingState = null; // 任務區上一次是否為冷卻中 (用來偵測冷卻結束)
 
 // 盲盒上限改為 6 個，若先前已解鎖 7 或 8 則收斂至 6
 let currentDisplayedFoods = JSON.parse(localStorage.getItem('current_displayed_foods') || '[]');
@@ -54,16 +57,30 @@ let isComposing = false;
 
 const ONLINE_FOODS_URL = 'https://shinakasun.github.io/foodWhatDataBase/foods.json';
 const ONLINE_TRIVIAS_URL = 'https://shinakasun.github.io/foodWhatDataBase/trivias.json';
+// 早餐食物在食物資料庫中的標籤名稱（若資料庫實際用別的名稱，只需改這裡）
+const BREAKFAST_TAG = 'breakfast';
+
 const ONLINE_JOKES_URL = 'https://shinakasun.github.io/foodWhatDataBase/jokes.json';
 
 const QUEST_CONFIG = {
   cold:      { label: '❄️ 凜冬陣地', shortName: '凜冬陣地', icon: '❄️', auraName: '極寒靈氣', btnLabel: '❄️ 極寒靈氣', cardClass: 'border-blue-200 bg-blue-50/50 text-blue-900' },
   hot:       { label: '🔥 灼熱地城', shortName: '灼熱地城', icon: '🔥', auraName: '灼熱靈氣', btnLabel: '🔥 灼熱靈氣', cardClass: 'border-rose-200 bg-rose-50/50 text-rose-900' },
   snack:     { label: '🍡 小惡魔城', shortName: '小惡魔城', icon: '🍡', auraName: '迅捷靈氣', btnLabel: '⚡ 迅捷靈氣', cardClass: 'border-amber-200 bg-amber-50/50 text-amber-900' },
-  fried:     { label: '🌋 罪惡熔爐', shortName: '罪惡熔爐', icon: '🌋', auraName: '罪惡靈氣', btnLabel: '🌋 罪惡靈氣', cardClass: 'border-orange-200 bg-orange-50/50 text-orange-900' },
-  breakfast: { label: '🌅 黎明城',   shortName: '黎明城',   icon: '🌅', auraName: '黎明靈氣', btnLabel: '🌅 黎明靈氣', cardClass: 'border-sky-200 bg-sky-50/50 text-sky-900' }
+  fried:     { label: '🌋 罪惡熔爐', shortName: '罪惡熔爐', icon: '🌋', auraName: '罪惡靈氣', btnLabel: '🌋 罪惡靈氣', cardClass: 'border-orange-200 bg-orange-50/50 text-orange-900' }
 };
-const ALL_QUEST_TYPES = ['cold', 'hot', 'snack', 'fried', 'breakfast'];
+const ALL_QUEST_TYPES = ['cold', 'hot', 'snack', 'fried'];
+
+// 黎明城 / 黎明靈氣已取消：清掉舊存檔中可能殘留的相關資料
+if (guildQuest && !QUEST_CONFIG[guildQuest.type]) {
+  guildQuest = null;
+  localStorage.removeItem('guild_quest');
+}
+unlockedAuras = unlockedAuras.filter(t => ALL_QUEST_TYPES.includes(t));
+localStorage.setItem('unlocked_auras', JSON.stringify(unlockedAuras));
+if (activeAura && !ALL_QUEST_TYPES.includes(activeAura)) {
+  activeAura = null;
+  localStorage.setItem('active_aura', '');
+}
 
 const ELEMENT_MAP = {
   elementMetal: { name: '金', icon: '🪙', class: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:border-amber-800' },
@@ -207,6 +224,7 @@ async function initApp() {
       if (currentFavoriteFood) renderFavoriteUI(currentFavoriteFood);
     }
   }
+  maybeShowBreakfastPrompt();
   updateCountersAndTimer();
   setInterval(updateCountersAndTimer, 1000);
 }
@@ -230,9 +248,46 @@ function updateAdSectionVisibility() {
   }
 }
 
+// 早餐時段：05:00 ~ 10:59
+function isBreakfastTime() {
+  const hour = new Date().getHours();
+  return hour >= 5 && hour < 11;
+}
+
+// 早餐模式只在早餐時段內生效，過了早餐時段自動回到一般模式（不會更動已儲存的開關）
+function isBreakfastModeActive() {
+  return breakfastMode && isBreakfastTime();
+}
+
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+// 早餐時段打開 APP 時詢問是否進入早餐模式（同一天只問一次）
+function maybeShowBreakfastPrompt() {
+  if (!userBirth || !isBreakfastTime()) return;
+  if (breakfastPromptDate === getTodayKey()) return;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-breakfast').classList.remove('hidden');
+}
+
+window.answerBreakfastPrompt = function(enter) {
+  breakfastMode = !!enter;
+  breakfastPromptDate = getTodayKey();
+  localStorage.setItem('breakfast_mode', String(breakfastMode));
+  localStorage.setItem('breakfast_prompt_date', breakfastPromptDate);
+  closeModal();
+};
+
+window.toggleBreakfastMode = function(on) {
+  breakfastMode = !!on;
+  localStorage.setItem('breakfast_mode', String(breakfastMode));
+};
+
 function getMealTimeDynamicText() {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 11) return "吃早餐囉!";
+  if (isBreakfastTime()) return "吃早餐囉!";
   else if (hour >= 11 && hour < 16) return "吃午餐囉!";
   else if (hour >= 16 && hour < 23) return "吃晚餐囉!";
   else return "吃宵夜囉!";
@@ -562,10 +617,9 @@ function updateGuildBannerUI() {
     subEl.innerText = "點擊接取副本任務，贏取稀有靈氣！";
   } else {
     const cfg = QUEST_CONFIG[guildQuest.type] || QUEST_CONFIG.cold;
-    const targetName = ensureGuildQuestTargetFood() || '指定任務食物';
     banner.className = "p-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white text-xs font-bold shadow-md cursor-pointer hover:opacity-95 transition flex justify-between items-center";
     titleEl.innerText = `⚔️ 進行中任務：${cfg.label}`;
-    subEl.innerText = `目標：${targetName} ｜ 進度：${guildQuest.progress} / 3`;
+    subEl.innerText = `任務進度：${guildQuest.progress} / 3 (點擊查看詳情)`;
   }
 }
 
@@ -586,14 +640,12 @@ window.openGuildModal = function() {
     abandonBtn.classList.remove('hidden');
     subtext.innerText = "當前正在執行的副本任務（僅食用指定任務目標才計入進度）：";
     const cfg = QUEST_CONFIG[guildQuest.type] || QUEST_CONFIG.cold;
-    const targetName = ensureGuildQuestTargetFood() || '指定任務食物';
     container.innerHTML = `
       <div class="p-3.5 rounded-xl border-2 border-amber-500 bg-amber-50/70 dark:bg-amber-950/40">
         <div class="flex justify-between items-center mb-1">
           <div class="text-xs font-black text-amber-900 dark:text-amber-200">${cfg.label}</div>
           <span class="text-xs font-bold text-amber-600">進度: ${guildQuest.progress} / 3</span>
         </div>
-        <div class="text-[11px] text-amber-800 dark:text-amber-300 font-medium">🎯 指定目標食物：<strong>${targetName}</strong></div>
       </div>
     `;
   } else if (remainingQuests.length === 0) {
@@ -696,8 +748,7 @@ function triggerAuraTextToast(type) {
     cold:      '極寒靈氣開啟<br>下一次隨機抽選只會出現清爽的食物囉！',
     hot:       '灼熱靈氣開啟<br>下一次隨機抽選只會出現熱呼呼的食物囉！',
     snack:     '迅捷靈氣開啟<br>下一次隨機抽選只會出現點心/輕食囉！',
-    fried:     '罪惡靈氣開啟<br>下一次隨機抽選只會出現油炸類食物囉！',
-    breakfast: '黎明靈氣開啟<br>下一次隨機抽選只會出現早餐屬性食物囉！'
+    fried:     '罪惡靈氣開啟<br>下一次隨機抽選只會出現油炸類食物囉！'
   };
   showAuraToast(texts[type]);
 }
@@ -968,6 +1019,7 @@ window.openSettingsModal = function() {
     document.getElementById('select-setting-day').value = userBirth.day;
   }
   document.getElementById('setting-push-trivia').checked = settingsPushTrivia;
+  document.getElementById('setting-breakfast-mode').checked = breakfastMode;
   document.getElementById('setting-theme-select').value = currentTheme;
   document.querySelectorAll('.meat-taboo').forEach(checkbox => {
     checkbox.checked = userTaboos.includes(checkbox.value);
@@ -1226,6 +1278,11 @@ function filterAndDraw(isDrawn = false) {
     if (activeAura) {
       pool = pool.filter(f => f.tags && f.tags.includes(activeAura));
     }
+    // 早餐模式：早餐時段內只抽帶有早餐標籤的食物（資料庫還沒有符合的早餐食物時，退回一般模式）
+    if (isBreakfastModeActive()) {
+      const breakfastPool = pool.filter(f => f.tags && f.tags.includes(BREAKFAST_TAG));
+      if (breakfastPool.length > 0) pool = breakfastPool;
+    }
     currentDisplayedFoods = weightedSample(pool, getUnlockBoxCount(), fortune.targetElementKey);
     localStorage.setItem('current_displayed_foods', JSON.stringify(currentDisplayedFoods));
 
@@ -1311,13 +1368,19 @@ function createGuildQuestCardHTML() {
   const card = document.createElement('div');
   
   if (isCoolingDown) {
-    card.className = 'p-3.5 border border-dashed border-amber-300 rounded-xl bg-amber-50/50 flex justify-between items-center opacity-75';
+    // 冷卻中：整塊任務區被灰色覆蓋、無法點擊，也不透露目標食物
+    card.className = 'relative overflow-hidden p-3.5 border-2 border-slate-300 rounded-xl bg-slate-100 flex justify-between items-center gap-2 shadow-sm select-none pointer-events-none cursor-not-allowed';
     card.innerHTML = `
-      <div class="flex items-center gap-2">
-        <span>⏳</span>
-        <div class="font-bold text-sm text-amber-800">任務目標尋找中...</div>
+      <div class="flex items-center gap-2.5 min-w-0 flex-1 opacity-60">
+        <span>🎯</span>
+        <div class="min-w-0 flex-1">
+          <div class="text-[10px] font-bold text-slate-500 leading-none mb-1">任務指定目標：</div>
+          <div class="font-black text-sm text-slate-500">？？？</div>
+        </div>
       </div>
-      <span class="text-[10px] font-bold text-amber-600 bg-amber-100 px-2.5 py-1 rounded">冷卻中</span>
+      <div class="absolute inset-0 flex items-center justify-center gap-1.5 bg-slate-500/70 text-white font-bold text-sm">
+        <span>⏳</span><span>冷卻中</span>
+      </div>
     `;
   } else {
     const foodName = ensureGuildQuestTargetFood() || '神祕任務料理';
@@ -1754,6 +1817,14 @@ function updateCountersAndTimer() {
     } else {
       coinSubtextEl.innerText = `⏳ 補充 ${timeStr}`;
     }
+  }
+
+  // 任務區冷卻狀態改變 (例如冷卻剛結束) 時，重新繪製任務卡片
+  const questCooling = remainEatMs > 0;
+  if (questCooling !== lastQuestCoolingState) {
+    const shouldRerender = lastQuestCoolingState !== null && guildQuest && guildQuest.progress < 3 && currentDisplayedFoods.length > 0;
+    lastQuestCoolingState = questCooling;
+    if (shouldRerender) renderMainUI(currentDisplayedFoods);
   }
 
   const timerBar = document.getElementById('cooldown-timer-bar');
